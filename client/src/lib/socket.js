@@ -7,7 +7,12 @@ export function createSocket() {
   return io(SOCKET_URL, {
     autoConnect: false,
     auth: { token: getToken() },
-    transports: ['websocket'],
-    upgrade: false
+    transports: ['websocket', 'polling'],
+    upgrade: true,
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1200,
+    reconnectionDelayMax: 6000,
+    timeout: 20000
   });
 }

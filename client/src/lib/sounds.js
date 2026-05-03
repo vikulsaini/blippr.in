@@ -5,12 +5,17 @@ let activeInterval;
 function getContext() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) return null;
+  if (!unlocked) return null;
   context ||= new AudioContext();
   return context;
 }
 
 export function unlockSounds() {
-  const audioContext = getContext();
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  context ||= new AudioContext();
+  unlocked = true;
+  const audioContext = context;
   if (!audioContext) return;
   audioContext.resume?.().catch(() => {});
 
@@ -21,7 +26,6 @@ export function unlockSounds() {
   gain.connect(audioContext.destination);
   oscillator.start();
   oscillator.stop(audioContext.currentTime + 0.02);
-  unlocked = true;
 }
 
 export function installSoundUnlock() {
@@ -31,6 +35,7 @@ export function installSoundUnlock() {
 }
 
 export function playTone({ frequency = 760, duration = 0.18, volume = 0.05, type = 'sine' } = {}) {
+  if (!unlocked) return;
   const audioContext = getContext();
   if (!audioContext || !unlocked) return;
   audioContext.resume?.().catch(() => {});
