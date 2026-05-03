@@ -14,8 +14,9 @@ import { createPeer } from '../lib/webrtc.js';
 export default function Chats() {
   const location = useLocation();
   const { setBottomNavHidden } = useOutletContext() || {};
-  const [me, setMe] = useState(null);
-  const [chats, setChats] = useState([]);
+  const tokenUserId = normalizeId(getTokenSubject());
+  const [me, setMe] = useState(() => readCache('me', 'global'));
+  const [chats, setChats] = useState(() => readCache('chats', tokenUserId, []));
   const [activeChat, setActiveChat] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
   const [profileChat, setProfileChat] = useState(null);
@@ -26,7 +27,7 @@ export default function Chats() {
   const [typingChatId, setTypingChatId] = useState(null);
   const [call, setCall] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
-  const currentUserId = normalizeId(me?._id || getTokenSubject());
+  const currentUserId = normalizeId(me?._id || tokenUserId);
   const typingTimerRef = useRef(null);
   const callRef = useRef(null);
   const peerRef = useRef(null);
@@ -114,7 +115,6 @@ export default function Chats() {
   }
 
   useEffect(() => {
-    const tokenUserId = getTokenSubject();
     const cachedMe = readCache('me', 'global');
     if (cachedMe) setMe(cachedMe);
     const cacheUserId = normalizeId(cachedMe?._id || tokenUserId);
@@ -399,13 +399,14 @@ export default function Chats() {
   async function sendMedia(file) {
     if (!activeChat || !file) return;
     const kind = file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : 'file';
+    const previewUrl = URL.createObjectURL(file);
     const tempId = `temp-media-${Date.now()}`;
     const optimisticMessage = {
       _id: tempId,
       chat: activeChat._id,
       sender: currentUserId,
       text: '',
-      media: { url: '', type: kind },
+      media: { url: previewUrl, type: kind, name: file.name, local: true },
       reactions: [],
       status: 'sending',
       createdAt: new Date().toISOString()
@@ -429,6 +430,7 @@ export default function Chats() {
         body: JSON.stringify({ media })
       });
       setMessages((current) => current.map((item) => (item._id === tempId ? message : item)));
+      URL.revokeObjectURL(previewUrl);
     } catch {
       setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
     }

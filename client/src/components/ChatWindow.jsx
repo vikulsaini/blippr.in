@@ -268,7 +268,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
             <p className="line-clamp-2">{message.replyTo.text || 'Replied message'}</p>
           </div>
         )}
-        {message.media?.url && <MediaPreview media={message.media} />}
+        {message.media && <MediaPreview media={message.media} />}
         {message.text && <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>}
         <div className={`mt-0.5 flex items-center justify-end gap-2 text-[10px] ${mine ? 'text-ink/55' : 'text-white/40'}`}>
           {message.editedAt && <span>edited</span>}
@@ -404,11 +404,11 @@ function DateDivider({ value }) {
 }
 
 function MediaPreview({ media }) {
+  if (!media.url) return <span className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs">Preparing attachment...</span>;
   if (media.type === 'image') return <img src={media.url} alt="" className="mb-2 max-h-64 rounded-2xl object-cover" />;
   if (media.type === 'audio') return <audio src={media.url} controls className="mb-2 max-w-full" />;
   if (media.type === 'video') return <video src={media.url} controls className="mb-2 max-h-64 rounded-2xl" />;
-  if (!media.url) return <span className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs">Uploading attachment...</span>;
-  return <a href={media.url} className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs underline">Open attachment</a>;
+  return <a href={media.url} className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs underline">{media.name || 'Open attachment'}</a>;
 }
 
 function shouldShowDate(previous, current) {
