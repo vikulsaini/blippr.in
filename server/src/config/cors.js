@@ -1,5 +1,9 @@
-const configuredOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
+const defaultOrigins = [
+  'http://localhost:5173',
+  'https://client-bice-one-x6xfheue7f.vercel.app'
+];
+
+const configuredOrigins = [...defaultOrigins, ...(process.env.CLIENT_URL || '').split(',')]
   .map((origin) => origin.trim())
   .filter(Boolean);
 
