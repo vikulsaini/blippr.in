@@ -6,6 +6,8 @@ import { findOrQueueUser, leaveQueues } from '../services/matchmaking.service.js
 import { notifyUser } from '../services/notification.service.js';
 import { socketAuth } from './auth.socket.js';
 
+const CALL_RING_TIMEOUT_MS = 45000;
+
 function callPeerId(call, userId) {
   if (!call) return null;
   if (call.caller.toString() === userId) return call.receiver.toString();
@@ -39,6 +41,25 @@ function emitCallUpdate(io, userId, peerId, call) {
   io.to(`user:${peerId}`).emit('call:updated', { call });
   io.to(`user:${userId}`).emit('call:updated', { call });
   emitCallChatUpdate(io, call);
+}
+
+async function markMissedCallIfStillRinging(io, callId) {
+  const current = await Call.findById(callId);
+  if (!current || current.status !== 'ringing') return;
+
+  const call = await Call.findByIdAndUpdate(
+    current._id,
+    { status: 'missed', endedAt: new Date(), durationSeconds: 0 },
+    { new: true }
+  )
+    .populate('caller', 'name username avatar')
+    .populate('receiver', 'name username avatar');
+
+  const callerId = call.caller._id.toString();
+  const receiverId = call.receiver._id.toString();
+  emitCallUpdate(io, callerId, receiverId, call);
+  io.to(`user:${callerId}`).emit('call:end', { from: receiverId, callId: call._id });
+  io.to(`user:${receiverId}`).emit('call:end', { from: callerId, callId: call._id });
 }
 
 export function registerSockets(io) {
@@ -160,6 +181,11 @@ export function registerSockets(io) {
         type: 'call',
         callId: call._id
       });
+      setTimeout(() => {
+        markMissedCallIfStillRinging(io, call._id).catch((error) => {
+          console.warn(`Failed to mark missed call: ${error.message}`);
+        });
+      }, CALL_RING_TIMEOUT_MS);
       ack?.({ ok: true, callId: call._id });
     });
     socket.on('call:answer', async ({ to, answer, callId }) => {

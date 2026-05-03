@@ -29,6 +29,7 @@ export default function Chats() {
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const ringtoneRef = useRef({ context: null, timer: null });
+  const callTimeoutRef = useRef(null);
 
   function mergeChat(updatedChat, unreadCount) {
     setChats((current) => {
@@ -60,6 +61,21 @@ export default function Chats() {
   function updateCall(next) {
     callRef.current = typeof next === 'function' ? next(callRef.current) : next;
     setCall(callRef.current);
+  }
+
+  function clearCallTimeout() {
+    if (callTimeoutRef.current) window.clearTimeout(callTimeoutRef.current);
+    callTimeoutRef.current = null;
+  }
+
+  function scheduleCallTimeout(peerUser, callId) {
+    clearCallTimeout();
+    callTimeoutRef.current = window.setTimeout(() => {
+      const currentCall = callRef.current;
+      if (!currentCall || currentCall.status === 'connected') return;
+      getRealtimeSocket().emit('call:end', { to: peerUser._id, callId: callId || currentCall.callId });
+      cleanupCall();
+    }, 45000);
   }
 
   function playRingPulse(tone = 'incoming') {
@@ -179,14 +195,17 @@ export default function Chats() {
         peerUser: findUserById(from, fromUser),
         offer,
         muted: false,
-        cameraOff: false
+        cameraOff: false,
+        speakerOn: callType === 'video'
       });
+      scheduleCallTimeout(findUserById(from, fromUser), callId);
     };
 
     const handleAnswer = async ({ answer, callId }) => {
       if (callRef.current?.callId !== callId || !peerRef.current) return;
       await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
       stopRingtone();
+      clearCallTimeout();
       updateCall((current) => ({ ...current, status: 'connected' }));
     };
 
@@ -206,6 +225,14 @@ export default function Chats() {
       const chatId = updatedCall?.chat?._id || updatedCall?.chat;
       if (!activeChat || chatId === activeChat._id) mergeCall(updatedCall);
     };
+    const handleAccepted = ({ chat }) => {
+      const memberIds = new Set((chat?.members || []).map((member) => member._id || member));
+      setChats((current) => {
+        const exists = current.some((item) => item._id === chat._id);
+        return exists ? current.map((item) => (item._id === chat._id ? chat : item)) : [chat, ...current];
+      });
+      if (callRef.current?.peerUser && memberIds.has(callRef.current.peerUser._id)) return;
+    };
 
     socket.on('call:incoming', handleIncomingCall);
     socket.on('call:answer', handleAnswer);
@@ -213,6 +240,7 @@ export default function Chats() {
     socket.on('call:reject', handleCallClosed);
     socket.on('call:end', handleCallClosed);
     socket.on('call:updated', handleCallUpdated);
+    socket.on('friend:request:accepted', handleAccepted);
 
     return () => {
       socket.off('call:incoming', handleIncomingCall);
@@ -221,6 +249,7 @@ export default function Chats() {
       socket.off('call:reject', handleCallClosed);
       socket.off('call:end', handleCallClosed);
       socket.off('call:updated', handleCallUpdated);
+      socket.off('friend:request:accepted', handleAccepted);
     };
   }, [activeChat, chats]);
 
@@ -386,10 +415,12 @@ export default function Chats() {
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
 
-      updateCall({ status: 'calling', direction: 'outgoing', type, peerUser, localStream, muted: false, cameraOff: false });
+      updateCall({ status: 'calling', direction: 'outgoing', type, peerUser, localStream, muted: false, cameraOff: false, speakerOn: type === 'video' });
       getRealtimeSocket().emit('call:offer', { to: peerUser._id, offer, callType: type }, (ack) => {
-        if (ack?.ok) updateCall((current) => ({ ...current, callId: ack.callId }));
-        else cleanupCall();
+        if (ack?.ok) {
+          updateCall((current) => ({ ...current, callId: ack.callId }));
+          scheduleCallTimeout(peerUser, ack.callId);
+        } else cleanupCall();
       });
     } catch (err) {
       stopRingtone();
@@ -410,7 +441,8 @@ export default function Chats() {
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       getRealtimeSocket().emit('call:answer', { to: currentCall.peerUser._id, answer, callId: currentCall.callId });
-      updateCall((callState) => ({ ...callState, status: 'connected', localStream }));
+      clearCallTimeout();
+      updateCall((callState) => ({ ...callState, status: 'connected', localStream, speakerOn: currentCall.type === 'video' || callState?.speakerOn }));
     } catch {
       rejectCall();
     }
@@ -433,6 +465,7 @@ export default function Chats() {
   }
 
   function cleanupCall() {
+    clearCallTimeout();
     stopRingtone();
     peerRef.current?.close();
     peerRef.current = null;
@@ -455,6 +488,10 @@ export default function Chats() {
       track.enabled = !track.enabled;
     });
     updateCall((current) => ({ ...current, cameraOff: !current?.cameraOff }));
+  }
+
+  function toggleSpeaker() {
+    updateCall((current) => ({ ...current, speakerOn: !current?.speakerOn }));
   }
 
   async function switchCamera() {
@@ -576,6 +613,7 @@ export default function Chats() {
         onToggleMute={toggleMute}
         onToggleCamera={toggleCamera}
         onSwitchCamera={switchCamera}
+        onToggleSpeaker={toggleSpeaker}
       />
     </div>
   );

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, MicOff, Phone, PhoneOff, RotateCcw, Video, VideoOff } from 'lucide-react';
+import { Mic, MicOff, Phone, PhoneOff, RotateCw, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
 
-export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleMute, onToggleCamera, onSwitchCamera }) {
+export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleMute, onToggleCamera, onSwitchCamera, onToggleSpeaker }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
@@ -14,9 +14,11 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
   useEffect(() => {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = call?.remoteStream || null;
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = call?.remoteStream || null;
+    if (remoteAudioRef.current) remoteAudioRef.current.volume = call?.speakerOn ? 1 : 0.72;
+    setAudioOutput(remoteAudioRef.current, call?.speakerOn).catch(() => {});
     remoteAudioRef.current?.play?.().catch(() => {});
     remoteVideoRef.current?.play?.().catch(() => {});
-  }, [call?.remoteStream]);
+  }, [call?.remoteStream, call?.speakerOn]);
 
   if (!call) return null;
 
@@ -69,10 +71,11 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
               <CallButton label="Accept" icon={Phone} onClick={onAccept} tone="mint" />
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-5 gap-2">
               <CallButton label={call.muted ? 'Unmute' : 'Mute'} icon={call.muted ? MicOff : Mic} onClick={onToggleMute} />
+              <CallButton label="Speaker" icon={call.speakerOn ? Volume2 : VolumeX} onClick={onToggleSpeaker} active={call.speakerOn} />
               <CallButton label={call.cameraOff ? 'Camera' : 'Video'} icon={call.cameraOff ? VideoOff : Video} onClick={onToggleCamera} disabled={!isVideo} />
-              <CallButton label="Switch" icon={RotateCcw} onClick={onSwitchCamera} disabled={!isVideo || call.cameraOff} />
+              <CallButton label="Switch" icon={RotateCw} onClick={onSwitchCamera} disabled={!isVideo || call.cameraOff} />
               <CallButton label="End" icon={PhoneOff} onClick={onEnd} tone="danger" />
             </div>
           )}
@@ -82,16 +85,24 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
   );
 }
 
-function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = false }) {
+async function setAudioOutput(audioElement, speakerOn) {
+  if (!audioElement?.setSinkId || !navigator.mediaDevices?.enumerateDevices) return;
+
+  const outputs = await navigator.mediaDevices.enumerateDevices();
+  const speaker = outputs.find((device) => device.kind === 'audiooutput' && /speaker|default/i.test(device.label));
+  await audioElement.setSinkId(speakerOn && speaker ? speaker.deviceId : 'default');
+}
+
+function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = false, active = false }) {
   const tones = {
-    neutral: 'bg-white/10 text-white',
+    neutral: active ? 'bg-white text-ink' : 'bg-white/10 text-white',
     danger: 'bg-coral text-ink',
     mint: 'bg-mint text-ink'
   };
 
   return (
-    <button onClick={onClick} disabled={disabled} className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-3xl text-xs font-semibold disabled:opacity-35 ${tones[tone]}`}>
-      <Icon size={21} />
+    <button onClick={onClick} disabled={disabled} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-semibold disabled:opacity-35 ${tones[tone]}`}>
+      <Icon size={19} />
       {label}
     </button>
   );

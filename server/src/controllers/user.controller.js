@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import mongoose from 'mongoose';
 import Chat from '../models/Chat.js';
+import FriendRequest from '../models/FriendRequest.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -101,9 +102,14 @@ export const nearbyUsers = asyncHandler(async (req, res) => {
 export const availableUsers = asyncHandler(async (req, res) => {
   const coordinates = req.user.location?.coordinates;
   const friendChats = await Chat.find({ type: 'direct', members: req.user._id }).select('members');
+  const pendingRequests = await FriendRequest.find({
+    status: 'pending',
+    $or: [{ from: req.user._id }, { to: req.user._id }]
+  }).select('from to');
   const connectedIds = friendChats.flatMap((chat) => chat.members.map((memberId) => memberId.toString()));
+  const pendingIds = pendingRequests.flatMap((request) => [request.from.toString(), request.to.toString()]);
   const baseFilter = {
-    _id: { $nin: [req.user._id.toString(), ...connectedIds, ...(req.user.blockedUsers || []).map((userId) => userId.toString())] },
+    _id: { $nin: [req.user._id.toString(), ...connectedIds, ...pendingIds, ...(req.user.blockedUsers || []).map((userId) => userId.toString())] },
     blockedUsers: { $ne: req.user._id },
     age: { $gte: 18 }
   };
@@ -135,8 +141,13 @@ export const availableUsers = asyncHandler(async (req, res) => {
 
 export const randomAvailableUsers = asyncHandler(async (req, res) => {
   const friendChats = await Chat.find({ type: 'direct', members: req.user._id }).select('members');
+  const pendingRequests = await FriendRequest.find({
+    status: 'pending',
+    $or: [{ from: req.user._id }, { to: req.user._id }]
+  }).select('from to');
   const connectedIds = friendChats.flatMap((chat) => chat.members.map((memberId) => memberId.toString()));
-  const excludedIds = [req.user._id.toString(), ...connectedIds, ...(req.user.blockedUsers || []).map((userId) => userId.toString())];
+  const pendingIds = pendingRequests.flatMap((request) => [request.from.toString(), request.to.toString()]);
+  const excludedIds = [req.user._id.toString(), ...connectedIds, ...pendingIds, ...(req.user.blockedUsers || []).map((userId) => userId.toString())];
   const users = await User.aggregate([
     {
       $match: {
