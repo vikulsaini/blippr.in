@@ -22,7 +22,18 @@ const userSchema = new mongoose.Schema(
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     pushTokens: [String],
     lastSeenAt: Date,
-    isOnline: { type: Boolean, default: false }
+    isOnline: { type: Boolean, default: false },
+    lastIp: { type: String, select: false },
+    ipHistory: {
+      type: [
+        {
+          ip: String,
+          at: Date
+        }
+      ],
+      select: false,
+      default: []
+    }
   },
   { timestamps: true }
 );

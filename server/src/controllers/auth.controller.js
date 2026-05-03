@@ -63,8 +63,14 @@ export const guestSchema = Joi.object({
 });
 
 export const requestOtp = asyncHandler(async (req, res) => {
-  await issueOtp(req.body.phone);
-  res.json({ ok: true, message: 'OTP sent' });
+  const { otp, delivery } = await issueOtp(req.body.phone);
+  const exposeOtp = process.env.NODE_ENV !== 'production' || process.env.EXPOSE_OTP_IN_RESPONSE === 'true';
+  res.json({
+    ok: true,
+    message: delivery.sent ? 'OTP sent' : 'OTP generated. SMS provider is not configured.',
+    smsSent: delivery.sent,
+    ...(exposeOtp ? { otp } : {})
+  });
 });
 
 export const verifyPhoneOtp = asyncHandler(async (req, res) => {

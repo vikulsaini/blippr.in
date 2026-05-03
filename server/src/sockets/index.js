@@ -80,8 +80,11 @@ export function registerSockets(io) {
       try {
         const chat = await Chat.findOne({ _id: chatId, members: socket.user._id });
         if (!chat) throw new Error('Chat not found');
-        const message = await Message.create({ chat: chat._id, sender: socket.user._id, text, media });
-        chat.lastMessage = message._id;
+      const createdMessage = await Message.create({ chat: chat._id, sender: socket.user._id, text, media });
+      const message = await Message.findById(createdMessage._id)
+        .populate('sender', 'name username avatar')
+        .populate('replyTo', 'text sender');
+      chat.lastMessage = createdMessage._id;
         if (!chat.unreadCounts) chat.unreadCounts = new Map();
         for (const memberId of chat.members) {
           const key = memberId.toString();

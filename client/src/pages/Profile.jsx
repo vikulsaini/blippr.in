@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Ban, Bell, ChevronRight, Database, LockKeyhole, LogOut, MapPin, Save, Settings, Shield, Smartphone, Unlock, UserRound } from 'lucide-react';
 import InstallAppButton from '../components/InstallAppButton.jsx';
 import { api } from '../lib/api.js';
+import { clearVartaCache } from '../lib/cache.js';
 import { enablePushNotifications } from '../lib/notifications.js';
 import { presenceText } from '../lib/presence.js';
 
@@ -102,6 +103,7 @@ export default function Profile() {
   }
 
   function logout() {
+    clearVartaCache();
     localStorage.removeItem('varta_token');
     window.location.href = '/auth';
   }

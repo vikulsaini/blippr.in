@@ -12,6 +12,8 @@ export default function Auth() {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [otpHint, setOtpHint] = useState('');
+  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(initialProfile);
   const [error, setError] = useState('');
 
@@ -23,6 +25,7 @@ export default function Auth() {
   function switchMode(nextMode) {
     setMode(nextMode);
     setError('');
+    setOtpHint('');
     setOtpSent(false);
   }
 
@@ -36,6 +39,7 @@ export default function Auth() {
   async function submitEmail(event) {
     event.preventDefault();
     setError('');
+    setLoading(true);
     try {
       const path = mode === 'signup' ? '/api/auth/email/signup' : '/api/auth/email/login';
       const body = mode === 'signup' ? { ...profilePayload(), email, password, name: profile.name, username: profile.username } : { email, password };
@@ -43,12 +47,15 @@ export default function Auth() {
       finishAuth(token);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   async function continueAsGuest(event) {
     event.preventDefault();
     setError('');
+    setLoading(true);
     try {
       const { token } = await api('/api/auth/guest', {
         method: 'POST',
@@ -57,23 +64,32 @@ export default function Auth() {
       finishAuth(token);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   async function requestOtp(event) {
     event.preventDefault();
     setError('');
+    setOtpHint('');
+    setLoading(true);
     try {
-      await api('/api/auth/otp/request', { method: 'POST', body: JSON.stringify({ phone }) });
+      const result = await api('/api/auth/otp/request', { method: 'POST', body: JSON.stringify({ phone }) });
       setOtpSent(true);
+      if (result.otp) setOtpHint(`Testing OTP: ${result.otp}`);
+      else if (!result.smsSent) setOtpHint('OTP was generated, but SMS is not configured on the server.');
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   async function verifyOtp(event) {
     event.preventDefault();
     setError('');
+    setLoading(true);
     try {
       const { token } = await api('/api/auth/otp/verify', {
         method: 'POST',
@@ -82,6 +98,8 @@ export default function Auth() {
       finishAuth(token);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -101,14 +119,14 @@ export default function Auth() {
         </div>
 
         {mode === 'login' && (
-          <AuthForm title="Welcome back" icon={Mail} onSubmit={submitEmail} action="Login">
+          <AuthForm title="Welcome back" icon={Mail} onSubmit={submitEmail} action="Login" loading={loading}>
             <TextInput value={email} onChange={setEmail} placeholder="Email" type="email" />
             <TextInput value={password} onChange={setPassword} placeholder="Password" type="password" />
           </AuthForm>
         )}
 
         {mode === 'signup' && (
-          <AuthForm title="Create account" icon={UserRound} onSubmit={submitEmail} action="Create account">
+          <AuthForm title="Create account" icon={UserRound} onSubmit={submitEmail} action="Create account" loading={loading}>
             <TextInput value={profile.name} onChange={(value) => setProfile((current) => ({ ...current, name: value }))} placeholder="Full name" />
             <TextInput value={profile.username} onChange={(value) => setProfile((current) => ({ ...current, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} placeholder="Username" prefix="@" />
             <TextInput value={email} onChange={setEmail} placeholder="Email" type="email" />
@@ -118,18 +136,23 @@ export default function Auth() {
         )}
 
         {mode === 'guest' && (
-          <AuthForm title="Guest setup" icon={UserRound} onSubmit={continueAsGuest} action="Continue as guest">
+          <AuthForm title="Guest setup" icon={UserRound} onSubmit={continueAsGuest} action="Continue as guest" loading={loading}>
             <ProfileSetup profile={profile} setProfile={setProfile} compact />
           </AuthForm>
         )}
 
         {mode === 'phone' && (
-          <AuthForm title="Phone login" icon={Phone} onSubmit={otpSent ? verifyOtp : requestOtp} action={otpSent ? 'Verify OTP' : 'Send OTP'}>
-            <TextInput value={profile.name} onChange={(value) => setProfile((current) => ({ ...current, name: value }))} placeholder="Full name" />
+          <AuthForm title="Phone login" icon={Phone} onSubmit={otpSent ? verifyOtp : requestOtp} action={otpSent ? 'Verify OTP' : 'Send OTP'} loading={loading}>
             {otpSent && <TextInput value={profile.username} onChange={(value) => setProfile((current) => ({ ...current, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} placeholder="Username for new account" prefix="@" />}
             <TextInput value={phone} onChange={setPhone} placeholder="+91 98765 43210" type="tel" />
             {otpSent && <TextInput value={otp} onChange={setOtp} placeholder="6-digit OTP" inputMode="numeric" />}
-            <ProfileSetup profile={profile} setProfile={setProfile} compact />
+            {otpSent && (
+              <>
+                <TextInput value={profile.name} onChange={(value) => setProfile((current) => ({ ...current, name: value }))} placeholder="Full name" />
+                <ProfileSetup profile={profile} setProfile={setProfile} compact />
+              </>
+            )}
+            {otpHint && <p className="rounded-[14px] border border-mint/25 bg-mint/10 px-3 py-2 text-xs text-mint">{otpHint}</p>}
           </AuthForm>
         )}
 
@@ -147,7 +170,7 @@ function ModeButton({ active, onClick, label }) {
   );
 }
 
-function AuthForm({ title, icon: Icon, onSubmit, action, children }) {
+function AuthForm({ title, icon: Icon, onSubmit, action, children, loading = false }) {
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4">
       <div className="flex items-center gap-3">
@@ -155,7 +178,9 @@ function AuthForm({ title, icon: Icon, onSubmit, action, children }) {
         <h2 className="text-xl font-semibold">{title}</h2>
       </div>
       {children}
-      <button className="btn-primary w-full rounded-[16px] py-3 font-semibold">{action}</button>
+      <button disabled={loading} className="btn-primary w-full rounded-[16px] py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-55">
+        {loading ? 'Please wait...' : action}
+      </button>
     </form>
   );
 }

@@ -57,7 +57,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
                 );
               }
               const message = item.message;
-              const mine = message.sender === currentUserId;
+              const mine = getId(message.sender) === currentUserId;
               return (
                 <div key={`message-${message._id}`}>
                   {showDate && <DateDivider value={item.createdAt} />}

@@ -57,6 +57,11 @@ Important values:
 - `REDIS_URL`
 - `JWT_SECRET`
 - `CLIENT_URL`
+- `OTP_TTL_SECONDS`
+- `EXPOSE_OTP_IN_RESPONSE` - set to `true` only while testing if SMS is not configured
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `TWILIO_FROM_NUMBER`
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
@@ -95,4 +100,3 @@ This is browser-based installation, not a generated APK file. For a store/APK bu
 - [API routes](docs/API_ROUTES.md)
 - [Socket events](docs/SOCKET_EVENTS.md)
 - [Deployment](docs/DEPLOYMENT.md)
-

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { trackUserActivity } from '../services/activity.service.js';
 
 export async function requireAuth(req, _res, next) {
   try {
@@ -18,6 +19,7 @@ export async function requireAuth(req, _res, next) {
       throw error;
     }
     req.user = user;
+    trackUserActivity(user._id, req);
     next();
   } catch (error) {
     error.status = error.status || 401;

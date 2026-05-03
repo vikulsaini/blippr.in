@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { trackUserActivity } from '../services/activity.service.js';
 
 export async function socketAuth(socket, next) {
   try {
@@ -9,6 +10,7 @@ export async function socketAuth(socket, next) {
     const user = await User.findById(payload.sub);
     if (!user) throw new Error('Invalid user');
     socket.user = user;
+    trackUserActivity(user._id, socket);
     next();
   } catch (error) {
     next(error);

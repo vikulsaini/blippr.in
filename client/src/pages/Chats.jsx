@@ -5,6 +5,7 @@ import CallOverlay from '../components/CallOverlay.jsx';
 import ChatWindow from '../components/ChatWindow.jsx';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
+import { readCache, writeCache } from '../lib/cache.js';
 import { presenceText } from '../lib/presence.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 import { playMessageSound, startCallSound, stopCallSound, vibrate as vibrateDevice } from '../lib/sounds.js';
@@ -33,6 +34,7 @@ export default function Chats() {
   const callTimeoutRef = useRef(null);
   const remoteIceQueueRef = useRef([]);
   const localIceQueueRef = useRef([]);
+  const activeChatIdRef = useRef(null);
 
   function mergeChat(updatedChat, unreadCount) {
     setChats((current) => {
@@ -111,6 +113,13 @@ export default function Chats() {
   }
 
   useEffect(() => {
+    const cachedMe = readCache('me', 'global');
+    if (cachedMe) setMe(cachedMe);
+    if (cachedMe?._id) {
+      const cachedChats = readCache('chats', cachedMe._id, []);
+      if (cachedChats.length) setChats(cachedChats);
+    }
+
     async function load() {
       const [{ user }, { chats: loadedChats }] = await Promise.all([
         api('/api/users/me'),
@@ -118,11 +127,21 @@ export default function Chats() {
       ]);
       setMe(user);
       setChats(loadedChats);
+      writeCache('me', user, 'global');
+      writeCache('chats', loadedChats, user._id);
       const requestedChatId = new URLSearchParams(location.search).get('chat');
       setActiveChat(requestedChatId ? loadedChats.find((chat) => chat._id === requestedChatId) || null : null);
     }
     load().catch(() => {});
   }, [location.search]);
+
+  useEffect(() => {
+    if (me) writeCache('me', me, 'global');
+  }, [me]);
+
+  useEffect(() => {
+    if (me?._id) writeCache('chats', chats, me._id);
+  }, [chats, me?._id]);
 
   useEffect(() => {
     setBottomNavHidden?.(!!activeChat);
@@ -239,6 +258,7 @@ export default function Chats() {
   useEffect(() => () => stopRingtone(), []);
 
   useEffect(() => {
+    activeChatIdRef.current = activeChat?._id || null;
     if (!activeChat) {
       setMessages([]);
       setCalls([]);
@@ -246,21 +266,40 @@ export default function Chats() {
     }
     const socket = getRealtimeSocket();
     socket.emit('chat:join', { chatId: activeChat._id });
+    if (me?._id) {
+      setMessages(readCache(`messages:${activeChat._id}`, me._id, []));
+      setCalls(readCache(`calls:${activeChat._id}`, me._id, []));
+    }
     Promise.all([
       api(`/api/chats/${activeChat._id}/messages`),
       api(`/api/chats/${activeChat._id}/calls`)
     ])
       .then(async ([messageData, callData]) => {
+        if (activeChatIdRef.current !== activeChat._id) return;
         setMessages(messageData.messages);
         setCalls(callData.calls || []);
+        if (me?._id) {
+          writeCache(`messages:${activeChat._id}`, messageData.messages, me._id);
+          writeCache(`calls:${activeChat._id}`, callData.calls || [], me._id);
+        }
         await api(`/api/chats/${activeChat._id}/read`, { method: 'PATCH' });
         setChats((current) => current.map((chat) => (chat._id === activeChat._id ? { ...chat, unreadCount: 0 } : chat)));
       })
       .catch(() => {
-        setMessages([]);
-        setCalls([]);
+        if (!me?._id) {
+          setMessages([]);
+          setCalls([]);
+        }
       });
-  }, [activeChat]);
+  }, [activeChat, me?._id]);
+
+  useEffect(() => {
+    if (activeChat?._id && me?._id) writeCache(`messages:${activeChat._id}`, messages, me._id);
+  }, [messages, activeChat?._id, me?._id]);
+
+  useEffect(() => {
+    if (activeChat?._id && me?._id) writeCache(`calls:${activeChat._id}`, calls, me._id);
+  }, [calls, activeChat?._id, me?._id]);
 
   useEffect(() => {
     const socket = getRealtimeSocket();
@@ -298,13 +337,38 @@ export default function Chats() {
   async function sendMessage(event) {
     event.preventDefault();
     if (!activeChat || !text.trim()) return;
-    const { message } = await api(`/api/chats/${activeChat._id}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ text: text.trim(), replyTo: replyTo?._id })
-    });
-    setMessages((current) => (current.some((item) => item._id === message._id) ? current : [...current, message]));
+    const messageText = text.trim();
+    const repliedMessage = replyTo;
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      _id: tempId,
+      chat: activeChat._id,
+      sender: me?._id,
+      text: messageText,
+      replyTo: repliedMessage ? { _id: repliedMessage._id, text: repliedMessage.text, sender: repliedMessage.sender } : null,
+      reactions: [],
+      status: 'sending',
+      createdAt: new Date().toISOString()
+    };
+
+    setMessages((current) => [...current, optimisticMessage]);
+    setChats((current) =>
+      current
+        .map((chat) => (chat._id === activeChat._id ? { ...chat, lastMessage: optimisticMessage, updatedAt: optimisticMessage.createdAt } : chat))
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    );
     handleTextChange('');
     setReplyTo(null);
+
+    try {
+      const { message } = await api(`/api/chats/${activeChat._id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ text: messageText, replyTo: repliedMessage?._id })
+      });
+      setMessages((current) => current.map((item) => (item._id === tempId ? message : item)).filter((item, index, all) => all.findIndex((entry) => entry._id === item._id) === index));
+    } catch {
+      setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
+    }
   }
 
   function handleTextChange(value) {

@@ -37,6 +37,12 @@ function withUnreadCount(chat, userId) {
   return item;
 }
 
+async function populateMessage(messageId) {
+  return Message.findById(messageId)
+    .populate('sender', 'name username avatar')
+    .populate('replyTo', 'text sender');
+}
+
 export const listChats = asyncHandler(async (req, res) => {
   const usersBlockingMe = await User.find({ blockedUsers: req.user._id }).select('_id');
   const hiddenMemberIds = [
@@ -102,10 +108,11 @@ export const listMessages = asyncHandler(async (req, res) => {
     throw error;
   }
   const messages = await Message.find({ chat: chat._id, deletedFor: { $ne: req.user._id }, deletedAt: { $exists: false } })
+    .populate('sender', 'name username avatar')
     .populate('replyTo', 'text sender')
-    .sort('createdAt')
+    .sort('-createdAt')
     .limit(80);
-  res.json({ messages });
+  res.json({ messages: messages.reverse() });
 });
 
 export const listCalls = asyncHandler(async (req, res) => {
@@ -119,9 +126,9 @@ export const listCalls = asyncHandler(async (req, res) => {
   const calls = await Call.find({ chat: chat._id })
     .populate('caller', 'name username avatar')
     .populate('receiver', 'name username avatar')
-    .sort('createdAt')
+    .sort('-createdAt')
     .limit(80);
-  res.json({ calls });
+  res.json({ calls: calls.reverse() });
 });
 
 export const sendMessage = asyncHandler(async (req, res) => {
@@ -131,8 +138,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
     error.status = 404;
     throw error;
   }
-  const message = await Message.create({ chat: chat._id, sender: req.user._id, ...req.body });
-  chat.lastMessage = message._id;
+  const createdMessage = await Message.create({ chat: chat._id, sender: req.user._id, ...req.body });
+  const message = await populateMessage(createdMessage._id);
+  chat.lastMessage = createdMessage._id;
   if (!chat.unreadCounts) chat.unreadCounts = new Map();
   for (const memberId of chat.members) {
     const key = memberId.toString();
