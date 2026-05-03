@@ -47,7 +47,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         </div>
       </header>
 
-      <section className="relative flex-1 overflow-y-auto p-3">
+      <section className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
         {!timeline.length ? (
           <EmptyState name={displayName} />
         ) : (
@@ -117,7 +117,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         )}
       </section>
 
-      <form onSubmit={onSend} className="border-t border-white/8 bg-panel p-3">
+      <form onSubmit={onSend} className="shrink-0 border-t border-white/8 bg-panel p-3">
         {replyTo && (
           <div className="mb-2 flex items-center gap-2 rounded-xl border border-mint/20 bg-mint/10 px-3 py-2 text-sm">
             <Reply size={15} className="text-mint" />

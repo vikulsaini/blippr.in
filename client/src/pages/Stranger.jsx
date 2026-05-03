@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
+import { animate, motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { Check, ChevronLeft, ChevronRight, Flag, MapPin, RotateCw, Shuffle, UserPlus } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
@@ -27,8 +27,9 @@ export default function Stranger() {
   }, []);
 
   useEffect(() => {
-    controls.start({ x: 0, opacity: 1, scale: 1, transition: { duration: 0.18 } });
-  }, [activeIndex, controls]);
+    x.set(0);
+    controls.start({ opacity: 1, scale: 1, transition: { duration: 0.18 } });
+  }, [activeIndex, controls, x]);
 
   useEffect(() => {
     const socket = getRealtimeSocket();
@@ -165,12 +166,14 @@ export default function Stranger() {
 
   function nextUser() {
     setActiveIndex((index) => (available.length ? (index + 1) % available.length : 0));
-    controls.set({ x: 0, opacity: 1, scale: 1 });
+    x.set(0);
+    controls.set({ opacity: 1, scale: 1 });
   }
 
   function previousUser() {
     setActiveIndex((index) => (available.length ? (index - 1 + available.length) % available.length : 0));
-    controls.set({ x: 0, opacity: 1, scale: 1 });
+    x.set(0);
+    controls.set({ opacity: 1, scale: 1 });
   }
 
   async function completeSwipe(direction) {
@@ -178,11 +181,11 @@ export default function Stranger() {
     swipeLockedRef.current = true;
     const offset = direction === 'next' ? 460 : -460;
     await controls.start({
-      x: offset,
       opacity: 0,
       scale: 0.94,
       transition: { type: 'spring', stiffness: 260, damping: 28 }
     });
+    await animate(x, offset, { type: 'spring', stiffness: 260, damping: 28 });
     direction === 'next' ? nextUser() : previousUser();
     swipeLockedRef.current = false;
   }
@@ -249,7 +252,6 @@ export default function Stranger() {
           <span className="rounded-full border border-white/10 bg-white/8 p-3 text-white/45"><ChevronLeft size={22} /></span>
         </div>
       <motion.section
-        key={activeUser?._id || 'empty'}
         drag={activeUser ? 'x' : false}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.38}
@@ -278,6 +280,12 @@ export default function Stranger() {
         {loading ? (
           <MatchSkeleton />
         ) : activeUser?.avatar ? (
+          <motion.div
+            key={activeUser._id}
+            initial={{ opacity: 0.2 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.16 }}
+          >
           <button
             onClick={() => {
               if (!dragMovedRef.current) setProfileUser(activeUser);
@@ -302,6 +310,7 @@ export default function Stranger() {
               {activeUser.bio && <p className="mt-3 line-clamp-2 text-sm text-white/72">{activeUser.bio}</p>}
             </div>
           </button>
+          </motion.div>
         ) : (
           <div className="grid h-[26rem] place-items-center p-6 text-center">
             <div>

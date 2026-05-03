@@ -15,10 +15,30 @@ export default function Shell() {
   const location = useLocation();
   const isChats = location.pathname === '/app';
   const [bottomNavHidden, setBottomNavHidden] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const navHidden = bottomNavHidden || keyboardOpen;
   const showHeader = !bottomNavHidden;
 
   useEffect(() => {
     refreshPushSubscriptionIfAllowed().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return undefined;
+
+    function updateKeyboardState() {
+      const heightGap = window.innerHeight - viewport.height;
+      setKeyboardOpen(heightGap > 140);
+    }
+
+    updateKeyboardState();
+    viewport.addEventListener('resize', updateKeyboardState);
+    viewport.addEventListener('scroll', updateKeyboardState);
+    return () => {
+      viewport.removeEventListener('resize', updateKeyboardState);
+      viewport.removeEventListener('scroll', updateKeyboardState);
+    };
   }, []);
 
   return (
@@ -29,10 +49,10 @@ export default function Shell() {
         </div>
         <NotificationBell />
       </header>
-      <section className={`min-h-0 flex-1 ${bottomNavHidden ? 'pb-0' : 'pb-24'} ${isChats ? '-mx-4' : ''}`}>
+      <section className={`min-h-0 flex-1 ${navHidden ? 'pb-0' : 'pb-24'} ${isChats ? '-mx-4' : ''}`}>
         <Outlet context={{ setBottomNavHidden }} />
       </section>
-      {!bottomNavHidden && (
+      {!navHidden && (
         <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-white/8 bg-ink/95 px-5 pt-1.5 backdrop-blur">
           <div className="grid grid-cols-4">
             {tabs.map(({ to, label, icon: Icon }) => (
