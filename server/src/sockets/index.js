@@ -201,9 +201,9 @@ export function registerSockets(io) {
         io.to(`user:${peerId}`).emit('call:answer', { from: userId, answer, callId });
       }
     });
-    socket.on('call:ice-candidate', async ({ to, candidate }) => {
+    socket.on('call:ice-candidate', async ({ to, candidate, callId }) => {
       const chat = await findDirectChatBetween(userId, to);
-      if (chat) io.to(`user:${to}`).emit('call:ice-candidate', { from: userId, candidate });
+      if (chat) io.to(`user:${to}`).emit('call:ice-candidate', { from: userId, candidate, callId });
     });
     socket.on('call:reject', async ({ to, callId }) => {
       if (callId) {

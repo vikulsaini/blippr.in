@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { MessageCircle, Shuffle, Search, UserRound } from 'lucide-react';
 import NotificationBell from './NotificationBell.jsx';
+import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
 
 const tabs = [
   { to: '/', label: 'Chats', icon: MessageCircle },
@@ -15,6 +16,10 @@ export default function Shell() {
   const isChats = location.pathname === '/';
   const [bottomNavHidden, setBottomNavHidden] = useState(false);
   const showHeader = !bottomNavHidden;
+
+  useEffect(() => {
+    refreshPushSubscriptionIfAllowed().catch(() => {});
+  }, []);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col px-4 pt-5 text-white">

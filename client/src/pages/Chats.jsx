@@ -7,7 +7,7 @@ import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
 import { presenceText } from '../lib/presence.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
-import { playMessageSound, startCallSound, stopCallSound, vibrate } from '../lib/sounds.js';
+import { playMessageSound, startCallSound, stopCallSound, vibrate as vibrateDevice } from '../lib/sounds.js';
 import { createPeer } from '../lib/webrtc.js';
 
 export default function Chats() {
@@ -31,6 +31,8 @@ export default function Chats() {
   const localStreamRef = useRef(null);
   const vibrationTimerRef = useRef(null);
   const callTimeoutRef = useRef(null);
+  const remoteIceQueueRef = useRef([]);
+  const localIceQueueRef = useRef([]);
 
   function mergeChat(updatedChat, unreadCount) {
     setChats((current) => {
@@ -79,13 +81,13 @@ export default function Chats() {
     }, 45000);
   }
 
-  function startRingtone({ tone = 'incoming', vibrate = false } = {}) {
+  function startRingtone({ tone = 'incoming', shouldVibrate = false } = {}) {
     stopRingtone();
     startCallSound({ outgoing: tone === 'outgoing' });
-    if (vibrate) {
+    if (shouldVibrate) {
       const pattern = [700, 220, 700, 220, 1000];
-      vibrate(pattern);
-      vibrationTimerRef.current = window.setInterval(() => vibrate(pattern), 2600);
+      vibrateDevice(pattern);
+      vibrationTimerRef.current = window.setInterval(() => vibrateDevice(pattern), 2600);
     }
   }
 
@@ -168,7 +170,7 @@ export default function Chats() {
         socket.emit('call:reject', { to: from, callId });
         return;
       }
-      startRingtone({ tone: 'incoming', vibrate: true });
+      startRingtone({ tone: 'incoming', shouldVibrate: true });
       showIncomingCallNotification(fromUser, callType);
       updateCall({
         status: 'incoming',
@@ -187,18 +189,16 @@ export default function Chats() {
     const handleAnswer = async ({ answer, callId }) => {
       if (callRef.current?.callId !== callId || !peerRef.current) return;
       await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+      await flushRemoteIceQueue();
       stopRingtone();
       clearCallTimeout();
       updateCall((current) => ({ ...current, status: 'connected' }));
     };
 
-    const handleIceCandidate = async ({ candidate }) => {
+    const handleIceCandidate = async ({ candidate, callId }) => {
+      if (callId && callRef.current?.callId && callRef.current.callId !== callId) return;
       if (!peerRef.current || !candidate) return;
-      try {
-        await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch {
-        // Ignore stale candidates after a call is closed.
-      }
+      await addRemoteIceCandidate(candidate);
     };
 
     const handleCallClosed = ({ callId }) => {
@@ -387,11 +387,49 @@ export default function Chats() {
     return stream;
   }
 
+  async function addRemoteIceCandidate(candidate) {
+    const peer = peerRef.current;
+    if (!peer) return;
+    if (!peer.remoteDescription) {
+      remoteIceQueueRef.current.push(candidate);
+      return;
+    }
+    try {
+      await peer.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch {
+      // Ignore stale candidates after a call is closed.
+    }
+  }
+
+  async function flushRemoteIceQueue() {
+    const queued = remoteIceQueueRef.current;
+    remoteIceQueueRef.current = [];
+    for (const candidate of queued) await addRemoteIceCandidate(candidate);
+  }
+
+  function emitIceCandidate(peerUser, candidate, callId = callRef.current?.callId) {
+    if (!callId) {
+      localIceQueueRef.current.push(candidate);
+      return;
+    }
+    getRealtimeSocket().emit('call:ice-candidate', { to: peerUser._id, candidate, callId });
+  }
+
+  function flushLocalIceQueue(peerUser, callId) {
+    const queued = localIceQueueRef.current;
+    localIceQueueRef.current = [];
+    queued.forEach((candidate) => emitIceCandidate(peerUser, candidate, callId));
+  }
+
   function createCallPeer(peerUser) {
-    const socket = getRealtimeSocket();
     const peer = createPeer({
       onTrack: (remoteStream) => updateCall((current) => ({ ...current, remoteStream })),
-      onIceCandidate: (candidate) => socket.emit('call:ice-candidate', { to: peerUser._id, candidate })
+      onIceCandidate: (candidate) => emitIceCandidate(peerUser, candidate),
+      onConnectionStateChange: (state) => {
+        if (state === 'connected') updateCall((current) => ({ ...current, status: 'connected' }));
+        if (state === 'disconnected') updateCall((current) => ({ ...current, status: current?.status === 'connected' ? 'reconnecting' : current?.status }));
+        if (state === 'failed') cleanupCall();
+      }
     });
     peerRef.current = peer;
     return peer;
@@ -413,6 +451,7 @@ export default function Chats() {
       getRealtimeSocket().emit('call:offer', { to: peerUser._id, offer, callType: type }, (ack) => {
         if (ack?.ok) {
           updateCall((current) => ({ ...current, callId: ack.callId }));
+          flushLocalIceQueue(peerUser, ack.callId);
           scheduleCallTimeout(peerUser, ack.callId);
         } else cleanupCall();
       });
@@ -432,6 +471,7 @@ export default function Chats() {
       const peer = createCallPeer(currentCall.peerUser);
       localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
       await peer.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
+      await flushRemoteIceQueue();
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       getRealtimeSocket().emit('call:answer', { to: currentCall.peerUser._id, answer, callId: currentCall.callId });
@@ -463,6 +503,8 @@ export default function Chats() {
     stopRingtone();
     peerRef.current?.close();
     peerRef.current = null;
+    remoteIceQueueRef.current = [];
+    localIceQueueRef.current = [];
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
     updateCall(null);

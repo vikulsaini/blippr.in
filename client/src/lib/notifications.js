@@ -18,11 +18,28 @@ export async function enablePushNotifications() {
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') throw new Error('Notification permission was not granted');
 
+  return subscribeDevice(publicKey);
+}
+
+export async function refreshPushSubscriptionIfAllowed() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return null;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+
+  const { publicKey } = await api('/api/notifications/public-key');
+  if (!publicKey) return null;
+
+  return subscribeDevice(publicKey);
+}
+
+async function subscribeDevice(publicKey) {
   const registration = await navigator.serviceWorker.register('/notification-sw.js');
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(publicKey)
-  });
+  const existing = await registration.pushManager.getSubscription();
+  const subscription =
+    existing ||
+    (await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    }));
 
   await api('/api/notifications/subscriptions', {
     method: 'POST',

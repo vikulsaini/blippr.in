@@ -21,5 +21,7 @@ export const deleteSubscription = asyncHandler(async (req, res) => {
 });
 
 export const getPublicKey = asyncHandler(async (_req, res) => {
-  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null });
+  const publicKey = process.env.VAPID_PUBLIC_KEY || '';
+  const isValid = /^[A-Za-z0-9_-]{40,}$/.test(publicKey);
+  res.json({ publicKey: isValid ? publicKey : null });
 });
