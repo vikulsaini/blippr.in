@@ -5,6 +5,8 @@ self.addEventListener('push', (event) => {
       body: data.body || 'New activity on Varta',
       icon: data.icon || '/favicon.svg',
       badge: data.badge || '/favicon.svg',
+      silent: false,
+      renotify: data.type === 'call',
       requireInteraction: data.type === 'call',
       tag: data.type === 'call' ? `varta-call-${data.callId || Date.now()}` : undefined,
       vibrate: data.type === 'call' ? [520, 240, 520, 240, 850] : [120, 80, 120],

@@ -159,7 +159,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
         notifyUser(memberId, {
           title: req.user.name,
           body: message.text || 'Sent a media message',
-          url: '/',
+          url: `/?chat=${chat._id}`,
           type: 'message',
           chatId: chat._id,
           messageId: message._id

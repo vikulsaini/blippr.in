@@ -85,7 +85,7 @@ export const respondFriendRequest = asyncHandler(async (req, res) => {
     await notifyUser(request.from, {
       title: 'Friend request accepted',
       body: `${req.user.name} accepted your friend request`,
-      url: '/chats',
+      url: `/?chat=${chat._id}`,
       type: 'friend-request-accepted',
       requestId: request._id,
       chatId: chat._id

@@ -7,6 +7,7 @@ import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
 import { presenceText } from '../lib/presence.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
+import { playMessageSound, startCallSound, stopCallSound, vibrate } from '../lib/sounds.js';
 import { createPeer } from '../lib/webrtc.js';
 
 export default function Chats() {
@@ -28,7 +29,7 @@ export default function Chats() {
   const callRef = useRef(null);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
-  const ringtoneRef = useRef({ context: null, timer: null });
+  const vibrationTimerRef = useRef(null);
   const callTimeoutRef = useRef(null);
 
   function mergeChat(updatedChat, unreadCount) {
@@ -78,38 +79,20 @@ export default function Chats() {
     }, 45000);
   }
 
-  function playRingPulse(tone = 'incoming') {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-
-    const context = ringtoneRef.current.context || new AudioContext();
-    ringtoneRef.current.context = context;
-    context.resume?.().catch(() => {});
-
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = tone === 'outgoing' ? 520 : 880;
-    gain.gain.setValueAtTime(0.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(tone === 'outgoing' ? 0.035 : 0.05, context.currentTime + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + (tone === 'outgoing' ? 0.28 : 0.55));
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + (tone === 'outgoing' ? 0.32 : 0.6));
-  }
-
   function startRingtone({ tone = 'incoming', vibrate = false } = {}) {
     stopRingtone();
-    playRingPulse(tone);
-    ringtoneRef.current.timer = window.setInterval(() => playRingPulse(tone), tone === 'outgoing' ? 1300 : 1700);
-    if (vibrate && navigator.vibrate) navigator.vibrate([520, 240, 520, 240, 850]);
+    startCallSound({ outgoing: tone === 'outgoing' });
+    if (vibrate) {
+      const pattern = [700, 220, 700, 220, 1000];
+      vibrate(pattern);
+      vibrationTimerRef.current = window.setInterval(() => vibrate(pattern), 2600);
+    }
   }
 
   function stopRingtone() {
-    if (ringtoneRef.current.timer) window.clearInterval(ringtoneRef.current.timer);
-    ringtoneRef.current.timer = null;
-    if (navigator.vibrate) navigator.vibrate(0);
+    if (vibrationTimerRef.current) window.clearInterval(vibrationTimerRef.current);
+    vibrationTimerRef.current = null;
+    stopCallSound();
   }
 
   function showIncomingCallNotification(fromUser, callType) {
@@ -282,6 +265,10 @@ export default function Chats() {
   useEffect(() => {
     const socket = getRealtimeSocket();
     const handleMessage = ({ message }) => {
+      const mine = (message.sender?._id || message.sender) === me?._id;
+      if (!mine && (!activeChat || message.chat !== activeChat._id || document.visibilityState !== 'visible')) {
+        playMessageSound();
+      }
       setMessages((current) => {
         if (current.some((item) => item._id === message._id)) return current;
         return [...current, message];
@@ -306,7 +293,7 @@ export default function Chats() {
       socket.off('typing:start', handleTypingStart);
       socket.off('typing:stop', handleTypingStop);
     };
-  }, [me?._id]);
+  }, [activeChat, me?._id]);
 
   async function sendMessage(event) {
     event.preventDefault();
@@ -381,14 +368,21 @@ export default function Chats() {
   }
 
   async function getLocalStream(type) {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    const constraints = {
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true
       },
       video: type === 'video' ? { facingMode: 'user' } : false
-    });
+    };
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (error) {
+      if (error.name !== 'OverconstrainedError' && error.name !== 'ConstraintNotSatisfiedError') throw error;
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' ? true : false });
+    }
     localStreamRef.current = stream;
     return stream;
   }

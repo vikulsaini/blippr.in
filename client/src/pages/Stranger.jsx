@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, Flag, MapPin, RotateCw, Shuffle, UserPlus, X } from 'lucide-react';
+import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
+import { Check, ChevronLeft, ChevronRight, Flag, MapPin, RotateCw, Shuffle, UserPlus } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
 import { presenceText } from '../lib/presence.js';
+import { getRealtimeSocket } from '../lib/realtime.js';
 
 export default function Stranger() {
   const [available, setAvailable] = useState([]);
@@ -13,9 +14,31 @@ export default function Stranger() {
   const [source, setSource] = useState('nearby');
   const [mode, setMode] = useState('nearby');
   const [activeIndex, setActiveIndex] = useState(0);
+  const controls = useAnimation();
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-140, 0, 140], [-5, 0, 5]);
 
   useEffect(() => {
     loadMatch();
+  }, []);
+
+  useEffect(() => {
+    controls.start({ x: 0, opacity: 1, scale: 1, transition: { duration: 0.18 } });
+  }, [activeIndex, controls]);
+
+  useEffect(() => {
+    const socket = getRealtimeSocket();
+    const removeFriendFromDeck = ({ chat }) => {
+      const friendIds = new Set((chat?.members || []).map((member) => member._id || member));
+      setAvailable((current) => {
+        const next = current.filter((user) => !friendIds.has(user._id));
+        setActiveIndex((index) => Math.max(0, Math.min(index, next.length - 1)));
+        return next;
+      });
+    };
+
+    socket.on('friend:request:accepted', removeFriendFromDeck);
+    return () => socket.off('friend:request:accepted', removeFriendFromDeck);
   }, []);
 
   async function loadMatch() {
@@ -126,10 +149,33 @@ export default function Stranger() {
 
   function nextUser() {
     setActiveIndex((index) => (available.length ? (index + 1) % available.length : 0));
+    controls.set({ x: 0, opacity: 1, scale: 1 });
   }
 
   function previousUser() {
     setActiveIndex((index) => (available.length ? (index - 1 + available.length) % available.length : 0));
+    controls.set({ x: 0, opacity: 1, scale: 1 });
+  }
+
+  async function completeSwipe(direction) {
+    if (!activeUser) return;
+    const offset = direction === 'next' ? 460 : -460;
+    await controls.start({
+      x: offset,
+      opacity: 0,
+      scale: 0.94,
+      transition: { type: 'spring', stiffness: 260, damping: 28 }
+    });
+    direction === 'next' ? nextUser() : previousUser();
+  }
+
+  function resetSwipe() {
+    controls.start({
+      x: 0,
+      opacity: 1,
+      scale: 1,
+      transition: { type: 'spring', stiffness: 420, damping: 30 }
+    });
   }
 
   const activeUser = available[activeIndex];
@@ -162,15 +208,21 @@ export default function Stranger() {
       <motion.section
         key={activeUser?._id || 'empty'}
         drag={activeUser ? 'x' : false}
-        dragConstraints={{ left: -90, right: 90 }}
-        dragElastic={0.22}
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.38}
+        style={{ x, rotate }}
         onDragEnd={(_, info) => {
-          if (info.offset.x > 70) nextUser();
-          if (info.offset.x < -70) previousUser();
+          const shouldChange = Math.abs(info.offset.x) > 110 || Math.abs(info.velocity.x) > 650;
+          if (!shouldChange) {
+            resetSwipe();
+            return;
+          }
+          if (info.offset.x > 0) completeSwipe('next');
+          else completeSwipe('previous');
         }}
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        whileDrag={{ rotate: 2, scale: 0.98 }}
+        animate={controls}
+        whileDrag={{ scale: 0.985 }}
         className="glass relative z-10 overflow-hidden rounded-[2rem]"
       >
         {activeUser?.avatar ? (
@@ -204,10 +256,10 @@ export default function Stranger() {
       </div>
 
       <div className="grid grid-cols-4 gap-2">
-        <ActionButton label="Prev" onClick={previousUser} icon={ChevronLeft} />
+        <ActionButton label="Prev" onClick={() => completeSwipe('previous')} icon={ChevronLeft} />
         <ActionButton label="Report" icon={Flag} />
         <ActionButton label={requestSent ? 'Cancel' : 'Add'} onClick={() => activeUser && addFriend(activeUser._id)} icon={requestSent ? Check : UserPlus} active={requestSent} />
-        <ActionButton label="Next" onClick={nextUser} icon={Shuffle} primary />
+        <ActionButton label="Next" onClick={() => completeSwipe('next')} icon={Shuffle} primary />
       </div>
 
       <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />

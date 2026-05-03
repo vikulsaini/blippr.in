@@ -106,7 +106,7 @@ export function registerSockets(io) {
               notifyUser(memberId, {
                 title: socket.user.name,
                 body: text || 'Sent a media message',
-                url: '/',
+                url: `/?chat=${chatId}`,
                 type: 'message',
                 chatId,
                 messageId: message._id
@@ -177,8 +177,9 @@ export function registerSockets(io) {
       await notifyUser(to, {
         title: `${socket.user.name} is calling`,
         body: `${call.type === 'video' ? 'Video' : 'Audio'} call on Varta`,
-        url: '/',
+        url: `/?chat=${chat._id}`,
         type: 'call',
+        chatId: chat._id,
         callId: call._id
       });
       setTimeout(() => {
