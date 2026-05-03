@@ -35,7 +35,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
     setText(value);
   }
 
-  async function handleImagePick(event) {
+  async function handleFilePick(event) {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file || !onSendMedia) return;
@@ -203,8 +203,8 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </motion.div>
         )}
         <div className="flex items-end gap-2 rounded-2xl border border-white/8 bg-white/5 p-1.5">
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-icon h-10 w-10 shrink-0" aria-label="Send image">
+          <input ref={fileInputRef} type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={handleFilePick} />
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-icon h-10 w-10 shrink-0" aria-label="Share media">
             <Plus size={19} />
           </button>
           <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`h-10 w-10 shrink-0 ${emojiOpen ? 'btn-primary rounded-full' : 'btn-icon'}`} aria-label="Emoji"><Smile size={18} /></button>

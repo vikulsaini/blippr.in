@@ -85,6 +85,7 @@ export const nearbyUsers = asyncHandler(async (req, res) => {
   const users = await User.find({
     _id: { $nin: excludedIds },
     blockedUsers: { $ne: req.user._id },
+    isOnline: true,
     age: { $gte: 18 },
     location: {
       $near: {
@@ -111,6 +112,7 @@ export const availableUsers = asyncHandler(async (req, res) => {
   const baseFilter = {
     _id: { $nin: [req.user._id.toString(), ...connectedIds, ...pendingIds, ...(req.user.blockedUsers || []).map((userId) => userId.toString())] },
     blockedUsers: { $ne: req.user._id },
+    isOnline: true,
     age: { $gte: 18 }
   };
 
@@ -153,6 +155,7 @@ export const randomAvailableUsers = asyncHandler(async (req, res) => {
       $match: {
         _id: { $nin: excludedIds.map((userId) => new mongoose.Types.ObjectId(userId)) },
         blockedUsers: { $ne: req.user._id },
+        isOnline: true,
         age: { $gte: 18 }
       }
     },

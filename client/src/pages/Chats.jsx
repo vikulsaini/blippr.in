@@ -114,10 +114,12 @@ export default function Chats() {
   }
 
   useEffect(() => {
+    const tokenUserId = getTokenSubject();
     const cachedMe = readCache('me', 'global');
     if (cachedMe) setMe(cachedMe);
-    if (cachedMe?._id) {
-      const cachedChats = readCache('chats', cachedMe._id, []);
+    const cacheUserId = normalizeId(cachedMe?._id || tokenUserId);
+    if (cacheUserId) {
+      const cachedChats = readCache('chats', cacheUserId, []);
       if (cachedChats.length) setChats(cachedChats);
     }
 
@@ -410,6 +412,11 @@ export default function Chats() {
     };
 
     setMessages((current) => [...current, optimisticMessage]);
+    setChats((current) =>
+      current
+        .map((chat) => (chat._id === activeChat._id ? { ...chat, lastMessage: optimisticMessage, updatedAt: optimisticMessage.createdAt } : chat))
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    );
     try {
       const formData = new FormData();
       formData.append('file', file);
