@@ -46,6 +46,7 @@ function hidePrivateFields(_doc, ret) {
 userSchema.set('toJSON', { transform: hidePrivateFields });
 userSchema.set('toObject', { transform: hidePrivateFields });
 userSchema.index({ location: '2dsphere' });
+userSchema.index({ isGuest: 1, lastIp: 1, updatedAt: -1 });
 userSchema.index({ name: 'text', username: 'text', phone: 'text', email: 'text' });
 
 export default mongoose.model('User', userSchema);

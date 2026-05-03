@@ -58,6 +58,7 @@ Important values:
 - `JWT_SECRET`
 - `CLIENT_URL`
 - `OTP_TTL_SECONDS`
+- `GUEST_REUSE_HOURS` - same-IP guest sessions reuse a recent guest account within this window
 - `EXPOSE_OTP_IN_RESPONSE` - set to `true` only while testing if SMS is not configured
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`

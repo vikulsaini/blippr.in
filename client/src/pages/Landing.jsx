@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Bell, MessageCircle, Phone, Radar, ShieldCheck, Sparkles, UserPlus, Video } from 'lucide-react';
 import { getToken } from '../lib/api.js';
@@ -7,6 +7,7 @@ const avatarSeeds = ['anaya', 'vikram', 'kiara', 'neel', 'zoya', 'arjun'];
 
 export default function Landing() {
   const appLink = getToken() ? '/app' : '/auth';
+  if (getToken()) return <Navigate to="/app" replace />;
 
   return (
     <main className="min-h-screen overflow-hidden bg-ink text-white">

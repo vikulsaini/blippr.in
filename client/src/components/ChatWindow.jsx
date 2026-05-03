@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Check, CheckCheck, Edit3, Flag, ImagePlus, MessageCircle, Mic, Phone, PhoneMissed, Reply, Send, Smile, Trash2, Video, X } from 'lucide-react';
 import { presenceText } from '../lib/presence.js';
@@ -13,6 +13,11 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const timeline = buildTimeline(messages, calls);
   const [actionTarget, setActionTarget] = useState(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' });
+  }, [timeline.length, messages.at(-1)?._id, calls.at(-1)?._id, isTyping]);
 
   function react(emoji) {
     if (!actionTarget) return;
@@ -72,9 +77,15 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
               );
             })}
             {isTyping && <TypingBubble />}
+            <div ref={endRef} />
           </div>
         )}
-        {isTyping && !messages.length && <TypingBubble />}
+        {isTyping && !messages.length && (
+          <>
+            <TypingBubble />
+            <div ref={endRef} />
+          </>
+        )}
         {actionTarget && (
           <MessageActionSheet
             message={actionTarget}

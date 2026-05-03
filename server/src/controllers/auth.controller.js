@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { signJwt } from '../utils/tokens.js';
 import { avatarForGender, createUniqueUsername, guestIdentity } from '../utils/identity.js';
+import { getClientIp } from '../utils/clientIp.js';
 import { issueOtp, verifyOtp } from '../services/otp.service.js';
 
 export const requestOtpSchema = Joi.object({
@@ -160,13 +161,35 @@ export const loginWithEmail = asyncHandler(async (req, res) => {
 });
 
 export const continueAsGuest = asyncHandler(async (req, res) => {
+  const ip = getClientIp(req);
+  const reuseSince = new Date(Date.now() - Number(process.env.GUEST_REUSE_HOURS || 24) * 60 * 60 * 1000);
+
+  if (ip) {
+    const existingGuest = await User.findOne({
+      isGuest: true,
+      lastIp: ip,
+      updatedAt: { $gte: reuseSince }
+    }).select('+lastIp +ipHistory');
+
+    if (existingGuest) {
+      existingGuest.lastIp = ip;
+      existingGuest.lastSeenAt = new Date();
+      existingGuest.ipHistory = [...(existingGuest.ipHistory || []), { ip, at: new Date() }].slice(-8);
+      await existingGuest.save();
+      return res.json({ token: signJwt(existingGuest), user: existingGuest, reused: true });
+    }
+  }
+
   const identity = await guestIdentity(req.body.gender);
   const user = await User.create({
     ...identity,
     age: req.body.age,
     gender: req.body.gender,
     bio: req.body.bio || '',
-    isGuest: true
+    isGuest: true,
+    lastIp: ip || undefined,
+    lastSeenAt: new Date(),
+    ipHistory: ip ? [{ ip, at: new Date() }] : []
   });
 
   res.status(201).json({ token: signJwt(user), user });
