@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, Shuffle, Search, UserRound } from 'lucide-react';
 import GlobalIncomingCall from './GlobalIncomingCall.jsx';
 import NotificationBell from './NotificationBell.jsx';
@@ -14,11 +14,13 @@ const tabs = [
 
 export default function Shell() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isChats = location.pathname === '/app';
   const [bottomNavHidden, setBottomNavHidden] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const navHidden = bottomNavHidden || keyboardOpen;
   const showHeader = !bottomNavHidden;
+  const touchStartRef = useRef(null);
 
   useEffect(() => {
     refreshPushSubscriptionIfAllowed().catch(() => {});
@@ -42,6 +44,41 @@ export default function Shell() {
     };
   }, []);
 
+  function activeTabIndex() {
+    const index = tabs.findIndex((tab) => tab.to === location.pathname);
+    return index === -1 ? 0 : index;
+  }
+
+  function canSwipeTabs(target) {
+    return !navHidden && !target.closest('button, a, input, textarea, select, [role="button"], [data-no-tab-swipe]');
+  }
+
+  function handleTouchStart(event) {
+    if (!canSwipeTabs(event.target)) {
+      touchStartRef.current = null;
+      return;
+    }
+    const touch = event.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, at: Date.now() };
+  }
+
+  function handleTouchEnd(event) {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || !canSwipeTabs(event.target)) return;
+
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    const fastEnough = Date.now() - start.at < 700;
+    const horizontal = Math.abs(dx) > 85 && Math.abs(dx) > Math.abs(dy) * 1.35;
+    if (!fastEnough || !horizontal) return;
+
+    const current = activeTabIndex();
+    const nextIndex = dx < 0 ? Math.min(current + 1, tabs.length - 1) : Math.max(current - 1, 0);
+    if (nextIndex !== current) navigate(tabs[nextIndex].to);
+  }
+
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col overflow-hidden px-4 pt-4 text-white">
       <header className={`${showHeader ? 'mb-3 flex' : 'sr-only'} items-center justify-between`}>
@@ -50,7 +87,11 @@ export default function Shell() {
         </div>
         <NotificationBell />
       </header>
-      <section className={`min-h-0 flex-1 ${navHidden || isChats ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24'} ${isChats ? '-mx-4' : ''}`}>
+      <section
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className={`min-h-0 flex-1 ${navHidden || isChats ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24'} ${isChats ? '-mx-4' : ''}`}
+      >
         <Outlet context={{ setBottomNavHidden }} />
       </section>
       {!isChats && <GlobalIncomingCall />}

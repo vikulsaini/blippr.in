@@ -254,6 +254,7 @@ export default function Stranger() {
           <span className="rounded-full border border-white/10 bg-white/8 p-3 text-white/45"><ChevronLeft size={22} /></span>
         </div>
       <motion.section
+        data-no-tab-swipe
         drag={activeUser ? 'x' : false}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.38}

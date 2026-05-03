@@ -80,7 +80,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-ink">
+    <div data-no-tab-swipe className="flex h-dvh flex-col overflow-hidden bg-ink">
       <header className="flex items-center justify-between border-b border-white/8 bg-panel px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
           <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
