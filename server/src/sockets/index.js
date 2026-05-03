@@ -1,0 +1,216 @@
+import Chat from '../models/Chat.js';
+import Call from '../models/Call.js';
+import Message from '../models/Message.js';
+import User from '../models/User.js';
+import { findOrQueueUser, leaveQueues } from '../services/matchmaking.service.js';
+import { notifyUser } from '../services/notification.service.js';
+import { socketAuth } from './auth.socket.js';
+
+function callPeerId(call, userId) {
+  if (!call) return null;
+  if (call.caller.toString() === userId) return call.receiver.toString();
+  if (call.receiver.toString() === userId) return call.caller.toString();
+  return null;
+}
+
+async function findDirectChatBetween(userId, peerId) {
+  if (!peerId || peerId === userId) return null;
+  return Chat.findOne({ type: 'direct', temporary: { $ne: true }, members: { $all: [userId, peerId] } });
+}
+
+async function emitCallChatUpdate(io, call) {
+  if (!call?.chat) return;
+  const chatId = call.chat._id || call.chat;
+  const chat = await Chat.findByIdAndUpdate(chatId, { lastCall: call._id }, { new: true })
+    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('lastMessage')
+    .populate('lastCall');
+  if (!chat) return;
+  chat.members.forEach((member) => {
+    const memberId = member._id.toString();
+    io.to(`user:${memberId}`).emit('chat:updated', {
+      chat,
+      unreadCount: chat.unreadCounts?.get(memberId) || 0
+    });
+  });
+}
+
+function emitCallUpdate(io, userId, peerId, call) {
+  io.to(`user:${peerId}`).emit('call:updated', { call });
+  io.to(`user:${userId}`).emit('call:updated', { call });
+  emitCallChatUpdate(io, call);
+}
+
+export function registerSockets(io) {
+  io.use(socketAuth);
+
+  io.on('connection', async (socket) => {
+    const userId = socket.user._id.toString();
+    socket.join(`user:${userId}`);
+    await User.findByIdAndUpdate(userId, { isOnline: true, lastSeenAt: new Date() });
+    socket.broadcast.emit('presence:update', { userId, isOnline: true });
+
+    socket.on('chat:join', async ({ chatId }) => {
+      const chat = await Chat.findOne({ _id: chatId, members: socket.user._id });
+      if (chat) socket.join(`chat:${chatId}`);
+    });
+
+    socket.on('message:send', async ({ chatId, text, media }, ack) => {
+      try {
+        const chat = await Chat.findOne({ _id: chatId, members: socket.user._id });
+        if (!chat) throw new Error('Chat not found');
+        const message = await Message.create({ chat: chat._id, sender: socket.user._id, text, media });
+        chat.lastMessage = message._id;
+        if (!chat.unreadCounts) chat.unreadCounts = new Map();
+        for (const memberId of chat.members) {
+          const key = memberId.toString();
+          const current = chat.unreadCounts?.get(key) || 0;
+          chat.unreadCounts.set(key, key === userId ? 0 : current + 1);
+        }
+        await chat.save();
+        const populatedChat = await Chat.findById(chat._id)
+          .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+          .populate('lastMessage');
+        io.to(`chat:${chatId}`).emit('message:new', { message });
+        for (const memberId of chat.members) {
+          io.to(`user:${memberId}`).emit('chat:updated', {
+            chat: populatedChat,
+            unreadCount: chat.unreadCounts?.get(memberId.toString()) || 0
+          });
+        }
+        await Promise.all(
+          chat.members
+            .filter((memberId) => memberId.toString() !== userId)
+            .map((memberId) =>
+              notifyUser(memberId, {
+                title: socket.user.name,
+                body: text || 'Sent a media message',
+                url: '/',
+                type: 'message',
+                chatId,
+                messageId: message._id
+              })
+            )
+        );
+        ack?.({ ok: true, message });
+      } catch (error) {
+        ack?.({ ok: false, message: error.message });
+      }
+    });
+
+    socket.on('message:delivered', async ({ messageId }) => {
+      const message = await Message.findByIdAndUpdate(messageId, { status: 'delivered' }, { new: true });
+      if (message) io.to(`chat:${message.chat}`).emit('message:status', { messageId, status: message.status });
+    });
+
+    socket.on('message:seen', async ({ messageId }) => {
+      const message = await Message.findByIdAndUpdate(
+        messageId,
+        { status: 'seen', $addToSet: { seenBy: socket.user._id } },
+        { new: true }
+      );
+      if (message) io.to(`chat:${message.chat}`).emit('message:status', { messageId, status: message.status });
+    });
+
+    socket.on('typing:start', ({ chatId }) => socket.to(`chat:${chatId}`).emit('typing:start', { chatId, userId }));
+    socket.on('typing:stop', ({ chatId }) => socket.to(`chat:${chatId}`).emit('typing:stop', { chatId, userId }));
+
+    socket.on('stranger:find', async ({ interests = [] }, ack) => {
+      const result = await findOrQueueUser(socket.user, interests);
+      if (result.matched) {
+        socket.join(result.roomId);
+        io.to(`user:${result.chat.members.find((id) => id.toString() !== userId)}`).emit('stranger:matched', {
+          chat: result.chat
+        });
+      }
+      ack?.(result);
+    });
+
+    socket.on('stranger:next', async (payload, ack) => {
+      await leaveQueues(userId);
+      const result = await findOrQueueUser(socket.user, payload?.interests || []);
+      ack?.(result);
+    });
+
+    socket.on('call:offer', async ({ to, offer, callType }, ack) => {
+      const chat = await Chat.findOne({ type: 'direct', members: { $all: [userId, to] } });
+      if (!chat || chat.temporary) {
+        ack?.({ ok: false, message: 'Calls are available only with friends' });
+        return;
+      }
+      const call = await Call.create({ caller: userId, receiver: to, chat: chat?._id, type: callType === 'audio' ? 'audio' : 'video' });
+      await emitCallChatUpdate(io, call);
+      io.to(`user:${to}`).emit('call:incoming', {
+        callId: call._id,
+        chatId: chat?._id,
+        from: userId,
+        fromUser: {
+          _id: socket.user._id,
+          name: socket.user.name,
+          username: socket.user.username,
+          avatar: socket.user.avatar
+        },
+        offer,
+        callType: call.type
+      });
+      await notifyUser(to, {
+        title: `${socket.user.name} is calling`,
+        body: `${call.type === 'video' ? 'Video' : 'Audio'} call on Varta`,
+        url: '/',
+        type: 'call',
+        callId: call._id
+      });
+      ack?.({ ok: true, callId: call._id });
+    });
+    socket.on('call:answer', async ({ to, answer, callId }) => {
+      if (callId) {
+        const existingCall = await Call.findOne({ _id: callId, receiver: userId, status: 'ringing' });
+        const peerId = callPeerId(existingCall, userId);
+        if (!existingCall || peerId !== to || !(await findDirectChatBetween(userId, peerId))) return;
+        const call = await Call.findByIdAndUpdate(existingCall._id, { status: 'accepted', answeredAt: new Date() }, { new: true })
+          .populate('caller', 'name username avatar')
+          .populate('receiver', 'name username avatar');
+        emitCallUpdate(io, userId, peerId, call);
+        io.to(`user:${peerId}`).emit('call:answer', { from: userId, answer, callId });
+      }
+    });
+    socket.on('call:ice-candidate', async ({ to, candidate }) => {
+      const chat = await findDirectChatBetween(userId, to);
+      if (chat) io.to(`user:${to}`).emit('call:ice-candidate', { from: userId, candidate });
+    });
+    socket.on('call:reject', async ({ to, callId }) => {
+      if (callId) {
+        const existingCall = await Call.findOne({ _id: callId, $or: [{ caller: userId }, { receiver: userId }] });
+        const peerId = callPeerId(existingCall, userId);
+        if (!existingCall || peerId !== to || !(await findDirectChatBetween(userId, peerId))) return;
+        const endedAt = new Date();
+        const call = await Call.findByIdAndUpdate(existingCall._id, { status: 'rejected', endedAt, durationSeconds: 0 }, { new: true })
+          .populate('caller', 'name username avatar')
+          .populate('receiver', 'name username avatar');
+        emitCallUpdate(io, userId, peerId, call);
+        io.to(`user:${peerId}`).emit('call:reject', { from: userId, callId });
+      }
+    });
+    socket.on('call:end', async ({ to, callId }) => {
+      if (callId) {
+        const current = await Call.findOne({ _id: callId, $or: [{ caller: userId }, { receiver: userId }] });
+        const peerId = callPeerId(current, userId);
+        if (!current || peerId !== to || !(await findDirectChatBetween(userId, peerId))) return;
+        const endedAt = new Date();
+        const durationSeconds = current?.answeredAt ? Math.max(0, Math.round((endedAt - current.answeredAt) / 1000)) : 0;
+        const status = current?.answeredAt ? 'ended' : 'missed';
+        const call = await Call.findByIdAndUpdate(current._id, { status, endedAt, durationSeconds }, { new: true })
+          .populate('caller', 'name username avatar')
+          .populate('receiver', 'name username avatar');
+        emitCallUpdate(io, userId, peerId, call);
+        io.to(`user:${peerId}`).emit('call:end', { from: userId, callId });
+      }
+    });
+
+    socket.on('disconnect', async () => {
+      await leaveQueues(userId);
+      await User.findByIdAndUpdate(userId, { isOnline: false, lastSeenAt: new Date() });
+      socket.broadcast.emit('presence:update', { userId, isOnline: false });
+    });
+  });
+}

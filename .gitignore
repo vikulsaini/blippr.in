@@ -1,0 +1,11 @@
+node_modules
+dist
+client/dist
+.logs
+.npm-cache
+.pnpm-store
+.env
+.env.local
+.DS_Store
+coverage
+npm-debug.log*

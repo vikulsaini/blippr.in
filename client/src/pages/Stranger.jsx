@@ -1,0 +1,247 @@
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Check, ChevronLeft, ChevronRight, Flag, MapPin, RotateCw, Shuffle, UserPlus, X } from 'lucide-react';
+import UserProfileModal from '../components/UserProfileModal.jsx';
+import { api } from '../lib/api.js';
+import { presenceText } from '../lib/presence.js';
+
+export default function Stranger() {
+  const [available, setAvailable] = useState([]);
+  const [sentIds, setSentIds] = useState(new Set());
+  const [profileUser, setProfileUser] = useState(null);
+  const [status, setStatus] = useState('Loading matches...');
+  const [source, setSource] = useState('nearby');
+  const [mode, setMode] = useState('nearby');
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    loadMatch();
+  }, []);
+
+  async function loadMatch() {
+    try {
+      const { user } = await api('/api/users/me');
+      if (user.location?.coordinates?.length) {
+        await refreshLocationInBackground();
+      } else if (!sessionStorage.getItem('varta_location_prompted')) {
+        sessionStorage.setItem('varta_location_prompted', 'true');
+        await requestAndSaveLocation();
+      }
+      await loadAvailable();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  }
+
+  async function loadAvailable() {
+    setMode('nearby');
+    const [data, sent] = await Promise.all([
+      api('/api/users/available'),
+      api('/api/friends/requests/sent')
+    ]);
+    setAvailable(shuffle(data.users));
+    setSentIds(new Set(sent.requests.map((request) => request.to._id)));
+    setSource(data.source);
+    setActiveIndex(0);
+    setStatus(data.users.length ? `${data.users.length} available ${data.source} matches` : 'No new nearby or online users right now.');
+  }
+
+  async function loadRandomAvailable() {
+    try {
+      setStatus('Shuffling random people...');
+      setMode('random');
+      const [data, sent] = await Promise.all([
+        api('/api/users/available/random'),
+        api('/api/friends/requests/sent')
+      ]);
+      setAvailable(shuffle(data.users));
+      setSentIds(new Set(sent.requests.map((request) => request.to._id)));
+      setSource(data.source);
+      setActiveIndex(0);
+      setStatus(data.users.length ? `${data.users.length} random users from anywhere` : 'No random users available right now.');
+    } catch (err) {
+      setStatus(err.message);
+    }
+  }
+
+  async function refreshLocationInBackground() {
+    if (!navigator.geolocation || !navigator.permissions) return;
+    const permission = await navigator.permissions.query({ name: 'geolocation' });
+    if (permission.state !== 'granted') return;
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      await api('/api/users/me/location', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        })
+      });
+    });
+  }
+
+  async function requestAndSaveLocation() {
+    if (!navigator.geolocation) return;
+
+    setStatus('Allow location once to improve nearby matching.');
+    await new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            await api('/api/users/me/location', {
+              method: 'PATCH',
+              body: JSON.stringify({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+              })
+            });
+          } finally {
+            resolve();
+          }
+        },
+        () => resolve()
+      );
+    });
+  }
+
+  async function addFriend(userId) {
+    try {
+      if (sentIds.has(userId)) {
+        await api(`/api/friends/requests/sent/${userId}`, { method: 'DELETE' });
+        setSentIds((current) => {
+          const next = new Set(current);
+          next.delete(userId);
+          return next;
+        });
+        setStatus('Friend request cancelled');
+        return;
+      }
+      await api('/api/friends/requests', { method: 'POST', body: JSON.stringify({ userId }) });
+      setSentIds((current) => new Set([...current, userId]));
+      setStatus('Friend request sent');
+    } catch (err) {
+      setStatus(err.message);
+    }
+  }
+
+  function nextUser() {
+    setActiveIndex((index) => (available.length ? (index + 1) % available.length : 0));
+  }
+
+  function previousUser() {
+    setActiveIndex((index) => (available.length ? (index - 1 + available.length) % available.length : 0));
+  }
+
+  const activeUser = available[activeIndex];
+  const requestSent = activeUser && sentIds.has(activeUser._id);
+
+  return (
+    <div className="space-y-4">
+      <section className="flex items-center gap-2">
+        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 text-sm">
+          <Badge icon={mode === 'random' ? Shuffle : MapPin} label={source === 'random' ? 'Random anywhere' : source === 'nearby' ? 'Nearby first' : 'Online fallback'} />
+          <Badge icon={Shuffle} label={status} />
+        </div>
+        <button onClick={loadMatch} className="glass grid h-11 w-11 shrink-0 place-items-center rounded-2xl" aria-label="Refresh matches">
+          <RotateCw size={18} />
+        </button>
+      </section>
+
+      <div className="grid grid-cols-2 gap-2">
+        <ModeButton active={mode === 'nearby'} onClick={loadMatch} icon={MapPin} label="Nearby" />
+        <ModeButton active={mode === 'random'} onClick={loadRandomAvailable} icon={Shuffle} label="Random anywhere" />
+      </div>
+
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-12 left-0 z-0 flex items-center">
+          <span className="rounded-full border border-white/10 bg-white/8 p-3 text-white/45"><ChevronRight size={22} /></span>
+        </div>
+        <div className="pointer-events-none absolute inset-y-12 right-0 z-0 flex items-center">
+          <span className="rounded-full border border-white/10 bg-white/8 p-3 text-white/45"><ChevronLeft size={22} /></span>
+        </div>
+      <motion.section
+        key={activeUser?._id || 'empty'}
+        drag={activeUser ? 'x' : false}
+        dragConstraints={{ left: -90, right: 90 }}
+        dragElastic={0.22}
+        onDragEnd={(_, info) => {
+          if (info.offset.x > 70) nextUser();
+          if (info.offset.x < -70) previousUser();
+        }}
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        whileDrag={{ rotate: 2, scale: 0.98 }}
+        className="glass relative z-10 overflow-hidden rounded-[2rem]"
+      >
+        {activeUser?.avatar ? (
+          <button onClick={() => setProfileUser(activeUser)} className="relative block w-full" aria-label={`View ${activeUser.name} profile`}>
+            <img src={activeUser.avatar} alt="" className="h-[28rem] max-h-[56vh] w-full bg-white/10 object-cover" />
+            <div className="absolute left-4 top-4 flex gap-2">
+              <span className="rounded-full bg-ink/70 px-3 py-1 text-xs text-white backdrop-blur">Swipe right: next</span>
+              <span className="rounded-full bg-ink/70 px-3 py-1 text-xs text-white backdrop-blur">Swipe left: previous</span>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/70 to-transparent p-5 pt-24 text-left">
+              <div className="flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-3xl font-semibold">{activeUser.name}</h3>
+                  <p className="mt-1 truncate text-sm text-white/70">@{activeUser.username} - {activeUser.gender} - {activeUser.age}</p>
+                  <p className={`mt-1 text-sm ${activeUser.isOnline ? 'text-mint' : 'text-white/55'}`}>{presenceText(activeUser)}</p>
+                </div>
+                <span className={`h-3 w-3 rounded-full ${activeUser.isOnline ? 'bg-mint' : 'bg-white/35'}`} />
+              </div>
+              {activeUser.bio && <p className="mt-3 line-clamp-2 text-sm text-white/72">{activeUser.bio}</p>}
+            </div>
+          </button>
+        ) : (
+          <div className="grid h-[26rem] place-items-center p-6 text-center">
+            <div>
+              <p className="font-semibold">No new matches</p>
+              <p className="mt-1 text-sm text-white/52">Friends and existing chats are hidden from Match.</p>
+            </div>
+          </div>
+        )}
+      </motion.section>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        <ActionButton label="Prev" onClick={previousUser} icon={ChevronLeft} />
+        <ActionButton label="Report" icon={Flag} />
+        <ActionButton label={requestSent ? 'Cancel' : 'Add'} onClick={() => activeUser && addFriend(activeUser._id)} icon={requestSent ? Check : UserPlus} active={requestSent} />
+        <ActionButton label="Next" onClick={nextUser} icon={Shuffle} primary />
+      </div>
+
+      <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
+    </div>
+  );
+}
+
+function Badge({ icon: Icon, label }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/8 px-3 py-2">
+      <Icon size={15} className="shrink-0 text-mint" />
+      <span className="truncate text-xs text-white/62">{label}</span>
+    </div>
+  );
+}
+
+function ActionButton({ label, icon: Icon, onClick, primary = false, active = false }) {
+  return (
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 rounded-2xl p-3 text-xs font-medium ${primary ? 'bg-mint text-ink' : active ? 'bg-white text-ink' : 'glass text-white/72'}`}>
+      <Icon size={19} />
+      {label}
+    </button>
+  );
+}
+
+function ModeButton({ active, onClick, icon: Icon, label }) {
+  return (
+    <button onClick={onClick} className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold ${active ? 'bg-mint text-ink' : 'glass text-white/70'}`}>
+      <Icon size={17} />
+      {label}
+    </button>
+  );
+}
+
+function shuffle(items) {
+  return [...items].sort(() => Math.random() - 0.5);
+}
