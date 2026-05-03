@@ -7,6 +7,7 @@ import { signJwt } from '../utils/tokens.js';
 import { avatarForGender, createUniqueUsername, guestIdentity } from '../utils/identity.js';
 import { getClientIp } from '../utils/clientIp.js';
 import { issueOtp, verifyOtp } from '../services/otp.service.js';
+import { notifyUser } from '../services/notification.service.js';
 
 export const requestOtpSchema = Joi.object({
   phone: Joi.string().min(8).max(18).required()
@@ -32,6 +33,32 @@ export const googleLoginSchema = Joi.object({
 });
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+async function recordLogin(req, user) {
+  const ip = getClientIp(req);
+  user.lastSeenAt = new Date();
+  if (!ip) {
+    await user.save();
+    return;
+  }
+  const previousIp = user.lastIp;
+  const isNewLocation = previousIp && previousIp !== ip;
+
+  user.lastIp = ip;
+  user.ipHistory = [...(user.ipHistory || []), { ip, at: new Date() }].slice(-8);
+  await user.save();
+
+  if (isNewLocation) {
+    const { notification } = await notifyUser(user._id, {
+      title: 'New login detected',
+      body: 'Your Varta account was used on another device or network.',
+      url: '/app/profile',
+      type: 'login',
+      actor: user._id
+    });
+    req.app.get('io')?.to(`user:${user._id}`).emit('notification:new', { notification });
+  }
+}
 
 export const emailSignupSchema = Joi.object({
   name: Joi.string().trim().min(2).max(80).required(),
@@ -81,7 +108,7 @@ export const verifyPhoneOtp = asyncHandler(async (req, res) => {
     error.status = 401;
     throw error;
   }
-  const existingUser = await User.findOne({ phone: req.body.phone });
+  const existingUser = await User.findOne({ phone: req.body.phone }).select('+lastIp +ipHistory');
   if (!existingUser && !req.body.username) {
     const error = new Error('Username is required for new phone signup');
     error.status = 422;
@@ -112,6 +139,7 @@ export const verifyPhoneOtp = asyncHandler(async (req, res) => {
     },
     { upsert: true, new: true }
   );
+  await recordLogin(req, user);
   res.json({ token: signJwt(user), user });
 });
 
@@ -146,7 +174,7 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
 });
 
 export const loginWithEmail = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email }).select('+passwordHash');
+  const user = await User.findOne({ email: req.body.email }).select('+passwordHash +lastIp +ipHistory');
   const passwordMatches = user ? await bcrypt.compare(req.body.password, user.passwordHash || '') : false;
 
   if (!passwordMatches) {
@@ -156,7 +184,7 @@ export const loginWithEmail = asyncHandler(async (req, res) => {
   }
 
   user.isGuest = false;
-  await user.save();
+  await recordLogin(req, user);
   res.json({ token: signJwt(user), user });
 });
 
@@ -246,6 +274,7 @@ export const googleLogin = asyncHandler(async (req, res) => {
       }
     },
     { upsert: true, new: true }
-  );
+  ).select('+lastIp +ipHistory');
+  await recordLogin(req, user);
   res.json({ token: signJwt(user), user });
 });

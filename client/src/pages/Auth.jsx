@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, UserRound } from 'lucide-react';
+import BrandLogo from '../components/BrandLogo.jsx';
 import { api, setToken } from '../lib/api.js';
 
 const initialProfile = { name: '', username: '', age: '', gender: 'female', bio: '' };
@@ -107,7 +108,7 @@ export default function Auth() {
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-8 text-white">
       <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="surface rounded-[22px] p-5 shadow-glow">
         <div>
-          <h1 className="text-4xl font-semibold">Varta</h1>
+          <BrandLogo />
           <p className="mt-2 text-sm text-white/58">Meet people, become friends, and keep conversations close.</p>
         </div>
 

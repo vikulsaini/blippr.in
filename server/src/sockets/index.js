@@ -105,7 +105,7 @@ export function registerSockets(io) {
             unreadCount: chat.unreadCounts?.get(memberId.toString()) || 0
           });
         }
-        await Promise.all(
+        const notifications = await Promise.all(
           chat.members
             .filter((memberId) => memberId.toString() !== userId)
             .map((memberId) =>
@@ -115,10 +115,15 @@ export function registerSockets(io) {
                 url: `/app?chat=${chatId}`,
                 type: 'message',
                 chatId,
-                messageId: message._id
+                messageId: message._id,
+                actor: userId
               })
             )
         );
+        notifications.forEach((result, index) => {
+          const memberId = chat.members.filter((id) => id.toString() !== userId)[index];
+          if (result?.notification && memberId) io.to(`user:${memberId}`).emit('notification:new', { notification: result.notification });
+        });
         ack?.({ ok: true, message });
       } catch (error) {
         ack?.({ ok: false, message: error.message });
@@ -180,14 +185,16 @@ export function registerSockets(io) {
         offer,
         callType: call.type
       });
-      await notifyUser(to, {
+      const { notification } = await notifyUser(to, {
         title: `${socket.user.name} is calling`,
         body: `${call.type === 'video' ? 'Video' : 'Audio'} call on Varta`,
         url: `/app?chat=${chat._id}`,
         type: 'call',
         chatId: chat._id,
-        callId: call._id
+        callId: call._id,
+        actor: userId
       });
+      io.to(`user:${to}`).emit('notification:new', { notification });
       setTimeout(() => {
         markMissedCallIfStillRinging(io, call._id).catch((error) => {
           console.warn(`Failed to mark missed call: ${error.message}`);

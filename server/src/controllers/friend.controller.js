@@ -29,13 +29,15 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
   );
   await request.populate('from', 'name username avatar');
   req.app.get('io')?.to(`user:${req.body.userId}`).emit('friend:request:new', { request });
-  await notifyUser(req.body.userId, {
+  const { notification } = await notifyUser(req.body.userId, {
     title: 'New friend request',
     body: `${req.user.name} wants to connect on Varta`,
     url: '/app/profile',
     type: 'friend-request',
-    requestId: request._id
+    requestId: request._id,
+    actor: req.user._id
   });
+  req.app.get('io')?.to(`user:${req.body.userId}`).emit('notification:new', { notification });
   res.status(201).json({ request });
 });
 
@@ -82,14 +84,16 @@ export const respondFriendRequest = asyncHandler(async (req, res) => {
     io?.to(`user:${request.to}`).emit('friend:request:accepted', { request, chat: populatedChat });
     io?.to(`user:${request.from}`).emit('chat:updated', { chat: populatedChat, unreadCount: 0 });
     io?.to(`user:${request.to}`).emit('chat:updated', { chat: populatedChat, unreadCount: 0 });
-    await notifyUser(request.from, {
+    const { notification } = await notifyUser(request.from, {
       title: 'Friend request accepted',
       body: `${req.user.name} accepted your friend request`,
       url: `/app?chat=${chat._id}`,
       type: 'friend-request-accepted',
       requestId: request._id,
-      chatId: chat._id
+      chatId: chat._id,
+      actor: req.user._id
     });
+    io?.to(`user:${request.from}`).emit('notification:new', { notification });
   }
   res.json({ request, chat });
 });

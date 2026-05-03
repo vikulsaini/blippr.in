@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, Shuffle, Search, UserRound } from 'lucide-react';
+import BrandLogo from './BrandLogo.jsx';
 import GlobalIncomingCall from './GlobalIncomingCall.jsx';
 import NotificationBell from './NotificationBell.jsx';
 import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
@@ -50,7 +51,7 @@ export default function Shell() {
   }
 
   function canSwipeTabs(target) {
-    return !navHidden && !target.closest('button, a, input, textarea, select, [role="button"], [data-no-tab-swipe]');
+    return !navHidden && !target?.closest?.('button, a, input, textarea, select, [role="button"], [data-no-tab-swipe]');
   }
 
   function handleTouchStart(event) {
@@ -82,9 +83,7 @@ export default function Shell() {
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col overflow-hidden px-4 pt-4 text-white">
       <header className={`${showHeader ? 'mb-3 flex' : 'sr-only'} items-center justify-between`}>
-        <div>
-          <h1 className="text-[1.7rem] font-semibold tracking-normal">Varta</h1>
-        </div>
+        <BrandLogo />
         <NotificationBell />
       </header>
       <section

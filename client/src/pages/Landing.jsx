@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, MessageCircle, Phone, Radar, ShieldCheck, Sparkles, UserPlus, Video } from 'lucide-react';
+import { Bell, Phone, Radar, ShieldCheck, Sparkles, UserPlus, Video } from 'lucide-react';
+import BrandLogo from '../components/BrandLogo.jsx';
 import { getToken } from '../lib/api.js';
 
 const avatarSeeds = ['anaya', 'vikram', 'kiara', 'neel', 'zoya', 'arjun'];
@@ -20,10 +21,7 @@ export default function Landing() {
 
         <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
           <Link to="/" className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white text-ink shadow-glow">
-              <MessageCircle size={20} />
-            </span>
-            <span className="text-xl font-semibold">Varta</span>
+            <BrandLogo />
           </Link>
           <div className="hidden items-center gap-8 text-sm text-white/62 md:flex">
             <a href="#features" className="hover:text-white">Features</a>

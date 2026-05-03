@@ -193,8 +193,8 @@ export default function Stranger() {
   }
 
   function resetSwipe() {
+    animate(x, 0, { type: 'spring', stiffness: 420, damping: 32 });
     controls.start({
-      x: 0,
       opacity: 1,
       scale: 1,
       transition: { type: 'spring', stiffness: 420, damping: 30 }
@@ -246,12 +246,12 @@ export default function Stranger() {
         <ModeButton active={mode === 'random'} onClick={loadRandomAvailable} icon={Shuffle} label="Random anywhere" />
       </div>
 
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-12 left-0 z-0 flex items-center">
-          <span className="rounded-full border border-white/10 bg-white/8 p-3 text-white/45"><ChevronRight size={22} /></span>
+      <div className="relative overflow-visible px-1">
+        <div className="pointer-events-none absolute inset-y-16 left-0 z-0 flex items-center">
+          <span className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/7 text-white/42 backdrop-blur"><ChevronLeft size={20} /></span>
         </div>
-        <div className="pointer-events-none absolute inset-y-12 right-0 z-0 flex items-center">
-          <span className="rounded-full border border-white/10 bg-white/8 p-3 text-white/45"><ChevronLeft size={22} /></span>
+        <div className="pointer-events-none absolute inset-y-16 right-0 z-0 flex items-center">
+          <span className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/7 text-white/42 backdrop-blur"><ChevronRight size={20} /></span>
         </div>
       <motion.section
         data-no-tab-swipe
@@ -278,7 +278,7 @@ export default function Stranger() {
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
         animate={controls}
         whileDrag={{ scale: 0.985 }}
-        className="surface relative z-10 overflow-hidden rounded-[24px]"
+        className="surface relative z-10 overflow-hidden rounded-[28px] shadow-[0_24px_70px_rgba(0,0,0,0.35)]"
       >
         {loading ? (
           <MatchSkeleton />
@@ -297,9 +297,9 @@ export default function Stranger() {
             aria-label={`View ${activeUser.name} profile`}
           >
             <img src={activeUser.avatar} alt="" className="h-[28rem] max-h-[56vh] w-full bg-white/10 object-cover" />
-            <div className="absolute left-4 top-4 flex gap-2">
-              <span className="rounded-full bg-ink/70 px-3 py-1 text-xs text-white">Right: next</span>
-              <span className="rounded-full bg-ink/70 px-3 py-1 text-xs text-white">Left: previous</span>
+            <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-2">
+              <span className="rounded-full border border-white/10 bg-ink/55 px-3 py-1 text-[11px] font-medium text-white/75 backdrop-blur">Left: previous</span>
+              <span className="rounded-full border border-white/10 bg-ink/55 px-3 py-1 text-[11px] font-medium text-white/75 backdrop-blur">Right: next</span>
             </div>
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/72 to-transparent p-4 pt-24 text-left">
               <div className="flex items-end justify-between gap-3">
@@ -320,11 +320,11 @@ export default function Stranger() {
       </motion.section>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/7 p-1.5 shadow-glow backdrop-blur">
         <ActionButton label="Prev" onClick={() => completeSwipe('previous')} icon={ChevronLeft} disabled={!activeUser || loading} />
         <ActionButton label="Report" icon={Flag} onClick={reportActiveUser} disabled={!activeUser || loading || actionBusy} />
         <ActionButton label={requestSent ? 'Cancel' : 'Add'} onClick={() => activeUser && addFriend(activeUser._id)} icon={requestSent ? Check : UserPlus} active={requestSent} disabled={!activeUser || loading || actionBusy} />
-        <ActionButton label="Next" onClick={() => completeSwipe('next')} icon={Shuffle} primary disabled={!activeUser || loading} />
+        <ActionButton label="Next" onClick={() => completeSwipe('next')} icon={ChevronRight} primary disabled={!activeUser || loading} />
       </div>
 
       <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
@@ -383,9 +383,16 @@ function Badge({ icon: Icon, label }) {
 
 function ActionButton({ label, icon: Icon, onClick, primary = false, active = false, disabled = false }) {
   return (
-    <button disabled={disabled} onClick={onClick} className={`flex flex-col items-center gap-1 rounded-[16px] p-3 text-xs font-medium disabled:opacity-35 ${primary ? 'btn-primary' : active ? 'bg-mint text-ink' : 'btn-secondary'}`}>
-      <Icon size={19} />
-      {label}
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={`grid h-14 w-14 place-items-center rounded-full text-[10px] font-semibold transition disabled:opacity-35 ${primary ? 'bg-white text-ink shadow-[0_10px_24px_rgba(255,255,255,0.16)]' : active ? 'bg-mint text-ink' : 'bg-white/9 text-white/74 hover:bg-white/14'}`}
+      aria-label={label}
+    >
+      <span className="grid gap-0.5 justify-items-center">
+        <Icon size={18} />
+        <span>{label}</span>
+      </span>
     </button>
   );
 }

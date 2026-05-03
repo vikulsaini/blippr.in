@@ -1,4 +1,5 @@
 import webPush from 'web-push';
+import Notification from '../models/Notification.js';
 import NotificationSubscription from '../models/NotificationSubscription.js';
 
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
@@ -36,7 +37,20 @@ export async function removePushSubscription(user, endpoint) {
 }
 
 export async function notifyUser(userId, payload) {
-  if (!pushEnabled) return { sent: 0, skipped: true };
+  const notification = await Notification.create({
+    user: userId,
+    type: payload.type || 'system',
+    title: payload.title,
+    body: payload.body || '',
+    url: payload.url,
+    requestId: payload.requestId,
+    chatId: payload.chatId,
+    messageId: payload.messageId,
+    callId: payload.callId,
+    actor: payload.actor
+  });
+
+  if (!pushEnabled) return { sent: 0, skipped: true, notification };
 
   const subscriptions = await NotificationSubscription.find({ user: userId });
   const body = JSON.stringify({
@@ -64,5 +78,5 @@ export async function notifyUser(userId, payload) {
 
   if (expired.length) await NotificationSubscription.deleteMany({ endpoint: { $in: expired } });
 
-  return { sent: results.filter((result) => result.status === 'fulfilled').length };
+  return { sent: results.filter((result) => result.status === 'fulfilled').length, notification };
 }

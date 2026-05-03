@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import Notification from '../models/Notification.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { removePushSubscription, savePushSubscription } from '../services/notification.service.js';
 
@@ -24,4 +25,19 @@ export const getPublicKey = asyncHandler(async (_req, res) => {
   const publicKey = process.env.VAPID_PUBLIC_KEY || '';
   const isValid = /^[A-Za-z0-9_-]{40,}$/.test(publicKey);
   res.json({ publicKey: isValid ? publicKey : null });
+});
+
+export const listNotifications = asyncHandler(async (req, res) => {
+  const notifications = await Notification.find({ user: req.user._id })
+    .sort({ createdAt: -1 })
+    .limit(60)
+    .populate('actor', 'name username avatar gender age')
+    .lean();
+  const unreadCount = await Notification.countDocuments({ user: req.user._id, readAt: null });
+  res.json({ notifications, unreadCount });
+});
+
+export const markNotificationsRead = asyncHandler(async (req, res) => {
+  await Notification.updateMany({ user: req.user._id, readAt: null }, { readAt: new Date() });
+  res.json({ ok: true });
 });
