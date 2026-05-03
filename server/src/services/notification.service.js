@@ -3,13 +3,19 @@ import NotificationSubscription from '../models/NotificationSubscription.js';
 
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+let pushEnabled = Boolean(vapidPublicKey && vapidPrivateKey);
 
-if (vapidPublicKey && vapidPrivateKey) {
-  webPush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:admin@varta.local',
-    vapidPublicKey,
-    vapidPrivateKey
-  );
+if (pushEnabled) {
+  try {
+    webPush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:admin@varta.local',
+      vapidPublicKey,
+      vapidPrivateKey
+    );
+  } catch (error) {
+    pushEnabled = false;
+    console.warn(`Push notifications disabled: ${error.message}`);
+  }
 }
 
 export async function savePushSubscription(user, subscription, userAgent) {
@@ -30,7 +36,7 @@ export async function removePushSubscription(user, endpoint) {
 }
 
 export async function notifyUser(userId, payload) {
-  if (!vapidPublicKey || !vapidPrivateKey) return { sent: 0, skipped: true };
+  if (!pushEnabled) return { sent: 0, skipped: true };
 
   const subscriptions = await NotificationSubscription.find({ user: userId });
   const body = JSON.stringify({
