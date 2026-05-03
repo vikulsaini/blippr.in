@@ -8,6 +8,17 @@ export function setToken(token) {
   localStorage.setItem('varta_token', token);
 }
 
+export function getTokenSubject() {
+  try {
+    const token = getToken();
+    if (!token) return '';
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.sub || '';
+  } catch {
+    return '';
+  }
+}
+
 export async function api(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,

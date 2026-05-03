@@ -4,7 +4,7 @@ import { Search } from 'lucide-react';
 import CallOverlay from '../components/CallOverlay.jsx';
 import ChatWindow from '../components/ChatWindow.jsx';
 import UserProfileModal from '../components/UserProfileModal.jsx';
-import { api } from '../lib/api.js';
+import { api, getTokenSubject } from '../lib/api.js';
 import { readCache, writeCache } from '../lib/cache.js';
 import { presenceText } from '../lib/presence.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
@@ -26,6 +26,7 @@ export default function Chats() {
   const [typingChatId, setTypingChatId] = useState(null);
   const [call, setCall] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
+  const currentUserId = normalizeId(me?._id || getTokenSubject());
   const typingTimerRef = useRef(null);
   const callRef = useRef(null);
   const peerRef = useRef(null);
@@ -140,8 +141,8 @@ export default function Chats() {
   }, [me]);
 
   useEffect(() => {
-    if (me?._id) writeCache('chats', chats, me._id);
-  }, [chats, me?._id]);
+    if (currentUserId) writeCache('chats', chats, currentUserId);
+  }, [chats, currentUserId]);
 
   useEffect(() => {
     setBottomNavHidden?.(!!activeChat);
@@ -266,9 +267,9 @@ export default function Chats() {
     }
     const socket = getRealtimeSocket();
     socket.emit('chat:join', { chatId: activeChat._id });
-    if (me?._id) {
-      setMessages(readCache(`messages:${activeChat._id}`, me._id, []));
-      setCalls(readCache(`calls:${activeChat._id}`, me._id, []));
+    if (currentUserId) {
+      setMessages(readCache(`messages:${activeChat._id}`, currentUserId, []));
+      setCalls(readCache(`calls:${activeChat._id}`, currentUserId, []));
     }
     Promise.all([
       api(`/api/chats/${activeChat._id}/messages`),
@@ -278,33 +279,33 @@ export default function Chats() {
         if (activeChatIdRef.current !== activeChat._id) return;
         setMessages(messageData.messages);
         setCalls(callData.calls || []);
-        if (me?._id) {
-          writeCache(`messages:${activeChat._id}`, messageData.messages, me._id);
-          writeCache(`calls:${activeChat._id}`, callData.calls || [], me._id);
+        if (currentUserId) {
+          writeCache(`messages:${activeChat._id}`, messageData.messages, currentUserId);
+          writeCache(`calls:${activeChat._id}`, callData.calls || [], currentUserId);
         }
         await api(`/api/chats/${activeChat._id}/read`, { method: 'PATCH' });
         setChats((current) => current.map((chat) => (chat._id === activeChat._id ? { ...chat, unreadCount: 0 } : chat)));
       })
       .catch(() => {
-        if (!me?._id) {
+        if (!currentUserId) {
           setMessages([]);
           setCalls([]);
         }
       });
-  }, [activeChat, me?._id]);
+  }, [activeChat, currentUserId]);
 
   useEffect(() => {
-    if (activeChat?._id && me?._id) writeCache(`messages:${activeChat._id}`, messages, me._id);
-  }, [messages, activeChat?._id, me?._id]);
+    if (activeChat?._id && currentUserId) writeCache(`messages:${activeChat._id}`, messages, currentUserId);
+  }, [messages, activeChat?._id, currentUserId]);
 
   useEffect(() => {
-    if (activeChat?._id && me?._id) writeCache(`calls:${activeChat._id}`, calls, me._id);
-  }, [calls, activeChat?._id, me?._id]);
+    if (activeChat?._id && currentUserId) writeCache(`calls:${activeChat._id}`, calls, currentUserId);
+  }, [calls, activeChat?._id, currentUserId]);
 
   useEffect(() => {
     const socket = getRealtimeSocket();
     const handleMessage = ({ message }) => {
-      const mine = getMessageSenderId(message) === normalizeId(me?._id);
+      const mine = getMessageSenderId(message) === currentUserId;
       if (!mine && (!activeChat || message.chat !== activeChat._id || document.visibilityState !== 'visible')) {
         playMessageSound();
       }
@@ -323,18 +324,18 @@ export default function Chats() {
       setMessages((current) => current.filter((message) => message._id !== messageId));
     };
     const handleDelivered = ({ userId }) => {
-      if (userId === me?._id) return;
-      setMessages((current) => current.map((message) => (getMessageSenderId(message) === me?._id && message.status === 'sent' ? { ...message, status: 'delivered' } : message)));
+      if (normalizeId(userId) === currentUserId) return;
+      setMessages((current) => current.map((message) => (getMessageSenderId(message) === currentUserId && message.status === 'sent' ? { ...message, status: 'delivered' } : message)));
     };
     const handleSeen = ({ userId }) => {
-      if (userId === me?._id) return;
-      setMessages((current) => current.map((message) => (getMessageSenderId(message) === me?._id ? { ...message, status: 'seen' } : message)));
+      if (normalizeId(userId) === currentUserId) return;
+      setMessages((current) => current.map((message) => (getMessageSenderId(message) === currentUserId ? { ...message, status: 'seen' } : message)));
     };
     const handleTypingStart = ({ chatId, userId }) => {
-      if (userId !== me?._id) setTypingChatId(chatId);
+      if (normalizeId(userId) !== currentUserId) setTypingChatId(chatId);
     };
     const handleTypingStop = ({ chatId, userId }) => {
-      if (userId !== me?._id) setTypingChatId((current) => (current === chatId ? null : current));
+      if (normalizeId(userId) !== currentUserId) setTypingChatId((current) => (current === chatId ? null : current));
     };
     socket.on('message:new', handleMessage);
     socket.on('message:reaction', handleReaction);
@@ -354,7 +355,7 @@ export default function Chats() {
       socket.off('typing:start', handleTypingStart);
       socket.off('typing:stop', handleTypingStop);
     };
-  }, [activeChat, me?._id]);
+  }, [activeChat, currentUserId]);
 
   async function sendMessage(event) {
     event.preventDefault();
@@ -365,7 +366,7 @@ export default function Chats() {
     const optimisticMessage = {
       _id: tempId,
       chat: activeChat._id,
-      sender: me?._id,
+      sender: currentUserId,
       text: messageText,
       replyTo: repliedMessage ? { _id: repliedMessage._id, text: repliedMessage.text, sender: repliedMessage.sender } : null,
       reactions: [],
@@ -447,7 +448,7 @@ export default function Chats() {
   }
 
   async function reportMessage(message) {
-    const other = activeChat?.members?.find((member) => member._id !== me?._id);
+    const other = activeChat?.members?.find((member) => normalizeId(member) !== currentUserId);
     if (!other) return;
     await api('/api/safety/report', {
       method: 'POST',
@@ -559,7 +560,7 @@ export default function Chats() {
   }
 
   async function startCall(type) {
-    const peerUser = activeChat?.members?.find((member) => member._id !== me?._id);
+    const peerUser = activeChat?.members?.find((member) => normalizeId(member) !== currentUserId);
     if (!peerUser || !navigator.mediaDevices?.getUserMedia) return;
 
     try {
@@ -670,9 +671,9 @@ export default function Chats() {
   }
 
   const visibleChats = chats.filter((chat) => {
-    const other = chat.members?.find((member) => member._id !== me?._id);
-    const displayName = getNickname(chat, me?._id, other);
-    const value = `${displayName} ${other?.name || ''} ${other?.username || ''} ${chat.lastMessage?.text || ''} ${callPreview(chat.lastCall, me?._id)}`.toLowerCase();
+    const other = chat.members?.find((member) => normalizeId(member) !== currentUserId);
+    const displayName = getNickname(chat, currentUserId, other);
+    const value = `${displayName} ${other?.name || ''} ${other?.username || ''} ${chat.lastMessage?.text || ''} ${callPreview(chat.lastCall, currentUserId)}`.toLowerCase();
     return value.includes(query.trim().toLowerCase());
   });
 
@@ -683,7 +684,7 @@ export default function Chats() {
           chat={activeChat}
           messages={messages}
           calls={calls}
-          currentUserId={me?._id}
+          currentUserId={currentUserId}
           text={text}
           setText={handleTextChange}
           onSend={sendMessage}
@@ -717,8 +718,8 @@ export default function Chats() {
             />
           </label>
           {visibleChats.map((chat) => {
-            const other = chat.members?.find((member) => member._id !== me?._id);
-            const displayName = getNickname(chat, me?._id, other);
+            const other = chat.members?.find((member) => normalizeId(member) !== currentUserId);
+            const displayName = getNickname(chat, currentUserId, other);
             return (
               <article key={chat._id} className={`flex w-full items-center gap-3 border-b border-white/8 px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-white/5' : ''}`}>
                 <button onClick={() => other && openProfile(other, chat)} aria-label={`View ${displayName || 'friend'} profile`}>
@@ -731,7 +732,7 @@ export default function Chats() {
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-3">
                     <p className={`truncate text-xs ${typingChatId === chat._id ? 'font-semibold text-mint' : chat.unreadCount ? 'font-semibold text-white' : 'text-white/45'}`}>
-                      {typingChatId === chat._id ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, me?._id) || presenceText(other)}
+                      {typingChatId === chat._id ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
                     </p>
                     {chat.unreadCount > 0 && (
                       <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-ink">
@@ -760,7 +761,7 @@ export default function Chats() {
       <UserProfileModal
         user={profileUser}
         chat={profileChat}
-        currentUserId={me?._id}
+        currentUserId={currentUserId}
         onClose={closeProfile}
         onNickname={updateNickname}
         onUnfriend={unfriendChat}
@@ -803,7 +804,7 @@ function normalizeId(value) {
 
 function callPreview(call, currentUserId) {
   if (!call) return '';
-  const mine = (typeof call.caller === 'string' ? call.caller : call.caller?._id) === currentUserId;
+  const mine = normalizeId(call.caller) === normalizeId(currentUserId);
   const direction = mine ? 'Outgoing' : 'Incoming';
   const status = call.status === 'rejected' ? 'declined' : call.status === 'missed' ? 'missed' : call.status === 'ringing' ? 'ringing' : 'ended';
   return `${direction} ${call.type} call ${status}`;
