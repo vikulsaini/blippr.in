@@ -15,10 +15,10 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = call?.remoteStream || null;
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = call?.remoteStream || null;
     if (remoteAudioRef.current) remoteAudioRef.current.volume = call?.speakerOn ? 1 : 0.72;
-    setAudioOutput(remoteAudioRef.current, call?.speakerOn).catch(() => {});
+    setAudioOutput(remoteAudioRef.current, call?.speakerOn, call?.type).catch(() => {});
     remoteAudioRef.current?.play?.().catch(() => {});
     remoteVideoRef.current?.play?.().catch(() => {});
-  }, [call?.remoteStream, call?.speakerOn]);
+  }, [call?.remoteStream, call?.speakerOn, call?.type]);
 
   if (!call) return null;
 
@@ -84,12 +84,20 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
   );
 }
 
-async function setAudioOutput(audioElement, speakerOn) {
+async function setAudioOutput(audioElement, speakerOn, callType) {
   if (!audioElement?.setSinkId || !navigator.mediaDevices?.enumerateDevices) return;
 
   const outputs = await navigator.mediaDevices.enumerateDevices();
-  const speaker = outputs.find((device) => device.kind === 'audiooutput' && /speaker|default/i.test(device.label));
-  await audioElement.setSinkId(speakerOn && speaker ? speaker.deviceId : 'default');
+  const audioOutputs = outputs.filter((device) => device.kind === 'audiooutput');
+  const speaker = audioOutputs.find((device) => /speaker|loudspeaker/i.test(device.label));
+  const earpiece = audioOutputs.find((device) => /earpiece|receiver|phone|communications|headset/i.test(device.label));
+
+  if (speakerOn || callType === 'video') {
+    await audioElement.setSinkId(speaker?.deviceId || 'default');
+    return;
+  }
+
+  await audioElement.setSinkId(earpiece?.deviceId || 'communications').catch(() => audioElement.setSinkId('default'));
 }
 
 function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = false, active = false }) {
