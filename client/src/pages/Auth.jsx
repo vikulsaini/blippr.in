@@ -19,7 +19,7 @@ export default function Auth() {
 
   function finishAuth(token) {
     setToken(token);
-    window.location.href = '/';
+    window.location.href = '/app';
   }
 
   function switchMode(nextMode) {

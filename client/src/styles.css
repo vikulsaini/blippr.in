@@ -78,3 +78,11 @@ body {
 .safe-bottom {
   padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
 }
+
+.landing-mesh {
+  background:
+    linear-gradient(120deg, rgba(153, 255, 199, 0.18), transparent 34%),
+    linear-gradient(240deg, rgba(255, 255, 255, 0.12), transparent 36%),
+    radial-gradient(circle at 72% 30%, rgba(153, 255, 199, 0.2), transparent 24%),
+    #08090d;
+}

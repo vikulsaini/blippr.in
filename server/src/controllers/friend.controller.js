@@ -32,7 +32,7 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
   await notifyUser(req.body.userId, {
     title: 'New friend request',
     body: `${req.user.name} wants to connect on Varta`,
-    url: '/profile',
+    url: '/app/profile',
     type: 'friend-request',
     requestId: request._id
   });
@@ -85,7 +85,7 @@ export const respondFriendRequest = asyncHandler(async (req, res) => {
     await notifyUser(request.from, {
       title: 'Friend request accepted',
       body: `${req.user.name} accepted your friend request`,
-      url: `/?chat=${chat._id}`,
+      url: `/app?chat=${chat._id}`,
       type: 'friend-request-accepted',
       requestId: request._id,
       chatId: chat._id

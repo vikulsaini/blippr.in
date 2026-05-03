@@ -5,15 +5,15 @@ import NotificationBell from './NotificationBell.jsx';
 import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
 
 const tabs = [
-  { to: '/', label: 'Chats', icon: MessageCircle },
-  { to: '/stranger', label: 'Match', icon: Shuffle },
-  { to: '/discover', label: 'Find', icon: Search },
-  { to: '/profile', label: 'Me', icon: UserRound }
+  { to: '/app', label: 'Chats', icon: MessageCircle },
+  { to: '/app/stranger', label: 'Match', icon: Shuffle },
+  { to: '/app/discover', label: 'Find', icon: Search },
+  { to: '/app/profile', label: 'Me', icon: UserRound }
 ];
 
 export default function Shell() {
   const location = useLocation();
-  const isChats = location.pathname === '/';
+  const isChats = location.pathname === '/app';
   const [bottomNavHidden, setBottomNavHidden] = useState(false);
   const showHeader = !bottomNavHidden;
 
@@ -39,7 +39,7 @@ export default function Shell() {
               <NavLink
                 key={to}
                 to={to}
-                end={to === '/'}
+                end={to === '/app'}
                 className={({ isActive }) =>
                   `group relative flex min-h-[3rem] flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-xs transition ${
                     isActive ? 'text-white' : 'text-white/42 hover:text-white/78'
