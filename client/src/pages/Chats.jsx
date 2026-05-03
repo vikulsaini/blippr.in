@@ -711,7 +711,7 @@ export default function Chats() {
   });
 
   return (
-    <div className={activeChat ? 'min-h-dvh' : 'min-h-[calc(100vh-6.5rem)]'}>
+    <div className={activeChat ? 'h-full min-h-0' : 'flex h-full min-h-0 flex-col'}>
       {activeChat ? (
         <ChatWindow
           chat={activeChat}
@@ -735,14 +735,14 @@ export default function Chats() {
           isTyping={typingChatId === activeChat._id}
         />
       ) : (
-        <section className="min-h-[calc(100vh-6.5rem)] space-y-1 px-4 pt-3">
-          <div className="mb-3 flex items-center justify-between">
+        <section className="flex min-h-0 flex-1 flex-col px-4 pt-3">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
             <div>
               <h2 className="text-2xl font-semibold">Chats</h2>
               <p className="text-sm text-white/45">{chats.length} friends</p>
             </div>
           </div>
-          <label className="mb-3 flex items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
+          <label className="mb-3 flex shrink-0 items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
             <Search size={18} className="text-white/40" />
             <input
               value={query}
@@ -751,6 +751,7 @@ export default function Chats() {
               placeholder="Search friends or messages"
             />
           </label>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24">
           {visibleChats.map((chat) => {
             const other = chat.members?.find((member) => normalizeId(member) !== currentUserId);
             const displayName = getNickname(chat, currentUserId, other);
@@ -790,6 +791,7 @@ export default function Chats() {
               <p className="mt-1 text-sm text-white/45">Try another name or message.</p>
             </div>
           )}
+          </div>
         </section>
       )}
       <UserProfileModal

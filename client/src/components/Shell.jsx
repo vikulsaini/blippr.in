@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { MessageCircle, Shuffle, Search, UserRound } from 'lucide-react';
+import GlobalIncomingCall from './GlobalIncomingCall.jsx';
 import NotificationBell from './NotificationBell.jsx';
 import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
 
@@ -49,9 +50,10 @@ export default function Shell() {
         </div>
         <NotificationBell />
       </header>
-      <section className={`min-h-0 flex-1 ${navHidden ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24'} ${isChats ? '-mx-4' : ''}`}>
+      <section className={`min-h-0 flex-1 ${navHidden || isChats ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24'} ${isChats ? '-mx-4' : ''}`}>
         <Outlet context={{ setBottomNavHidden }} />
       </section>
+      {!isChats && <GlobalIncomingCall />}
       {!navHidden && (
         <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-white/8 bg-ink/95 px-5 pt-1.5 backdrop-blur">
           <div className="grid grid-cols-4">
