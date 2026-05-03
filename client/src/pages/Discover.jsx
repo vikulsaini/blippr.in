@@ -108,7 +108,7 @@ function UserRow({ user, sent, onProfile, onAdd, index }) {
 
 function RequestButton({ sent, onClick, label }) {
   return (
-    <button onClick={onClick} disabled={sent} className={`shrink-0 rounded-full p-3 text-ink ${sent ? 'bg-white' : 'bg-mint'}`} aria-label={sent ? `Request sent to ${label}` : `Add ${label}`}>
+    <button onClick={onClick} disabled={sent} className={`shrink-0 rounded-full p-3 ${sent ? 'btn-primary' : 'btn-primary'}`} aria-label={sent ? `Request sent to ${label}` : `Add ${label}`}>
       {sent ? <Check size={18} /> : <UserPlus size={18} />}
     </button>
   );

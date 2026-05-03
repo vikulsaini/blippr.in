@@ -110,7 +110,7 @@ export default function Profile() {
     return (
       <div className="space-y-3">
         <header className="flex items-center gap-3">
-          <button onClick={() => setSettingsOpen(false)} className="grid h-10 w-10 place-items-center rounded-full bg-white/8" aria-label="Back to profile">
+          <button onClick={() => setSettingsOpen(false)} className="btn-icon h-10 w-10" aria-label="Back to profile">
             <ArrowLeft size={18} />
           </button>
           <div>
@@ -139,7 +139,7 @@ export default function Profile() {
               <span className="text-xs text-white/45">Bio</span>
               <textarea value={form.bio} onChange={(event) => setField('bio', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[14px] border border-white/8 bg-ink/35 px-3 py-2.5 text-sm outline-none" placeholder="A little about you" maxLength={160} />
             </label>
-            <button className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white py-3 font-semibold text-ink">
+            <button className="btn-primary flex w-full items-center justify-center gap-2 rounded-[14px] py-3 font-semibold">
               <Save size={18} />
               Save changes
             </button>
@@ -164,7 +164,7 @@ export default function Profile() {
                     <p className="truncate text-sm font-medium">{blockedUser.name}</p>
                     <p className="truncate text-xs text-white/45">@{blockedUser.username}</p>
                   </div>
-                  <button onClick={() => unblockUser(blockedUser._id)} className="grid h-10 w-10 place-items-center rounded-full bg-white text-ink" aria-label={`Unblock ${blockedUser.name}`}>
+                  <button onClick={() => unblockUser(blockedUser._id)} className="btn-primary grid h-10 w-10 place-items-center rounded-full" aria-label={`Unblock ${blockedUser.name}`}>
                     <Unlock size={17} />
                   </button>
                 </div>
@@ -201,7 +201,7 @@ export default function Profile() {
     <div className="space-y-3">
       <section className="rounded-[20px] border border-white/8 bg-white/5 p-4">
         <div className="mb-3 flex justify-end">
-          <button onClick={() => setSettingsOpen(true)} className="grid h-10 w-10 place-items-center rounded-full bg-white/8" aria-label="Open settings">
+          <button onClick={() => setSettingsOpen(true)} className="btn-icon h-10 w-10" aria-label="Open settings">
             <Settings size={18} />
           </button>
         </div>
@@ -260,7 +260,7 @@ function GenderControl({ value, onChange }) {
       <span className="text-xs text-white/42">Gender</span>
       <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-[14px] border border-white/8 bg-ink/35 p-1 text-sm">
         {['female', 'male'].map((item) => (
-          <button key={item} type="button" onClick={() => onChange(item)} className={`rounded-[10px] px-3 py-2.5 font-medium capitalize ${value === item ? 'bg-white text-ink' : 'text-white/62'}`}>
+          <button key={item} type="button" onClick={() => onChange(item)} className={`rounded-[10px] px-3 py-2.5 font-medium capitalize ${value === item ? 'btn-primary' : 'text-white/62'}`}>
             {item}
           </button>
         ))}
@@ -277,7 +277,7 @@ function ActionRow({ icon: Icon, title, subtitle, action, onClick }) {
         <span className="block font-medium">{title}</span>
         <span className="block truncate text-xs text-white/45">{subtitle}</span>
       </span>
-      <span className="flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink">
+      <span className="btn-primary flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold">
         {action}
         <ChevronRight size={13} />
       </span>
@@ -287,7 +287,7 @@ function ActionRow({ icon: Icon, title, subtitle, action, onClick }) {
 
 function MenuRow({ icon: Icon, title, subtitle, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] p-3 text-left hover:bg-white/5">
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] p-3 text-left transition hover:bg-white/5 active:scale-[0.99]">
       <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/72"><Icon size={18} /></span>
       <span className="min-w-0 flex-1">
         <span className="block font-medium">{title}</span>

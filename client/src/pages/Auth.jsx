@@ -141,7 +141,7 @@ export default function Auth() {
 
 function ModeButton({ active, onClick, label }) {
   return (
-    <button type="button" onClick={onClick} className={`rounded-[12px] px-2 py-2 font-medium transition ${active ? 'bg-white text-ink' : 'text-white/62'}`}>
+    <button type="button" onClick={onClick} className={`rounded-[12px] px-2 py-2 font-medium transition ${active ? 'btn-primary' : 'text-white/62'}`}>
       {label}
     </button>
   );
@@ -155,7 +155,7 @@ function AuthForm({ title, icon: Icon, onSubmit, action, children }) {
         <h2 className="text-xl font-semibold">{title}</h2>
       </div>
       {children}
-      <button className="w-full rounded-[16px] bg-white py-3 font-semibold text-ink">{action}</button>
+      <button className="btn-primary w-full rounded-[16px] py-3 font-semibold">{action}</button>
     </form>
   );
 }
@@ -191,7 +191,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`rounded-[12px] px-2 py-2 font-medium capitalize transition ${profile.gender === value ? 'bg-white text-ink' : 'text-white/62'}`}
+              className={`rounded-[12px] px-2 py-2 font-medium capitalize transition ${profile.gender === value ? 'btn-primary' : 'text-white/62'}`}
             >
               {value}
             </button>

@@ -94,9 +94,9 @@ async function setAudioOutput(audioElement, speakerOn) {
 
 function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = false, active = false }) {
   const tones = {
-    neutral: active ? 'bg-white text-ink' : 'bg-white/8 text-white',
+    neutral: active ? 'btn-primary' : 'btn-secondary',
     danger: 'bg-coral text-ink',
-    mint: 'bg-mint text-ink'
+    mint: 'btn-primary'
   };
 
   return (

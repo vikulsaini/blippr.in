@@ -69,7 +69,7 @@ export default function NotificationBell() {
 
   return (
     <div ref={rootRef} className="relative">
-      <button onClick={() => setOpen((value) => !value)} className="relative rounded-2xl border border-white/15 bg-white/10 p-3" aria-label="Notifications">
+      <button onClick={() => setOpen((value) => !value)} className="btn-icon relative h-11 w-11 rounded-[16px]" aria-label="Notifications">
         <Bell size={20} />
         {requests.length > 0 && (
           <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-coral px-1 text-[10px] font-bold text-white">
@@ -95,8 +95,8 @@ export default function NotificationBell() {
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button onClick={() => respond(request._id, 'rejected')} className="rounded-2xl border border-white/10 py-2 text-sm" aria-label="Reject"><X className="mx-auto" size={18} /></button>
-                  <button onClick={() => respond(request._id, 'accepted')} className="rounded-2xl bg-mint py-2 text-sm font-semibold text-ink" aria-label="Accept"><Check className="mx-auto" size={18} /></button>
+                  <button onClick={() => respond(request._id, 'rejected')} className="btn-secondary rounded-[14px] py-2 text-sm" aria-label="Reject"><X className="mx-auto" size={18} /></button>
+                  <button onClick={() => respond(request._id, 'accepted')} className="btn-primary rounded-[14px] py-2 text-sm font-semibold" aria-label="Accept"><Check className="mx-auto" size={18} /></button>
                 </div>
               </article>
             ))}

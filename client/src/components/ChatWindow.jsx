@@ -23,7 +23,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
     <div className="flex h-dvh flex-col overflow-hidden bg-ink">
       <header className="flex items-center justify-between border-b border-white/8 bg-panel px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
-          <button onClick={onBack} className="grid h-10 w-10 place-items-center rounded-full bg-white/8" aria-label="Back to chats"><ArrowLeft size={18} /></button>
+          <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
           {otherMember?.avatar && (
             <button onClick={() => onProfile?.(otherMember)} className="relative" aria-label={`View ${displayName} profile`}>
               <img src={otherMember.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
@@ -115,8 +115,8 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </motion.div>
         )}
         <div className="flex items-end gap-2 rounded-2xl border border-white/8 bg-white/5 p-1.5">
-          <button type="button" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/8" aria-label="Attach media"><ImagePlus size={18} /></button>
-          <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${emojiOpen ? 'bg-white text-ink' : 'bg-white/8'}`} aria-label="Emoji"><Smile size={18} /></button>
+          <button type="button" className="btn-icon h-10 w-10 shrink-0" aria-label="Attach media"><ImagePlus size={18} /></button>
+          <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`h-10 w-10 shrink-0 ${emojiOpen ? 'btn-primary rounded-full' : 'btn-icon'}`} aria-label="Emoji"><Smile size={18} /></button>
           <textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
@@ -132,9 +132,9 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             }}
           />
           {text.trim() ? (
-            <button disabled={!chat} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-ink disabled:opacity-40" aria-label="Send"><Send size={18} /></button>
+            <button disabled={!chat} className="btn-primary grid h-10 w-10 shrink-0 place-items-center rounded-full disabled:opacity-40" aria-label="Send"><Send size={18} /></button>
           ) : (
-            <button type="button" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/8" aria-label="Voice message"><Mic size={18} /></button>
+            <button type="button" className="btn-icon h-10 w-10 shrink-0" aria-label="Voice message"><Mic size={18} /></button>
           )}
         </div>
       </form>
@@ -200,11 +200,11 @@ function ReactionTray({ message, onClose, onReact }) {
       <div className="surface rounded-2xl p-3 shadow-glow">
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="truncate text-xs text-white/50">React to: {message.text || 'message'}</p>
-          <button onClick={onClose} className="rounded-full bg-white/10 p-1" aria-label="Close reactions"><X size={14} /></button>
+          <button onClick={onClose} className="btn-icon h-7 w-7" aria-label="Close reactions"><X size={14} /></button>
         </div>
         <div className="grid grid-cols-6 gap-2">
           {quickEmojis.map((emoji) => (
-            <button key={emoji} onClick={() => onReact(emoji)} className="rounded-xl bg-white/8 py-3 text-xl" aria-label={`React ${emoji}`}>
+            <button key={emoji} onClick={() => onReact(emoji)} className="btn-secondary rounded-xl py-3 text-xl" aria-label={`React ${emoji}`}>
               {emoji}
             </button>
           ))}
@@ -252,7 +252,7 @@ function TypingBubble() {
 
 function IconButton({ label, icon: Icon, onClick }) {
   return (
-    <button onClick={onClick} className="grid h-10 w-10 place-items-center rounded-full bg-white/8" aria-label={label}>
+    <button onClick={onClick} className="btn-icon h-10 w-10" aria-label={label}>
       <Icon size={18} />
     </button>
   );

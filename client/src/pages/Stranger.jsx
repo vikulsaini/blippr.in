@@ -231,7 +231,7 @@ export default function Stranger() {
           <Badge icon={mode === 'random' ? Shuffle : MapPin} label={source === 'random' ? 'Random anywhere' : source === 'nearby' ? 'Nearby first' : 'Online fallback'} />
           <Badge icon={Shuffle} label={status} />
         </div>
-        <button onClick={loadMatch} className="surface grid h-11 w-11 shrink-0 place-items-center rounded-[16px]" aria-label="Refresh matches">
+        <button onClick={loadMatch} className="btn-icon h-11 w-11 shrink-0 rounded-[16px]" aria-label="Refresh matches">
           <RotateCw size={18} />
         </button>
       </section>
@@ -349,7 +349,7 @@ function Badge({ icon: Icon, label }) {
 
 function ActionButton({ label, icon: Icon, onClick, primary = false, active = false, disabled = false }) {
   return (
-    <button disabled={disabled} onClick={onClick} className={`flex flex-col items-center gap-1 rounded-[16px] p-3 text-xs font-medium disabled:opacity-35 ${primary ? 'bg-white text-ink' : active ? 'bg-mint text-ink' : 'surface text-white/72'}`}>
+    <button disabled={disabled} onClick={onClick} className={`flex flex-col items-center gap-1 rounded-[16px] p-3 text-xs font-medium disabled:opacity-35 ${primary ? 'btn-primary' : active ? 'bg-mint text-ink' : 'btn-secondary'}`}>
       <Icon size={19} />
       {label}
     </button>
@@ -358,7 +358,7 @@ function ActionButton({ label, icon: Icon, onClick, primary = false, active = fa
 
 function ModeButton({ active, onClick, icon: Icon, label }) {
   return (
-    <button onClick={onClick} className={`flex items-center justify-center gap-2 rounded-[16px] px-3 py-3 text-sm font-semibold ${active ? 'bg-white text-ink' : 'surface text-white/70'}`}>
+    <button onClick={onClick} className={`flex items-center justify-center gap-2 rounded-[16px] px-3 py-3 text-sm font-semibold ${active ? 'btn-primary' : 'btn-secondary'}`}>
       <Icon size={17} />
       {label}
     </button>
