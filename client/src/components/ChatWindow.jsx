@@ -7,7 +7,8 @@ const quickEmojis = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', 
 const composerEmojis = ['\u{1F60A}', '\u{1F602}', '\u{1F970}', '\u{1F60D}', '\u{1F44B}', '\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F525}', '\u{1F389}', '\u{1F622}', '\u{1F62E}', '\u{1F64F}', '\u{1F914}', '\u{1F634}', '\u{1F618}', '\u{2728}'];
 
 export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onEditMessage, onDeleteMessage, onReportMessage, onStartCall, isTyping = false }) {
-  const otherMember = chat?.members?.find((member) => member._id !== currentUserId);
+  const myId = normalizeId(currentUserId);
+  const otherMember = chat?.members?.find((member) => normalizeId(member) !== myId);
   const displayName = getNickname(chat, currentUserId, otherMember);
   const timeline = buildTimeline(messages, calls);
   const [actionTarget, setActionTarget] = useState(null);
@@ -57,7 +58,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
                 );
               }
               const message = item.message;
-              const mine = String(getId(message.sender)) === String(currentUserId);
+              const mine = normalizeId(message.sender) === myId;
               return (
                 <div key={`message-${message._id}`}>
                   {showDate && <DateDivider value={item.createdAt} />}
@@ -77,7 +78,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         {actionTarget && (
           <MessageActionSheet
             message={actionTarget}
-            mine={String(getId(actionTarget.sender)) === String(currentUserId)}
+            mine={normalizeId(actionTarget.sender) === myId}
             onClose={() => setActionTarget(null)}
             onReact={react}
             onReply={() => {
@@ -177,7 +178,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
   }
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 32 }} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+    <motion.div layout initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 32 }} className={`flex w-full ${mine ? 'justify-end' : 'justify-start'}`}>
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 64 }}
@@ -219,9 +220,9 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
 
 function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, onDeleteMe, onDeleteEveryone, onReport }) {
   return (
-    <div className="absolute inset-x-3 bottom-4 z-20">
-      <button className="fixed inset-0 cursor-default" onClick={onClose} aria-label="Close message actions" />
-      <div className="surface relative rounded-2xl p-3 shadow-glow">
+    <div className="fixed inset-x-0 bottom-0 z-[60] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <button className="fixed inset-0 cursor-default bg-black/35 backdrop-blur-[2px]" onClick={onClose} aria-label="Close message actions" />
+      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface relative mx-auto max-w-md rounded-t-[24px] p-3 shadow-glow">
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="truncate text-xs text-white/50">{message.text || 'Message options'}</p>
           <button onClick={onClose} className="btn-icon h-7 w-7" aria-label="Close reactions"><X size={14} /></button>
@@ -240,7 +241,7 @@ function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, 
           {mine && <ActionButton icon={Trash2} label="Delete everyone" onClick={onDeleteEveryone} tone="danger" />}
           {!mine && <ActionButton icon={Flag} label="Report" onClick={onReport} tone="danger" />}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -268,7 +269,7 @@ function StatusIcon({ status }) {
 }
 
 function CallHistoryItem({ call, currentUserId }) {
-  const mine = getId(call.caller) === currentUserId;
+  const mine = normalizeId(call.caller) === normalizeId(currentUserId);
   const isMissed = ['missed', 'rejected'].includes(call.status);
   const Icon = isMissed ? PhoneMissed : call.type === 'video' ? Video : Phone;
   const direction = mine ? 'Outgoing' : 'Incoming';
@@ -375,7 +376,7 @@ function buildTimeline(messages, calls) {
 }
 
 function getId(value) {
-  return typeof value === 'string' ? value : value?._id;
+  return normalizeId(value);
 }
 
 function formatDuration(seconds = 0) {
@@ -389,4 +390,15 @@ function formatDuration(seconds = 0) {
 function getNickname(chat, currentUserId, user) {
   if (!user) return '';
   return chat?.nicknames?.[`${currentUserId}:${user._id}`] || user.name;
+}
+
+function normalizeId(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    if (value._id) return normalizeId(value._id);
+    if (value.$oid) return value.$oid;
+    if (value.toString && value.toString !== Object.prototype.toString) return value.toString();
+  }
+  return String(value);
 }

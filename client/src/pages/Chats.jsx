@@ -304,7 +304,7 @@ export default function Chats() {
   useEffect(() => {
     const socket = getRealtimeSocket();
     const handleMessage = ({ message }) => {
-      const mine = (message.sender?._id || message.sender) === me?._id;
+      const mine = getMessageSenderId(message) === normalizeId(me?._id);
       if (!mine && (!activeChat || message.chat !== activeChat._id || document.visibilityState !== 'visible')) {
         playMessageSound();
       }
@@ -787,7 +787,18 @@ function getNickname(chat, currentUserId, user) {
 }
 
 function getMessageSenderId(message) {
-  return typeof message.sender === 'string' ? message.sender : message.sender?._id;
+  return normalizeId(message.sender);
+}
+
+function normalizeId(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    if (value._id) return normalizeId(value._id);
+    if (value.$oid) return value.$oid;
+    if (value.toString && value.toString !== Object.prototype.toString) return value.toString();
+  }
+  return String(value);
 }
 
 function callPreview(call, currentUserId) {
