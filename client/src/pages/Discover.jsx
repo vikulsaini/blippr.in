@@ -49,14 +49,14 @@ export default function Discover() {
 
   return (
     <div className="space-y-4">
-      <section className="glass rounded-3xl p-3">
-        <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+      <section className="surface rounded-[20px] p-2">
+        <label className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
           <Search size={18} className="text-white/45" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search @username or name" />
         </label>
       </section>
 
-      {message && <p className="rounded-2xl border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">{message}</p>}
+      {message && <p className="rounded-[16px] border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">{message}</p>}
 
       <section className="space-y-3">
         {users.map((user, index) => (
@@ -65,14 +65,14 @@ export default function Discover() {
       </section>
 
       {!query.trim() && (
-        <div className="rounded-3xl border border-white/10 bg-white/8 p-8 text-center">
+        <div className="rounded-[20px] border border-white/8 bg-white/5 p-8 text-center">
           <p className="font-medium">Search people</p>
           <p className="mt-1 text-sm text-white/52">Type a name or username to find someone.</p>
         </div>
       )}
 
       {query.trim() && !users.length && !message && (
-        <div className="rounded-3xl border border-white/10 bg-white/8 p-8 text-center">
+        <div className="rounded-[20px] border border-white/8 bg-white/5 p-8 text-center">
           <p className="font-medium">No users found</p>
           <p className="mt-1 text-sm text-white/52">Try another username or name.</p>
         </div>
@@ -89,11 +89,11 @@ function UserRow({ user, sent, onProfile, onAdd, index }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.035, duration: 0.22 }}
-      className="glass flex items-center justify-between gap-3 rounded-2xl p-3"
+      className="surface flex items-center justify-between gap-3 rounded-[18px] p-3"
     >
       <div className="flex min-w-0 items-center gap-3">
         <button onClick={() => onProfile(user)} aria-label={`View ${user.name} profile`}>
-          <img src={user.avatar} alt="" className="h-14 w-14 rounded-2xl bg-white/12 object-cover" />
+          <img src={user.avatar} alt="" className="h-12 w-12 rounded-full bg-white/12 object-cover" />
         </button>
         <div className="min-w-0">
           <p className="truncate font-medium">{user.name}</p>

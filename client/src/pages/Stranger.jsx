@@ -188,7 +188,7 @@ export default function Stranger() {
           <Badge icon={mode === 'random' ? Shuffle : MapPin} label={source === 'random' ? 'Random anywhere' : source === 'nearby' ? 'Nearby first' : 'Online fallback'} />
           <Badge icon={Shuffle} label={status} />
         </div>
-        <button onClick={loadMatch} className="glass grid h-11 w-11 shrink-0 place-items-center rounded-2xl" aria-label="Refresh matches">
+        <button onClick={loadMatch} className="surface grid h-11 w-11 shrink-0 place-items-center rounded-[16px]" aria-label="Refresh matches">
           <RotateCw size={18} />
         </button>
       </section>
@@ -223,19 +223,19 @@ export default function Stranger() {
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
         animate={controls}
         whileDrag={{ scale: 0.985 }}
-        className="glass relative z-10 overflow-hidden rounded-[2rem]"
+        className="surface relative z-10 overflow-hidden rounded-[24px]"
       >
         {activeUser?.avatar ? (
           <button onClick={() => setProfileUser(activeUser)} className="relative block w-full" aria-label={`View ${activeUser.name} profile`}>
             <img src={activeUser.avatar} alt="" className="h-[28rem] max-h-[56vh] w-full bg-white/10 object-cover" />
             <div className="absolute left-4 top-4 flex gap-2">
-              <span className="rounded-full bg-ink/70 px-3 py-1 text-xs text-white backdrop-blur">Swipe right: next</span>
-              <span className="rounded-full bg-ink/70 px-3 py-1 text-xs text-white backdrop-blur">Swipe left: previous</span>
+              <span className="rounded-full bg-ink/70 px-3 py-1 text-xs text-white">Right: next</span>
+              <span className="rounded-full bg-ink/70 px-3 py-1 text-xs text-white">Left: previous</span>
             </div>
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/70 to-transparent p-5 pt-24 text-left">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/72 to-transparent p-4 pt-24 text-left">
               <div className="flex items-end justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="truncate text-3xl font-semibold">{activeUser.name}</h3>
+                  <h3 className="truncate text-2xl font-semibold">{activeUser.name}</h3>
                   <p className="mt-1 truncate text-sm text-white/70">@{activeUser.username} - {activeUser.gender} - {activeUser.age}</p>
                   <p className={`mt-1 text-sm ${activeUser.isOnline ? 'text-mint' : 'text-white/55'}`}>{presenceText(activeUser)}</p>
                 </div>
@@ -269,7 +269,7 @@ export default function Stranger() {
 
 function Badge({ icon: Icon, label }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/8 px-3 py-2">
+    <div className="flex min-w-0 items-center gap-2 rounded-[16px] border border-white/8 bg-white/5 px-3 py-2">
       <Icon size={15} className="shrink-0 text-mint" />
       <span className="truncate text-xs text-white/62">{label}</span>
     </div>
@@ -278,7 +278,7 @@ function Badge({ icon: Icon, label }) {
 
 function ActionButton({ label, icon: Icon, onClick, primary = false, active = false }) {
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 rounded-2xl p-3 text-xs font-medium ${primary ? 'bg-mint text-ink' : active ? 'bg-white text-ink' : 'glass text-white/72'}`}>
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 rounded-[16px] p-3 text-xs font-medium ${primary ? 'bg-white text-ink' : active ? 'bg-mint text-ink' : 'surface text-white/72'}`}>
       <Icon size={19} />
       {label}
     </button>
@@ -287,7 +287,7 @@ function ActionButton({ label, icon: Icon, onClick, primary = false, active = fa
 
 function ModeButton({ active, onClick, icon: Icon, label }) {
   return (
-    <button onClick={onClick} className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold ${active ? 'bg-mint text-ink' : 'glass text-white/70'}`}>
+    <button onClick={onClick} className={`flex items-center justify-center gap-2 rounded-[16px] px-3 py-3 text-sm font-semibold ${active ? 'bg-white text-ink' : 'surface text-white/70'}`}>
       <Icon size={17} />
       {label}
     </button>

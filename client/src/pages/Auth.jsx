@@ -87,13 +87,13 @@ export default function Auth() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-8 text-white">
-      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-3xl p-5 shadow-glow">
+      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="surface rounded-[22px] p-5 shadow-glow">
         <div>
           <h1 className="text-4xl font-semibold">Varta</h1>
           <p className="mt-2 text-sm text-white/58">Meet people, become friends, and keep conversations close.</p>
         </div>
 
-        <div className="mt-6 grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-white/8 p-1 text-sm">
+        <div className="mt-6 grid grid-cols-4 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1 text-sm">
           <ModeButton active={mode === 'login'} onClick={() => switchMode('login')} label="Login" />
           <ModeButton active={mode === 'signup'} onClick={() => switchMode('signup')} label="Signup" />
           <ModeButton active={mode === 'guest'} onClick={() => switchMode('guest')} label="Guest" />
@@ -133,7 +133,7 @@ export default function Auth() {
           </AuthForm>
         )}
 
-        {error && <p className="mt-4 rounded-2xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p>}
+        {error && <p className="mt-4 rounded-[16px] border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p>}
       </motion.section>
     </main>
   );
@@ -141,7 +141,7 @@ export default function Auth() {
 
 function ModeButton({ active, onClick, label }) {
   return (
-    <button type="button" onClick={onClick} className={`rounded-xl px-2 py-2 font-medium transition ${active ? 'bg-mint text-ink' : 'text-white/62'}`}>
+    <button type="button" onClick={onClick} className={`rounded-[12px] px-2 py-2 font-medium transition ${active ? 'bg-white text-ink' : 'text-white/62'}`}>
       {label}
     </button>
   );
@@ -151,18 +151,18 @@ function AuthForm({ title, icon: Icon, onSubmit, action, children }) {
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4">
       <div className="flex items-center gap-3">
-        <span className="rounded-2xl bg-mint/15 p-3 text-mint"><Icon size={20} /></span>
+        <span className="rounded-[14px] bg-white/8 p-3 text-mint"><Icon size={20} /></span>
         <h2 className="text-xl font-semibold">{title}</h2>
       </div>
       {children}
-      <button className="w-full rounded-2xl bg-mint py-3 font-semibold text-ink">{action}</button>
+      <button className="w-full rounded-[16px] bg-white py-3 font-semibold text-ink">{action}</button>
     </form>
   );
 }
 
 function TextInput({ value, onChange, placeholder, type = 'text', inputMode, prefix }) {
   return (
-    <div className="flex items-center rounded-2xl border border-white/10 bg-white/10 px-4">
+    <div className="flex items-center rounded-[16px] border border-white/8 bg-white/5 px-4">
       {prefix && <span className="text-white/35">{prefix}</span>}
       <input
         value={value}
@@ -182,23 +182,23 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
   }
 
   return (
-    <div className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-3">
+    <div className="space-y-3 rounded-[18px] border border-white/8 bg-white/5 p-3">
       <div className="grid grid-cols-2 gap-3">
         <TextInput value={profile.age} onChange={(value) => update('age', value)} placeholder="Age 18+" type="number" />
-        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/8 p-1 text-sm">
+        <div className="grid grid-cols-2 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1 text-sm">
           {['female', 'male'].map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`rounded-xl px-2 py-2 font-medium capitalize transition ${profile.gender === value ? 'bg-mint text-ink' : 'text-white/62'}`}
+              className={`rounded-[12px] px-2 py-2 font-medium capitalize transition ${profile.gender === value ? 'bg-white text-ink' : 'text-white/62'}`}
             >
               {value}
             </button>
           ))}
         </div>
       </div>
-      {!compact && <textarea value={profile.bio} onChange={(event) => update('bio', event.target.value)} className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-white/10 px-4 py-3 outline-none" placeholder="Short bio" maxLength={160} />}
+      {!compact && <textarea value={profile.bio} onChange={(event) => update('bio', event.target.value)} className="min-h-20 w-full resize-none rounded-[16px] border border-white/8 bg-white/5 px-4 py-3 outline-none" placeholder="Short bio" maxLength={160} />}
       {compact && <TextInput value={profile.bio} onChange={(value) => update('bio', value)} placeholder="Short bio" />}
     </div>
   );

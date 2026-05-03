@@ -574,14 +574,14 @@ export default function Chats() {
           isTyping={typingChatId === activeChat._id}
         />
       ) : (
-        <section className="min-h-[calc(100vh-6.5rem)] space-y-1 px-4 pt-4">
+        <section className="min-h-[calc(100vh-6.5rem)] space-y-1 px-4 pt-3">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-semibold">Chats</h2>
               <p className="text-sm text-white/45">{chats.length} friends</p>
             </div>
           </div>
-          <label className="mb-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+          <label className="mb-3 flex items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
             <Search size={18} className="text-white/40" />
             <input
               value={query}
@@ -594,9 +594,9 @@ export default function Chats() {
             const other = chat.members?.find((member) => member._id !== me?._id);
             const displayName = getNickname(chat, me?._id, other);
             return (
-              <article key={chat._id} className={`flex w-full items-center gap-3 border-b border-white/8 px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-mint/8' : ''}`}>
+              <article key={chat._id} className={`flex w-full items-center gap-3 border-b border-white/8 px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-white/5' : ''}`}>
                 <button onClick={() => other && openProfile(other, chat)} aria-label={`View ${displayName || 'friend'} profile`}>
-                  {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-2xl object-cover" /> : <div className="h-10 w-10 rounded-2xl bg-white/10" />}
+                  {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-white/8" />}
                 </button>
                 <button onClick={() => setActiveChat(chat)} className="min-w-0 flex-1 text-left">
                   <div className="flex items-center justify-between gap-3">
@@ -608,7 +608,7 @@ export default function Chats() {
                       {typingChatId === chat._id ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, me?._id) || presenceText(other)}
                     </p>
                     {chat.unreadCount > 0 && (
-                      <span className="shrink-0 rounded-full bg-mint px-2 py-0.5 text-[10px] font-semibold text-ink">
+                      <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-ink">
                         {chat.unreadCount}
                       </span>
                     )}
@@ -618,13 +618,13 @@ export default function Chats() {
             );
           })}
           {!chats.length && (
-            <div className="glass rounded-3xl p-6 text-center">
+            <div className="surface rounded-[20px] p-6 text-center">
               <p className="font-medium">No friends yet</p>
               <p className="mt-1 text-sm text-white/55">Accept a request or send one from Discover to start chatting.</p>
             </div>
           )}
           {chats.length > 0 && !visibleChats.length && (
-            <div className="rounded-3xl border border-white/10 bg-white/8 p-6 text-center">
+            <div className="rounded-[20px] border border-white/8 bg-white/5 p-6 text-center">
               <p className="font-medium">No chats found</p>
               <p className="mt-1 text-sm text-white/45">Try another name or message.</p>
             </div>

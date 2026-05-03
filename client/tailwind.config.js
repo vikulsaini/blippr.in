@@ -3,15 +3,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: '#07070a',
-        panel: 'rgba(20, 21, 28, 0.72)',
-        line: 'rgba(255, 255, 255, 0.12)',
-        mint: '#5eead4',
-        coral: '#fb7185',
-        gold: '#facc15'
+        ink: '#08090d',
+        panel: '#11131a',
+        line: 'rgba(255, 255, 255, 0.08)',
+        mint: '#3dd6c6',
+        coral: '#ff6b7d',
+        gold: '#eab308'
       },
       boxShadow: {
-        glow: '0 18px 70px rgba(94, 234, 212, 0.16)'
+        glow: '0 18px 46px rgba(0, 0, 0, 0.26)'
       }
     }
   },

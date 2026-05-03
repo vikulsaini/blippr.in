@@ -21,12 +21,12 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-ink">
-      <header className="flex items-center justify-between border-b border-white/10 bg-white/5 px-3 py-3">
+      <header className="flex items-center justify-between border-b border-white/8 bg-panel px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
-          <button onClick={onBack} className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
+          <button onClick={onBack} className="grid h-10 w-10 place-items-center rounded-full bg-white/8" aria-label="Back to chats"><ArrowLeft size={18} /></button>
           {otherMember?.avatar && (
             <button onClick={() => onProfile?.(otherMember)} className="relative" aria-label={`View ${displayName} profile`}>
-              <img src={otherMember.avatar} alt="" className="h-11 w-11 rounded-2xl object-cover" />
+              <img src={otherMember.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
               <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-ink ${otherMember.isOnline ? 'bg-mint' : 'bg-white/30'}`} />
             </button>
           )}
@@ -41,7 +41,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         </div>
       </header>
 
-      <section className="relative flex-1 overflow-y-auto bg-gradient-to-b from-white/[0.03] to-transparent p-4">
+      <section className="relative flex-1 overflow-y-auto p-3">
         {!timeline.length ? (
           <EmptyState name={displayName} />
         ) : (
@@ -83,9 +83,9 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         )}
       </section>
 
-      <form onSubmit={onSend} className="border-t border-white/10 bg-ink/40 p-3">
+      <form onSubmit={onSend} className="border-t border-white/8 bg-panel p-3">
         {replyTo && (
-          <div className="mb-2 flex items-center gap-2 rounded-2xl border border-mint/20 bg-mint/10 px-3 py-2 text-sm">
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-mint/20 bg-mint/10 px-3 py-2 text-sm">
             <Reply size={15} className="text-mint" />
             <p className="min-w-0 flex-1 truncate text-white/70">{replyTo.text || 'Replying to message'}</p>
             <button type="button" onClick={onCancelReply} className="rounded-full bg-white/10 p-1" aria-label="Cancel reply"><X size={14} /></button>
@@ -96,7 +96,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.96 }}
-            className="mb-2 grid grid-cols-8 gap-1 rounded-3xl border border-white/10 bg-white/10 p-2 shadow-glow backdrop-blur"
+            className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-white/8 bg-panel p-2 shadow-glow"
           >
             {composerEmojis.map((emoji, index) => (
               <motion.button
@@ -107,20 +107,20 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
                 transition={{ delay: index * 0.015 }}
                 whileTap={{ scale: 0.82 }}
                 onClick={() => setText(`${text}${emoji}`)}
-                className="grid h-9 place-items-center rounded-2xl text-xl hover:bg-white/10"
+                className="grid h-9 place-items-center rounded-xl text-xl hover:bg-white/8"
               >
                 {emoji}
               </motion.button>
             ))}
           </motion.div>
         )}
-        <div className="flex items-end gap-2 rounded-3xl border border-white/10 bg-white/8 p-2">
-          <button type="button" className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10" aria-label="Attach media"><ImagePlus size={18} /></button>
-          <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${emojiOpen ? 'bg-mint text-ink' : 'bg-white/10'}`} aria-label="Emoji"><Smile size={18} /></button>
+        <div className="flex items-end gap-2 rounded-2xl border border-white/8 bg-white/5 p-1.5">
+          <button type="button" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/8" aria-label="Attach media"><ImagePlus size={18} /></button>
+          <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${emojiOpen ? 'bg-white text-ink' : 'bg-white/8'}`} aria-label="Emoji"><Smile size={18} /></button>
           <textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
-            className="max-h-28 min-h-11 flex-1 resize-none bg-transparent px-2 py-3 text-sm outline-none"
+            className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2.5 text-sm outline-none"
             placeholder={chat ? 'Message' : 'Start from Discover'}
             disabled={!chat}
             rows={1}
@@ -132,9 +132,9 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             }}
           />
           {text.trim() ? (
-            <button disabled={!chat} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-mint text-ink disabled:opacity-40" aria-label="Send"><Send size={18} /></button>
+            <button disabled={!chat} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-ink disabled:opacity-40" aria-label="Send"><Send size={18} /></button>
           ) : (
-            <button type="button" className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10" aria-label="Voice message"><Mic size={18} /></button>
+            <button type="button" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/8" aria-label="Voice message"><Mic size={18} /></button>
           )}
         </div>
       </form>
@@ -167,10 +167,10 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         onPointerUp={stopPress}
         onPointerCancel={stopPress}
         onPointerLeave={stopPress}
-        className={`max-w-[78%] touch-pan-y rounded-2xl px-3 py-1.5 text-sm shadow-sm ${mine ? 'rounded-br-md bg-mint text-ink' : 'rounded-bl-md bg-white/10 text-white'}`}
+        className={`max-w-[78%] touch-pan-y rounded-[18px] px-3 py-1.5 text-sm shadow-sm ${mine ? 'rounded-br-md bg-white text-ink' : 'rounded-bl-md bg-[#1a1d25] text-white'}`}
       >
         {message.replyTo && (
-          <div className={`mb-1.5 rounded-xl border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-ink/30 bg-ink/10 text-ink/65' : 'border-mint/50 bg-white/10 text-white/55'}`}>
+          <div className={`mb-1.5 rounded-lg border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-ink/30 bg-ink/10 text-ink/65' : 'border-mint/50 bg-white/8 text-white/55'}`}>
             <p className="line-clamp-2">{message.replyTo.text || 'Replied message'}</p>
           </div>
         )}
@@ -183,7 +183,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         {!!message.reactions?.length && (
           <div className="mt-1 flex flex-wrap gap-1">
             {reactionSummary(message.reactions).map((reaction) => (
-              <span key={reaction.emoji} className={`rounded-full px-2 py-0.5 text-xs ${mine ? 'bg-ink/10' : 'bg-white/10'}`}>
+              <span key={reaction.emoji} className={`rounded-full px-2 py-0.5 text-xs ${mine ? 'bg-ink/10' : 'bg-white/8'}`}>
                 {reaction.emoji} {reaction.count}
               </span>
             ))}
@@ -197,14 +197,14 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
 function ReactionTray({ message, onClose, onReact }) {
   return (
     <div className="absolute inset-x-4 bottom-4 z-20">
-      <div className="glass rounded-3xl p-3 shadow-glow">
+      <div className="surface rounded-2xl p-3 shadow-glow">
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="truncate text-xs text-white/50">React to: {message.text || 'message'}</p>
           <button onClick={onClose} className="rounded-full bg-white/10 p-1" aria-label="Close reactions"><X size={14} /></button>
         </div>
         <div className="grid grid-cols-6 gap-2">
           {quickEmojis.map((emoji) => (
-            <button key={emoji} onClick={() => onReact(emoji)} className="rounded-2xl bg-white/10 py-3 text-xl" aria-label={`React ${emoji}`}>
+            <button key={emoji} onClick={() => onReact(emoji)} className="rounded-xl bg-white/8 py-3 text-xl" aria-label={`React ${emoji}`}>
               {emoji}
             </button>
           ))}
@@ -223,7 +223,7 @@ function CallHistoryItem({ call, currentUserId }) {
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
-      <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs ${isMissed ? 'border-coral/20 bg-coral/10 text-coral' : 'border-white/10 bg-white/8 text-white/62'}`}>
+      <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${isMissed ? 'border-coral/20 bg-coral/10 text-coral' : 'border-white/8 bg-white/5 text-white/58'}`}>
         <Icon size={15} />
         <span>{direction} {call.type} call</span>
         <span className="text-white/35">-</span>
@@ -236,7 +236,7 @@ function CallHistoryItem({ call, currentUserId }) {
 function TypingBubble() {
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-      <div className="flex items-center gap-1 rounded-2xl rounded-bl-md bg-white/10 px-3 py-2">
+      <div className="flex items-center gap-1 rounded-[18px] rounded-bl-md bg-[#1a1d25] px-3 py-2">
         {[0, 1, 2].map((dot) => (
           <motion.span
             key={dot}
@@ -252,7 +252,7 @@ function TypingBubble() {
 
 function IconButton({ label, icon: Icon, onClick }) {
   return (
-    <button onClick={onClick} className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10" aria-label={label}>
+    <button onClick={onClick} className="grid h-10 w-10 place-items-center rounded-full bg-white/8" aria-label={label}>
       <Icon size={18} />
     </button>
   );
@@ -262,7 +262,7 @@ function EmptyState({ name }) {
   return (
     <div className="grid h-full place-items-center text-center">
       <div>
-        <span className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-mint/15 text-mint"><MessageCircle size={26} /></span>
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/8 text-mint"><MessageCircle size={24} /></span>
         <p className="mt-4 font-semibold">Start the conversation</p>
         <p className="mt-1 text-sm text-white/45">{name ? `Say hello to ${name}.` : 'Choose a friend from your list.'}</p>
       </div>
@@ -273,7 +273,7 @@ function EmptyState({ name }) {
 function DateDivider({ value }) {
   return (
     <div className="my-4 flex justify-center">
-      <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-[11px] text-white/45">{formatDate(value)}</span>
+      <span className="rounded-full border border-white/8 bg-white/5 px-3 py-1 text-[11px] text-white/42">{formatDate(value)}</span>
     </div>
   );
 }
