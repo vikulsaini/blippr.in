@@ -14,6 +14,8 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
   useEffect(() => {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = call?.remoteStream || null;
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = call?.remoteStream || null;
+    remoteAudioRef.current?.play?.().catch(() => {});
+    remoteVideoRef.current?.play?.().catch(() => {});
   }, [call?.remoteStream]);
 
   if (!call) return null;
@@ -36,9 +38,9 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
         </div>
 
         <div className="relative mt-8 flex flex-1 items-center justify-center overflow-hidden rounded-[2rem] border border-white/10 bg-white/8">
-          {!isVideo && <audio ref={remoteAudioRef} autoPlay />}
+          <audio ref={remoteAudioRef} autoPlay playsInline />
           {isVideo && call.remoteStream ? (
-            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
+            <video ref={remoteVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
           ) : (
             <div className="grid place-items-center text-center">
               <div className="relative">

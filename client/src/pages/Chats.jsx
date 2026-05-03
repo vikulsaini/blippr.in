@@ -28,6 +28,7 @@ export default function Chats() {
   const callRef = useRef(null);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
+  const ringtoneRef = useRef({ context: null, timer: null });
 
   function mergeChat(updatedChat, unreadCount) {
     setChats((current) => {
@@ -59,6 +60,49 @@ export default function Chats() {
   function updateCall(next) {
     callRef.current = typeof next === 'function' ? next(callRef.current) : next;
     setCall(callRef.current);
+  }
+
+  function playRingPulse(tone = 'incoming') {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    const context = ringtoneRef.current.context || new AudioContext();
+    ringtoneRef.current.context = context;
+    context.resume?.().catch(() => {});
+
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = tone === 'outgoing' ? 520 : 880;
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(tone === 'outgoing' ? 0.035 : 0.05, context.currentTime + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + (tone === 'outgoing' ? 0.28 : 0.55));
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + (tone === 'outgoing' ? 0.32 : 0.6));
+  }
+
+  function startRingtone({ tone = 'incoming', vibrate = false } = {}) {
+    stopRingtone();
+    playRingPulse(tone);
+    ringtoneRef.current.timer = window.setInterval(() => playRingPulse(tone), tone === 'outgoing' ? 1300 : 1700);
+    if (vibrate && navigator.vibrate) navigator.vibrate([520, 240, 520, 240, 850]);
+  }
+
+  function stopRingtone() {
+    if (ringtoneRef.current.timer) window.clearInterval(ringtoneRef.current.timer);
+    ringtoneRef.current.timer = null;
+    if (navigator.vibrate) navigator.vibrate(0);
+  }
+
+  function showIncomingCallNotification(fromUser, callType) {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
+    new Notification(`${fromUser?.name || 'Varta friend'} is calling`, {
+      body: `${callType === 'video' ? 'Video' : 'Audio'} call on Varta`,
+      icon: fromUser?.avatar || '/favicon.svg',
+      tag: `varta-call-${fromUser?._id || 'incoming'}`
+    });
   }
 
   function findUserById(userId, fallback) {
@@ -125,6 +169,8 @@ export default function Chats() {
         socket.emit('call:reject', { to: from, callId });
         return;
       }
+      startRingtone({ tone: 'incoming', vibrate: true });
+      showIncomingCallNotification(fromUser, callType);
       updateCall({
         status: 'incoming',
         direction: 'incoming',
@@ -140,6 +186,7 @@ export default function Chats() {
     const handleAnswer = async ({ answer, callId }) => {
       if (callRef.current?.callId !== callId || !peerRef.current) return;
       await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+      stopRingtone();
       updateCall((current) => ({ ...current, status: 'connected' }));
     };
 
@@ -176,6 +223,8 @@ export default function Chats() {
       socket.off('call:updated', handleCallUpdated);
     };
   }, [activeChat, chats]);
+
+  useEffect(() => () => stopRingtone(), []);
 
   useEffect(() => {
     if (!activeChat) {
@@ -304,7 +353,11 @@ export default function Chats() {
 
   async function getLocalStream(type) {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      },
       video: type === 'video' ? { facingMode: 'user' } : false
     });
     localStreamRef.current = stream;
@@ -326,6 +379,7 @@ export default function Chats() {
     if (!peerUser || !navigator.mediaDevices?.getUserMedia) return;
 
     try {
+      startRingtone({ tone: 'outgoing' });
       const localStream = await getLocalStream(type);
       const peer = createCallPeer(peerUser);
       localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
@@ -338,6 +392,7 @@ export default function Chats() {
         else cleanupCall();
       });
     } catch (err) {
+      stopRingtone();
       updateCall({ status: 'error', type, peerUser, error: err.message });
       setTimeout(cleanupCall, 1600);
     }
@@ -347,6 +402,7 @@ export default function Chats() {
     if (!callRef.current) return;
     const currentCall = callRef.current;
     try {
+      stopRingtone();
       const localStream = await getLocalStream(currentCall.type);
       const peer = createCallPeer(currentCall.peerUser);
       localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
@@ -377,6 +433,7 @@ export default function Chats() {
   }
 
   function cleanupCall() {
+    stopRingtone();
     peerRef.current?.close();
     peerRef.current = null;
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
