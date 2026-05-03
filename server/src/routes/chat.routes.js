@@ -4,6 +4,8 @@ import {
   createDirectChatSchema,
   deleteChat,
   deleteMessage,
+  editMessage,
+  editMessageSchema,
   listCalls,
   listChats,
   listMessages,
@@ -26,6 +28,7 @@ router.post('/', validate(createDirectChatSchema), createDirectChat);
 router.get('/:chatId/messages', listMessages);
 router.get('/:chatId/calls', listCalls);
 router.post('/:chatId/messages', validate(messageSchema), sendMessage);
+router.patch('/:chatId/messages/:messageId', validate(editMessageSchema), editMessage);
 router.post('/:chatId/messages/:messageId/reactions', validate(reactionSchema), reactToMessage);
 router.patch('/:chatId/read', markChatRead);
 router.patch('/:chatId/nicknames', validate(nicknameSchema), updateNickname);

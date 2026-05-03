@@ -26,6 +26,7 @@ const messageSchema = new mongoose.Schema(
     status: { type: String, enum: ['sent', 'delivered', 'seen'], default: 'sent' },
     seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    editedAt: Date,
     deletedAt: Date
   },
   { timestamps: true }

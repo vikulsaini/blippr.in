@@ -26,6 +26,10 @@ export const reactionSchema = Joi.object({
   emoji: Joi.string().min(1).max(8).required()
 });
 
+export const editMessageSchema = Joi.object({
+  text: Joi.string().trim().min(1).max(4000).required()
+});
+
 export const nicknameSchema = Joi.object({
   userId: Joi.string().hex().length(24).required(),
   nickname: Joi.string().trim().max(40).allow('').required()
@@ -41,6 +45,14 @@ async function populateMessage(messageId) {
   return Message.findById(messageId)
     .populate('sender', 'name username avatar')
     .populate('replyTo', 'text sender');
+}
+
+function receiverIds(chat, senderId) {
+  return chat.members.filter((memberId) => memberId.toString() !== senderId.toString());
+}
+
+function receiverIsConnected(io, chat, senderId) {
+  return receiverIds(chat, senderId).some((memberId) => (io?.sockets?.adapter?.rooms?.get(`user:${memberId}`)?.size || 0) > 0);
 }
 
 export const listChats = asyncHandler(async (req, res) => {
@@ -107,6 +119,13 @@ export const listMessages = asyncHandler(async (req, res) => {
     error.status = 404;
     throw error;
   }
+  const io = req.app.get('io');
+  await Message.updateMany(
+    { chat: chat._id, sender: { $ne: req.user._id }, status: 'sent', deletedAt: { $exists: false } },
+    { $set: { status: 'delivered' } }
+  );
+  io?.to(`chat:${chat._id}`).emit('message:delivered', { chatId: chat._id, userId: req.user._id });
+
   const messages = await Message.find({ chat: chat._id, deletedFor: { $ne: req.user._id }, deletedAt: { $exists: false } })
     .populate('sender', 'name username avatar')
     .populate('replyTo', 'text sender')
@@ -138,7 +157,13 @@ export const sendMessage = asyncHandler(async (req, res) => {
     error.status = 404;
     throw error;
   }
-  const createdMessage = await Message.create({ chat: chat._id, sender: req.user._id, ...req.body });
+  const io = req.app.get('io');
+  const createdMessage = await Message.create({
+    chat: chat._id,
+    sender: req.user._id,
+    status: receiverIsConnected(io, chat, req.user._id) ? 'delivered' : 'sent',
+    ...req.body
+  });
   const message = await populateMessage(createdMessage._id);
   chat.lastMessage = createdMessage._id;
   if (!chat.unreadCounts) chat.unreadCounts = new Map();
@@ -152,7 +177,6 @@ export const sendMessage = asyncHandler(async (req, res) => {
     .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
     .populate('lastMessage')
     .populate('lastCall');
-  const io = req.app.get('io');
   for (const memberId of chat.members) {
     io?.to(`user:${memberId}`).emit('chat:updated', {
       chat: populatedChat,
@@ -220,6 +244,11 @@ export const markChatRead = asyncHandler(async (req, res) => {
   if (!chat.unreadCounts) chat.unreadCounts = new Map();
   chat.unreadCounts.set(req.user._id.toString(), 0);
   await chat.save();
+  await Message.updateMany(
+    { chat: chat._id, sender: { $ne: req.user._id }, deletedAt: { $exists: false } },
+    { $set: { status: 'seen' }, $addToSet: { seenBy: req.user._id } }
+  );
+  req.app.get('io')?.to(`chat:${chat._id}`).emit('message:seen', { chatId: chat._id, userId: req.user._id });
   res.json({ ok: true });
 });
 
@@ -278,14 +307,46 @@ export const deleteChat = asyncHandler(async (req, res) => {
   res.json({ ok: true });
 });
 
-export const deleteMessage = asyncHandler(async (req, res) => {
-  const message = await Message.findById(req.params.messageId);
-  if (!message || message.sender.toString() !== req.user._id.toString()) {
+export const editMessage = asyncHandler(async (req, res) => {
+  const chat = await Chat.findOne({ _id: req.params.chatId, members: req.user._id });
+  const message = await Message.findOne({ _id: req.params.messageId, chat: req.params.chatId, deletedAt: { $exists: false } });
+  if (!chat || !message || message.sender.toString() !== req.user._id.toString()) {
     const error = new Error('Message not found');
     error.status = 404;
     throw error;
   }
-  message.deletedAt = new Date();
+  message.text = req.body.text;
+  message.editedAt = new Date();
   await message.save();
+  const populated = await populateMessage(message._id);
+  req.app.get('io')?.to(`chat:${chat._id}`).emit('message:edited', { message: populated });
+  res.json({ message: populated });
+});
+
+export const deleteMessage = asyncHandler(async (req, res) => {
+  const chat = await Chat.findOne({ _id: req.params.chatId, members: req.user._id });
+  const message = await Message.findOne({ _id: req.params.messageId, chat: req.params.chatId });
+  if (!chat || !message) {
+    const error = new Error('Message not found');
+    error.status = 404;
+    throw error;
+  }
+
+  const scope = req.query.scope === 'everyone' ? 'everyone' : 'me';
+  if (scope === 'everyone') {
+    if (message.sender.toString() !== req.user._id.toString()) {
+      const error = new Error('Only the sender can delete for everyone');
+      error.status = 403;
+      throw error;
+    }
+    message.deletedAt = new Date();
+    await message.save();
+    req.app.get('io')?.to(`chat:${chat._id}`).emit('message:deleted', { messageId: message._id, scope: 'everyone' });
+    return res.json({ ok: true });
+  }
+
+  message.deletedFor.addToSet(req.user._id);
+  await message.save();
+  req.app.get('io')?.to(`user:${req.user._id}`).emit('message:deleted', { messageId: message._id, scope: 'me' });
   res.json({ ok: true });
 });

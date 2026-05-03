@@ -1,22 +1,22 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ImagePlus, MessageCircle, Mic, Phone, PhoneMissed, Reply, Send, Smile, Video, X } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Edit3, Flag, ImagePlus, MessageCircle, Mic, Phone, PhoneMissed, Reply, Send, Smile, Trash2, Video, X } from 'lucide-react';
 import { presenceText } from '../lib/presence.js';
 
 const quickEmojis = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F64F}'];
 const composerEmojis = ['\u{1F60A}', '\u{1F602}', '\u{1F970}', '\u{1F60D}', '\u{1F44B}', '\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F525}', '\u{1F389}', '\u{1F622}', '\u{1F62E}', '\u{1F64F}', '\u{1F914}', '\u{1F634}', '\u{1F618}', '\u{2728}'];
 
-export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onStartCall, isTyping = false }) {
+export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onEditMessage, onDeleteMessage, onReportMessage, onStartCall, isTyping = false }) {
   const otherMember = chat?.members?.find((member) => member._id !== currentUserId);
   const displayName = getNickname(chat, currentUserId, otherMember);
   const timeline = buildTimeline(messages, calls);
-  const [reactionTarget, setReactionTarget] = useState(null);
+  const [actionTarget, setActionTarget] = useState(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
 
   function react(emoji) {
-    if (!reactionTarget) return;
-    onReact?.(reactionTarget._id, emoji);
-    setReactionTarget(null);
+    if (!actionTarget) return;
+    onReact?.(actionTarget._id, emoji);
+    setActionTarget(null);
   }
 
   return (
@@ -57,14 +57,14 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
                 );
               }
               const message = item.message;
-              const mine = getId(message.sender) === currentUserId;
+              const mine = String(getId(message.sender)) === String(currentUserId);
               return (
                 <div key={`message-${message._id}`}>
                   {showDate && <DateDivider value={item.createdAt} />}
                   <MessageBubble
                     message={message}
                     mine={mine}
-                    onLongPress={() => setReactionTarget(message)}
+                    onLongPress={() => setActionTarget(message)}
                     onSwipeRight={() => onReply?.(message)}
                   />
                 </div>
@@ -74,11 +74,33 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </div>
         )}
         {isTyping && !messages.length && <TypingBubble />}
-        {reactionTarget && (
-          <ReactionTray
-            message={reactionTarget}
-            onClose={() => setReactionTarget(null)}
+        {actionTarget && (
+          <MessageActionSheet
+            message={actionTarget}
+            mine={String(getId(actionTarget.sender)) === String(currentUserId)}
+            onClose={() => setActionTarget(null)}
             onReact={react}
+            onReply={() => {
+              onReply?.(actionTarget);
+              setActionTarget(null);
+            }}
+            onEdit={() => {
+              const nextText = window.prompt('Edit message', actionTarget.text || '');
+              if (nextText?.trim()) onEditMessage?.(actionTarget._id, nextText.trim());
+              setActionTarget(null);
+            }}
+            onDeleteMe={() => {
+              onDeleteMessage?.(actionTarget._id, 'me');
+              setActionTarget(null);
+            }}
+            onDeleteEveryone={() => {
+              onDeleteMessage?.(actionTarget._id, 'everyone');
+              setActionTarget(null);
+            }}
+            onReport={() => {
+              onReportMessage?.(actionTarget);
+              setActionTarget(null);
+            }}
           />
         )}
       </section>
@@ -177,8 +199,9 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         {message.media?.url && <MediaPreview media={message.media} />}
         {message.text && <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>}
         <div className={`mt-0.5 flex items-center justify-end gap-2 text-[10px] ${mine ? 'text-ink/55' : 'text-white/40'}`}>
+          {message.editedAt && <span>edited</span>}
           <span>{formatTime(message.createdAt)}</span>
-          {mine && <span>{message.status || 'sent'}</span>}
+          {mine && <StatusIcon status={message.status} />}
         </div>
         {!!message.reactions?.length && (
           <div className="mt-1 flex flex-wrap gap-1">
@@ -194,12 +217,13 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
   );
 }
 
-function ReactionTray({ message, onClose, onReact }) {
+function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, onDeleteMe, onDeleteEveryone, onReport }) {
   return (
-    <div className="absolute inset-x-4 bottom-4 z-20">
-      <div className="surface rounded-2xl p-3 shadow-glow">
+    <div className="absolute inset-x-3 bottom-4 z-20">
+      <button className="fixed inset-0 cursor-default" onClick={onClose} aria-label="Close message actions" />
+      <div className="surface relative rounded-2xl p-3 shadow-glow">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="truncate text-xs text-white/50">React to: {message.text || 'message'}</p>
+          <p className="truncate text-xs text-white/50">{message.text || 'Message options'}</p>
           <button onClick={onClose} className="btn-icon h-7 w-7" aria-label="Close reactions"><X size={14} /></button>
         </div>
         <div className="grid grid-cols-6 gap-2">
@@ -209,9 +233,38 @@ function ReactionTray({ message, onClose, onReact }) {
             </button>
           ))}
         </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <ActionButton icon={Reply} label="Reply" onClick={onReply} />
+          {mine && <ActionButton icon={Edit3} label="Edit" onClick={onEdit} />}
+          <ActionButton icon={Trash2} label="Delete for me" onClick={onDeleteMe} tone="danger" />
+          {mine && <ActionButton icon={Trash2} label="Delete everyone" onClick={onDeleteEveryone} tone="danger" />}
+          {!mine && <ActionButton icon={Flag} label="Report" onClick={onReport} tone="danger" />}
+        </div>
       </div>
     </div>
   );
+}
+
+function ActionButton({ icon: Icon, label, onClick, tone = 'neutral', disabled = false }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold disabled:opacity-35 ${tone === 'danger' ? 'border border-coral/20 bg-coral/10 text-coral' : 'btn-secondary'}`}
+    >
+      <Icon size={15} />
+      {label}
+    </button>
+  );
+}
+
+function StatusIcon({ status }) {
+  if (status === 'failed') return <span className="text-coral">!</span>;
+  if (status === 'sending') return <span className="h-2 w-2 animate-pulse rounded-full bg-ink/45" title="Sending" />;
+  if (status === 'seen') return <CheckCheck size={13} className="text-mint" aria-label="Seen" />;
+  if (status === 'delivered') return <CheckCheck size={13} aria-label="Delivered" />;
+  return <Check size={13} aria-label="Sent" />;
 }
 
 function CallHistoryItem({ call, currentUserId }) {

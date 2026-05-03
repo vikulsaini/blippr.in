@@ -80,7 +80,10 @@ export function registerSockets(io) {
       try {
         const chat = await Chat.findOne({ _id: chatId, members: socket.user._id });
         if (!chat) throw new Error('Chat not found');
-      const createdMessage = await Message.create({ chat: chat._id, sender: socket.user._id, text, media });
+      const delivered = chat.members
+        .filter((memberId) => memberId.toString() !== socket.user._id.toString())
+        .some((memberId) => (io.sockets.adapter.rooms.get(`user:${memberId}`)?.size || 0) > 0);
+      const createdMessage = await Message.create({ chat: chat._id, sender: socket.user._id, text, media, status: delivered ? 'delivered' : 'sent' });
       const message = await Message.findById(createdMessage._id)
         .populate('sender', 'name username avatar')
         .populate('replyTo', 'text sender');

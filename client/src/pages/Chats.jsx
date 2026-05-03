@@ -316,6 +316,20 @@ export default function Chats() {
     const handleReaction = ({ messageId, reactions }) => {
       setMessages((current) => current.map((message) => (message._id === messageId ? { ...message, reactions } : message)));
     };
+    const handleEdited = ({ message }) => {
+      setMessages((current) => current.map((item) => (item._id === message._id ? message : item)));
+    };
+    const handleDeleted = ({ messageId }) => {
+      setMessages((current) => current.filter((message) => message._id !== messageId));
+    };
+    const handleDelivered = ({ userId }) => {
+      if (userId === me?._id) return;
+      setMessages((current) => current.map((message) => (getMessageSenderId(message) === me?._id && message.status === 'sent' ? { ...message, status: 'delivered' } : message)));
+    };
+    const handleSeen = ({ userId }) => {
+      if (userId === me?._id) return;
+      setMessages((current) => current.map((message) => (getMessageSenderId(message) === me?._id ? { ...message, status: 'seen' } : message)));
+    };
     const handleTypingStart = ({ chatId, userId }) => {
       if (userId !== me?._id) setTypingChatId(chatId);
     };
@@ -324,11 +338,19 @@ export default function Chats() {
     };
     socket.on('message:new', handleMessage);
     socket.on('message:reaction', handleReaction);
+    socket.on('message:edited', handleEdited);
+    socket.on('message:deleted', handleDeleted);
+    socket.on('message:delivered', handleDelivered);
+    socket.on('message:seen', handleSeen);
     socket.on('typing:start', handleTypingStart);
     socket.on('typing:stop', handleTypingStop);
     return () => {
       socket.off('message:new', handleMessage);
       socket.off('message:reaction', handleReaction);
+      socket.off('message:edited', handleEdited);
+      socket.off('message:deleted', handleDeleted);
+      socket.off('message:delivered', handleDelivered);
+      socket.off('message:seen', handleSeen);
       socket.off('typing:start', handleTypingStart);
       socket.off('typing:stop', handleTypingStop);
     };
@@ -398,6 +420,43 @@ export default function Chats() {
       body: JSON.stringify({ emoji })
     });
     setMessages((current) => current.map((item) => (item._id === messageId ? message : item)));
+  }
+
+  async function editMessage(messageId, nextText) {
+    const previous = messages;
+    setMessages((current) => current.map((message) => (message._id === messageId ? { ...message, text: nextText, editedAt: new Date().toISOString() } : message)));
+    try {
+      const { message } = await api(`/api/chats/${activeChat._id}/messages/${messageId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ text: nextText })
+      });
+      setMessages((current) => current.map((item) => (item._id === messageId ? message : item)));
+    } catch {
+      setMessages(previous);
+    }
+  }
+
+  async function deleteMessage(messageId, scope = 'me') {
+    const previous = messages;
+    setMessages((current) => current.filter((message) => message._id !== messageId));
+    try {
+      await api(`/api/chats/${activeChat._id}/messages/${messageId}?scope=${scope}`, { method: 'DELETE' });
+    } catch {
+      setMessages(previous);
+    }
+  }
+
+  async function reportMessage(message) {
+    const other = activeChat?.members?.find((member) => member._id !== me?._id);
+    if (!other) return;
+    await api('/api/safety/report', {
+      method: 'POST',
+      body: JSON.stringify({
+        userId: other._id,
+        reason: 'Reported message',
+        notes: `Message ${message._id}: ${message.text || '[media]'}`
+      })
+    });
   }
 
   async function updateNickname(chatId, userId, nickname) {
@@ -634,6 +693,9 @@ export default function Chats() {
           onReply={setReplyTo}
           onCancelReply={() => setReplyTo(null)}
           onReact={reactToMessage}
+          onEditMessage={editMessage}
+          onDeleteMessage={deleteMessage}
+          onReportMessage={reportMessage}
           onStartCall={startCall}
           isTyping={typingChatId === activeChat._id}
         />
@@ -722,6 +784,10 @@ export default function Chats() {
 function getNickname(chat, currentUserId, user) {
   if (!user) return '';
   return chat?.nicknames?.[`${currentUserId}:${user._id}`] || user.name;
+}
+
+function getMessageSenderId(message) {
+  return typeof message.sender === 'string' ? message.sender : message.sender?._id;
 }
 
 function callPreview(call, currentUserId) {
