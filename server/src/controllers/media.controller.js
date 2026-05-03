@@ -18,7 +18,14 @@ export const uploadMedia = asyncHandler(async (req, res) => {
     media: {
       url: result.secure_url,
       publicId: result.public_id,
-      type: result.resource_type
+      type: mediaTypeFor(req.file.mimetype, result.resource_type)
     }
   });
 });
+
+function mediaTypeFor(mimeType = '', resourceType = '') {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  return resourceType === 'image' || resourceType === 'video' ? resourceType : 'file';
+}

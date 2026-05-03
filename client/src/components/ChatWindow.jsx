@@ -1,19 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, CheckCheck, Edit3, Flag, ImagePlus, MessageCircle, Mic, Phone, PhoneMissed, Reply, Send, Smile, Trash2, Video, X } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Edit3, Flag, MessageCircle, Mic, Phone, PhoneMissed, Plus, Reply, Send, Smile, Square, Trash2, Video, X } from 'lucide-react';
 import { presenceText } from '../lib/presence.js';
 
 const quickEmojis = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F64F}'];
 const composerEmojis = ['\u{1F60A}', '\u{1F602}', '\u{1F970}', '\u{1F60D}', '\u{1F44B}', '\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F525}', '\u{1F389}', '\u{1F622}', '\u{1F62E}', '\u{1F64F}', '\u{1F914}', '\u{1F634}', '\u{1F618}', '\u{2728}'];
 
-export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onEditMessage, onDeleteMessage, onReportMessage, onStartCall, isTyping = false }) {
+export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onSendMedia, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onEditMessage, onDeleteMessage, onReportMessage, onStartCall, isTyping = false }) {
   const myId = normalizeId(currentUserId);
   const otherMember = chat?.members?.find((member) => normalizeId(member) !== myId);
   const displayName = getNickname(chat, currentUserId, otherMember);
   const timeline = buildTimeline(messages, calls);
   const [actionTarget, setActionTarget] = useState(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const endRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const recorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
@@ -23,6 +28,55 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
     if (!actionTarget) return;
     onReact?.(actionTarget._id, emoji);
     setActionTarget(null);
+  }
+
+  function handleTextInput(value) {
+    if (emojiOpen) setEmojiOpen(false);
+    setText(value);
+  }
+
+  async function handleImagePick(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !onSendMedia) return;
+    setEmojiOpen(false);
+    setUploading(true);
+    try {
+      await onSendMedia(file);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return;
+    setEmojiOpen(false);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunksRef.current = [];
+    const recorder = new MediaRecorder(stream);
+    recorderRef.current = recorder;
+    recorder.ondataavailable = (event) => {
+      if (event.data.size) audioChunksRef.current.push(event.data);
+    };
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+      if (blob.size && onSendMedia) {
+        setUploading(true);
+        try {
+          await onSendMedia(new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }));
+        } finally {
+          setUploading(false);
+        }
+      }
+    };
+    recorder.start();
+    setRecording(true);
+  }
+
+  function stopRecording() {
+    recorderRef.current?.stop();
+    setRecording(false);
   }
 
   return (
@@ -149,14 +203,18 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </motion.div>
         )}
         <div className="flex items-end gap-2 rounded-2xl border border-white/8 bg-white/5 p-1.5">
-          <button type="button" className="btn-icon h-10 w-10 shrink-0" aria-label="Attach media"><ImagePlus size={18} /></button>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-icon h-10 w-10 shrink-0" aria-label="Send image">
+            <Plus size={19} />
+          </button>
           <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`h-10 w-10 shrink-0 ${emojiOpen ? 'btn-primary rounded-full' : 'btn-icon'}`} aria-label="Emoji"><Smile size={18} /></button>
           <textarea
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => handleTextInput(event.target.value)}
+            onFocus={() => setEmojiOpen(false)}
             className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2.5 text-sm outline-none"
-            placeholder={chat ? 'Message' : 'Start from Discover'}
-            disabled={!chat}
+            placeholder={uploading ? 'Uploading...' : recording ? 'Recording voice...' : chat ? 'Message' : 'Start from Discover'}
+            disabled={!chat || uploading || recording}
             rows={1}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
@@ -166,9 +224,11 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             }}
           />
           {text.trim() ? (
-            <button disabled={!chat} className="btn-primary grid h-10 w-10 shrink-0 place-items-center rounded-full disabled:opacity-40" aria-label="Send"><Send size={18} /></button>
+            <button disabled={!chat || uploading} className="btn-primary grid h-10 w-10 shrink-0 place-items-center rounded-full disabled:opacity-40" aria-label="Send"><Send size={18} /></button>
+          ) : recording ? (
+            <button type="button" onClick={stopRecording} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-coral text-ink" aria-label="Stop recording"><Square size={16} /></button>
           ) : (
-            <button type="button" className="btn-icon h-10 w-10 shrink-0" aria-label="Voice message"><Mic size={18} /></button>
+            <button type="button" onClick={startRecording} disabled={!chat || uploading} className="btn-icon h-10 w-10 shrink-0 disabled:opacity-40" aria-label="Voice message"><Mic size={18} /></button>
           )}
         </div>
       </form>
@@ -345,6 +405,9 @@ function DateDivider({ value }) {
 
 function MediaPreview({ media }) {
   if (media.type === 'image') return <img src={media.url} alt="" className="mb-2 max-h-64 rounded-2xl object-cover" />;
+  if (media.type === 'audio') return <audio src={media.url} controls className="mb-2 max-w-full" />;
+  if (media.type === 'video') return <video src={media.url} controls className="mb-2 max-h-64 rounded-2xl" />;
+  if (!media.url) return <span className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs">Uploading attachment...</span>;
   return <a href={media.url} className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs underline">Open attachment</a>;
 }
 

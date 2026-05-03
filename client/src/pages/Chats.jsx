@@ -394,6 +394,39 @@ export default function Chats() {
     }
   }
 
+  async function sendMedia(file) {
+    if (!activeChat || !file) return;
+    const kind = file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : 'file';
+    const tempId = `temp-media-${Date.now()}`;
+    const optimisticMessage = {
+      _id: tempId,
+      chat: activeChat._id,
+      sender: currentUserId,
+      text: '',
+      media: { url: '', type: kind },
+      reactions: [],
+      status: 'sending',
+      createdAt: new Date().toISOString()
+    };
+
+    setMessages((current) => [...current, optimisticMessage]);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { media } = await api('/api/media/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const { message } = await api(`/api/chats/${activeChat._id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ media })
+      });
+      setMessages((current) => current.map((item) => (item._id === tempId ? message : item)));
+    } catch {
+      setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
+    }
+  }
+
   function handleTextChange(value) {
     setText(value);
     if (!activeChat) return;
@@ -688,6 +721,7 @@ export default function Chats() {
           text={text}
           setText={handleTextChange}
           onSend={sendMessage}
+          onSendMedia={sendMedia}
           onBack={() => setActiveChat(null)}
           onProfile={(user) => openProfile(user, activeChat)}
           replyTo={replyTo}

@@ -42,14 +42,14 @@ export default function Shell() {
   }, []);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col px-4 pt-4 text-white">
+    <main className="mx-auto flex h-dvh max-w-md flex-col overflow-hidden px-4 pt-4 text-white">
       <header className={`${showHeader ? 'mb-3 flex' : 'sr-only'} items-center justify-between`}>
         <div>
           <h1 className="text-[1.7rem] font-semibold tracking-normal">Varta</h1>
         </div>
         <NotificationBell />
       </header>
-      <section className={`min-h-0 flex-1 ${navHidden ? 'pb-0' : 'pb-24'} ${isChats ? '-mx-4' : ''}`}>
+      <section className={`min-h-0 flex-1 ${navHidden ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24'} ${isChats ? '-mx-4' : ''}`}>
         <Outlet context={{ setBottomNavHidden }} />
       </section>
       {!navHidden && (
