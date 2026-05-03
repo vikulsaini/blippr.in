@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Ban, Bell, LogOut, MapPin, Save, Shield, Unlock, UserRound } from 'lucide-react';
+import { Ban, Bell, ChevronRight, LogOut, MapPin, Save, Shield, Unlock, UserRound } from 'lucide-react';
 import InstallAppButton from '../components/InstallAppButton.jsx';
 import { api } from '../lib/api.js';
 import { enablePushNotifications } from '../lib/notifications.js';
@@ -106,26 +106,28 @@ export default function Profile() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="surface overflow-hidden rounded-[22px]">
-        <div className="h-20 bg-white/5" />
-        <div className="-mt-9 px-5 pb-5">
-          <div className="flex items-end justify-between gap-4">
-            {user?.avatar ? <img src={user.avatar} alt="" className="h-[5.5rem] w-[5.5rem] rounded-full border-4 border-ink bg-white/8 object-cover" /> : <div className="h-[5.5rem] w-[5.5rem] rounded-full border-4 border-ink bg-white/8" />}
-            <div className="mb-1 rounded-full border border-white/8 bg-white/8 px-3 py-1 text-xs text-mint">{presenceText(user)}</div>
+    <div className="space-y-3">
+      <section className="rounded-[20px] border border-white/8 bg-white/5 p-4">
+        <div className="flex items-center gap-4">
+          {user?.avatar ? <img src={user.avatar} alt="" className="h-20 w-20 rounded-full bg-white/8 object-cover" /> : <div className="h-20 w-20 rounded-full bg-white/8" />}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="truncate text-2xl font-semibold">{user?.name || 'Your profile'}</h2>
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${user?.isOnline ? 'bg-mint' : 'bg-white/35'}`} />
+            </div>
+            <p className="truncate text-sm text-white/55">@{user?.username || 'username'}</p>
+            <p className="mt-1 text-xs text-mint">{presenceText(user)}</p>
           </div>
-          <h2 className="mt-3 text-2xl font-semibold">{user?.name || 'Your profile'}</h2>
-          <p className="text-sm text-white/55">@{user?.username || 'username'}</p>
-          {user?.bio && <p className="mt-3 text-sm text-white/68">{user.bio}</p>}
         </div>
+        {user?.bio && <p className="mt-4 border-t border-white/8 pt-3 text-sm leading-relaxed text-white/68">{user.bio}</p>}
       </section>
 
       {message && <p className="rounded-[16px] border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">{message}</p>}
 
-      <form onSubmit={saveProfile} className="space-y-4">
+      <form onSubmit={saveProfile} className="space-y-3">
         <SettingsSection icon={UserRound} title="Account">
-          <div className="flex items-center gap-4 rounded-[18px] border border-white/8 bg-white/5 p-3">
-            {form.avatar ? <img src={form.avatar} alt="" className="h-[4.5rem] w-[4.5rem] rounded-full bg-white/8 object-cover" /> : <div className="h-[4.5rem] w-[4.5rem] rounded-full bg-white/8" />}
+          <div className="flex items-center gap-3">
+            {form.avatar ? <img src={form.avatar} alt="" className="h-14 w-14 rounded-full bg-white/8 object-cover" /> : <div className="h-14 w-14 rounded-full bg-white/8" />}
             <div className="min-w-0 flex-1">
               <Field label="Profile photo URL" value={form.avatar} onChange={(value) => setField('avatar', value)} />
             </div>
@@ -138,25 +140,23 @@ export default function Profile() {
           </div>
           <label className="block">
             <span className="text-xs text-white/45">Bio</span>
-            <textarea value={form.bio} onChange={(event) => setField('bio', event.target.value)} className="mt-2 min-h-24 w-full resize-none rounded-[16px] border border-white/8 bg-white/5 px-4 py-3 text-sm outline-none" placeholder="A little about you" maxLength={160} />
+            <textarea value={form.bio} onChange={(event) => setField('bio', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[14px] border border-white/8 bg-ink/35 px-3 py-2.5 text-sm outline-none" placeholder="A little about you" maxLength={160} />
           </label>
-          <button className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-white py-3 font-semibold text-ink">
+          <button className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white py-3 font-semibold text-ink">
             <Save size={18} />
             Save changes
           </button>
         </SettingsSection>
       </form>
 
-      <SettingsSection icon={Shield} title="Privacy and Safety">
+      <SettingsSection icon={Shield} title="Privacy">
         <ActionRow icon={MapPin} title="Matching location" subtitle={user?.location?.updatedAt ? 'Location saved for nearby matches' : 'Not shared yet'} action="Refresh" onClick={refreshLocation} />
-        <div className="rounded-[18px] border border-white/8 bg-white/5 p-3">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="rounded-[14px] bg-coral/10 p-3 text-coral"><Ban size={18} /></span>
-              <div>
-                <p className="font-medium">Blocked users</p>
-                <p className="text-xs text-white/45">{blockedUsers.length ? `${blockedUsers.length} hidden from you` : 'No blocked users'}</p>
-              </div>
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center gap-3 px-1">
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-coral/10 text-coral"><Ban size={17} /></span>
+            <div>
+              <p className="font-medium">Blocked users</p>
+              <p className="text-xs text-white/45">{blockedUsers.length ? `${blockedUsers.length} hidden from you` : 'No blocked users'}</p>
             </div>
           </div>
           <div className="space-y-2">
@@ -172,16 +172,13 @@ export default function Profile() {
                 </button>
               </div>
             ))}
-            {!blockedUsers.length && <p className="rounded-[16px] bg-ink/30 px-3 py-4 text-center text-sm text-white/45">Blocked people will appear here.</p>}
+            {!blockedUsers.length && <p className="rounded-[14px] bg-white/4 px-3 py-3 text-center text-sm text-white/42">Blocked people will appear here.</p>}
           </div>
         </div>
       </SettingsSection>
 
       <SettingsSection icon={Bell} title="Notifications">
         <ActionRow icon={Bell} title="Push notifications" subtitle="Messages, requests, and calls" action="Enable" onClick={turnOnNotifications} />
-      </SettingsSection>
-
-      <SettingsSection icon={UserRound} title="App">
         <InstallAppButton />
       </SettingsSection>
 
@@ -195,10 +192,10 @@ export default function Profile() {
 
 function SettingsSection({ icon: Icon, title, children }) {
   return (
-    <section className="surface rounded-[20px] p-4">
-      <div className="mb-4 flex items-center gap-3">
-        <span className="rounded-[14px] bg-white/8 p-3 text-mint"><Icon size={18} /></span>
-        <h3 className="font-semibold">{title}</h3>
+    <section className="rounded-[18px] border border-white/8 bg-white/5 p-3">
+      <div className="mb-3 flex items-center gap-2 px-1">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-white/8 text-mint"><Icon size={16} /></span>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-white/62">{title}</h3>
       </div>
       <div className="space-y-3">{children}</div>
     </section>
@@ -208,10 +205,10 @@ function SettingsSection({ icon: Icon, title, children }) {
 function Field({ label, value, onChange, type = 'text', prefix }) {
   return (
     <label className="block">
-      <span className="text-xs text-white/45">{label}</span>
-      <div className="mt-2 flex items-center rounded-[16px] border border-white/8 bg-white/5 px-4">
+      <span className="text-xs text-white/42">{label}</span>
+      <div className="mt-1.5 flex items-center rounded-[14px] border border-white/8 bg-ink/35 px-3">
         {prefix && <span className="text-white/35">{prefix}</span>}
-        <input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" type={type} />
+        <input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none" type={type} />
       </div>
     </label>
   );
@@ -220,10 +217,10 @@ function Field({ label, value, onChange, type = 'text', prefix }) {
 function GenderControl({ value, onChange }) {
   return (
     <div>
-      <span className="text-xs text-white/45">Gender</span>
-      <div className="mt-2 grid grid-cols-2 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1 text-sm">
+      <span className="text-xs text-white/42">Gender</span>
+      <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-[14px] border border-white/8 bg-ink/35 p-1 text-sm">
         {['female', 'male'].map((item) => (
-          <button key={item} type="button" onClick={() => onChange(item)} className={`rounded-[12px] px-3 py-3 font-medium capitalize ${value === item ? 'bg-white text-ink' : 'text-white/62'}`}>
+          <button key={item} type="button" onClick={() => onChange(item)} className={`rounded-[10px] px-3 py-2.5 font-medium capitalize ${value === item ? 'bg-white text-ink' : 'text-white/62'}`}>
             {item}
           </button>
         ))}
@@ -234,13 +231,16 @@ function GenderControl({ value, onChange }) {
 
 function ActionRow({ icon: Icon, title, subtitle, action, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 p-3 text-left">
-      <span className="rounded-[14px] bg-white/8 p-3 text-white/70"><Icon size={18} /></span>
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><Icon size={18} /></span>
       <span className="min-w-0 flex-1">
         <span className="block font-medium">{title}</span>
         <span className="block truncate text-xs text-white/45">{subtitle}</span>
       </span>
-      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink">{action}</span>
+      <span className="flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink">
+        {action}
+        <ChevronRight size={13} />
+      </span>
     </button>
   );
 }
