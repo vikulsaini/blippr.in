@@ -16,6 +16,7 @@ const redisUrl = normalizeRedisUrl(process.env.REDIS_URL);
 const useTls = redisUrl.startsWith('rediss://');
 
 export const redis = new Redis(redisUrl, {
+  lazyConnect: true,
   maxRetriesPerRequest: 3,
   enableReadyCheck: false,
   tls: useTls ? {} : undefined
@@ -24,3 +25,10 @@ export const redis = new Redis(redisUrl, {
 redis.on('error', (error) => {
   console.warn(`Redis connection warning: ${error.message}`);
 });
+
+export async function connectRedis() {
+  if (!redisUrl) throw new Error('REDIS_URL is required');
+  if (redis.status === 'wait') await redis.connect();
+  await redis.ping();
+  console.log('Redis connected');
+}
