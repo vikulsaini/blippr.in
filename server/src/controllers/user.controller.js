@@ -130,7 +130,7 @@ export const availableUsers = asyncHandler(async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(20);
 
-    if (users.length) return res.json({ users, source: 'nearby' });
+    return res.json({ users, source: 'nearby' });
   }
 
   const users = await User.find({ ...baseFilter, isOnline: true })

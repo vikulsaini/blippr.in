@@ -73,7 +73,7 @@ export default function Stranger() {
       setSentIds(new Set(sent.requests.map((request) => request.to._id)));
       setSource(data.source);
       setActiveIndex(0);
-      setStatus(data.users.length ? `${data.users.length} available ${data.source} matches` : 'No new nearby or online users right now.');
+      setStatus(data.users.length ? `${data.users.length} active nearby users` : 'No active users nearby right now.');
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export default function Stranger() {
       setSentIds(new Set(sent.requests.map((request) => request.to._id)));
       setSource(data.source);
       setActiveIndex(0);
-      setStatus(data.users.length ? `${data.users.length} random users from anywhere` : 'No random users available right now.');
+      setStatus(data.users.length ? `${data.users.length} active random users` : 'No active random users right now.');
     } catch (err) {
       setStatus(err.message);
     } finally {
@@ -180,12 +180,14 @@ export default function Stranger() {
     if (!activeUser || swipeLockedRef.current) return;
     swipeLockedRef.current = true;
     const offset = direction === 'next' ? 460 : -460;
-    await controls.start({
+    await Promise.all([
+      controls.start({
       opacity: 0,
       scale: 0.94,
       transition: { type: 'spring', stiffness: 260, damping: 28 }
-    });
-    await animate(x, offset, { type: 'spring', stiffness: 260, damping: 28 });
+      }),
+      animate(x, offset, { type: 'spring', stiffness: 260, damping: 28 })
+    ]);
     direction === 'next' ? nextUser() : previousUser();
     swipeLockedRef.current = false;
   }
@@ -282,9 +284,9 @@ export default function Stranger() {
         ) : activeUser?.avatar ? (
           <motion.div
             key={activeUser._id}
-            initial={{ opacity: 0.2 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.16 }}
+            initial={{ opacity: 0, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, filter: 'blur(0px)' }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
           >
           <button
             onClick={() => {
@@ -312,12 +314,7 @@ export default function Stranger() {
           </button>
           </motion.div>
         ) : (
-          <div className="grid h-[26rem] place-items-center p-6 text-center">
-            <div>
-              <p className="font-semibold">No new matches</p>
-              <p className="mt-1 text-sm text-white/52">Friends and existing chats are hidden from Match.</p>
-            </div>
-          </div>
+          <EmptyMatch mode={mode} onRetry={mode === 'random' ? loadRandomAvailable : loadMatch} />
         )}
       </motion.section>
       </div>
@@ -344,6 +341,33 @@ function MatchSkeleton() {
         <div className="h-4 w-36 rounded-full bg-white/8" />
       </div>
     </div>
+  );
+}
+
+function EmptyMatch({ mode, onRetry }) {
+  const title = mode === 'random' ? 'No active random users' : 'No active users nearby';
+  const text = mode === 'random'
+    ? 'Random only shows people who are online right now.'
+    : 'Nearby only shows online people around your current location.';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: 'easeOut' }}
+      className="grid h-[26rem] place-items-center p-6 text-center"
+    >
+      <div>
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-white/10 bg-white/8 text-mint">
+          {mode === 'random' ? <Shuffle size={24} /> : <MapPin size={24} />}
+        </span>
+        <p className="mt-4 font-semibold">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-white/52">{text}</p>
+        <button onClick={onRetry} className="btn-secondary mt-5 rounded-full px-4 py-2 text-sm font-semibold">
+          Check again
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
