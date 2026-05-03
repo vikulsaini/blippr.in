@@ -33,21 +33,26 @@ export default function Shell() {
         <Outlet context={{ setBottomNavHidden }} />
       </section>
       {!bottomNavHidden && (
-        <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-3">
-          <div className="surface grid grid-cols-4 rounded-[22px] p-1.5 shadow-glow">
+        <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-white/8 bg-ink/95 px-5 pt-1.5 backdrop-blur">
+          <div className="grid grid-cols-4">
             {tabs.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={to === '/'}
                 className={({ isActive }) =>
-                  `group relative flex min-h-[3.25rem] flex-col items-center justify-center gap-1 rounded-[17px] px-2 py-2 text-xs transition ${
-                    isActive ? 'bg-white text-ink' : 'text-white/52 hover:bg-white/8 hover:text-white'
+                  `group relative flex min-h-[3rem] flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-xs transition ${
+                    isActive ? 'text-white' : 'text-white/42 hover:text-white/78'
                   }`
                 }
               >
-                <Icon size={20} strokeWidth={2.3} />
-                <span className="text-[11px] font-medium">{label}</span>
+                {({ isActive }) => (
+                  <>
+                    <span className={`absolute top-0 h-0.5 w-5 rounded-full transition ${isActive ? 'bg-mint' : 'bg-transparent'}`} />
+                    <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                    <span className={`text-[10px] font-medium ${isActive ? 'text-white' : 'text-white/42'}`}>{label}</span>
+                  </>
+                )}
               </NavLink>
             ))}
           </div>
