@@ -3,6 +3,7 @@ import {
   createDirectChat,
   createDirectChatSchema,
   deleteChat,
+  hideChatFromFeed,
   deleteMessage,
   editMessage,
   editMessageSchema,
@@ -32,6 +33,7 @@ router.patch('/:chatId/messages/:messageId', validate(editMessageSchema), editMe
 router.post('/:chatId/messages/:messageId/reactions', validate(reactionSchema), reactToMessage);
 router.patch('/:chatId/read', markChatRead);
 router.patch('/:chatId/nicknames', validate(nicknameSchema), updateNickname);
+router.patch('/:chatId/hide', hideChatFromFeed);
 router.delete('/:chatId/messages/:messageId', deleteMessage);
 router.delete('/:chatId', deleteChat);
 

@@ -15,6 +15,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(0);
   const endRef = useRef(null);
   const fileInputRef = useRef(null);
   const recorderRef = useRef(null);
@@ -23,6 +24,23 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
   }, [timeline.length, messages.at(-1)?._id, calls.at(-1)?._id, isTyping]);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return undefined;
+
+    function updateHeight() {
+      setViewportHeight(viewport.height);
+    }
+
+    updateHeight();
+    viewport.addEventListener('resize', updateHeight);
+    viewport.addEventListener('scroll', updateHeight);
+    return () => {
+      viewport.removeEventListener('resize', updateHeight);
+      viewport.removeEventListener('scroll', updateHeight);
+    };
+  }, []);
 
   function react(emoji) {
     if (!actionTarget) return;
@@ -80,8 +98,9 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   }
 
   return (
-    <div data-no-tab-swipe className="flex h-dvh flex-col overflow-hidden bg-ink">
-      <header className="flex items-center justify-between border-b border-white/8 bg-panel px-3 py-2.5">
+    <div data-no-tab-swipe className="flex h-full min-h-0 flex-col overflow-hidden bg-ink" style={viewportHeight ? { height: `${viewportHeight}px` } : undefined}>
+      <header className="shrink-0 border-b border-white/8 bg-panel px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-3">
           <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
           {otherMember?.avatar && (
@@ -99,9 +118,10 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           <IconButton label="Audio call" icon={Phone} onClick={() => onStartCall?.('audio')} />
           <IconButton label="Video call" icon={Video} onClick={() => onStartCall?.('video')} />
         </div>
+        </div>
       </header>
 
-      <section className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
+      <section className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
         {!timeline.length ? (
           <EmptyState name={displayName} />
         ) : (
@@ -171,7 +191,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         )}
       </section>
 
-      <form onSubmit={onSend} className="shrink-0 border-t border-white/8 bg-panel p-3">
+      <form onSubmit={onSend} className="shrink-0 border-t border-white/8 bg-panel px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3">
         {replyTo && (
           <div className="mb-2 flex items-center gap-2 rounded-xl border border-mint/20 bg-mint/10 px-3 py-2 text-sm">
             <Reply size={15} className="text-mint" />

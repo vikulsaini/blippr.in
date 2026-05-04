@@ -51,6 +51,7 @@ export default function Shell() {
   }
 
   function canSwipeTabs(target) {
+    if (isChats && target?.closest?.('[data-chat-feed]')) return false;
     return !navHidden && !target?.closest?.('button, a, input, textarea, select, [role="button"], [data-no-tab-swipe]');
   }
 

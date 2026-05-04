@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useOutletContext } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { Search, Trash2 } from 'lucide-react';
 import CallOverlay from '../components/CallOverlay.jsx';
 import ChatWindow from '../components/ChatWindow.jsx';
 import UserProfileModal from '../components/UserProfileModal.jsx';
@@ -13,6 +13,7 @@ import { createPeer } from '../lib/webrtc.js';
 
 export default function Chats() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { setBottomNavHidden } = useOutletContext() || {};
   const tokenUserId = normalizeId(getTokenSubject());
   const [me, setMe] = useState(() => readCache('me', 'global'));
@@ -28,6 +29,7 @@ export default function Chats() {
   const [call, setCall] = useState(null);
   const [callMinimized, setCallMinimized] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  const [hidingChatId, setHidingChatId] = useState('');
   const currentUserId = normalizeId(me?._id || tokenUserId);
   const typingTimerRef = useRef(null);
   const callRef = useRef(null);
@@ -64,6 +66,13 @@ export default function Chats() {
   function closeProfile() {
     setProfileUser(null);
     setProfileChat(null);
+  }
+
+  function closeConversation() {
+    setActiveChat(null);
+    setReplyTo(null);
+    setText('');
+    if (location.pathname !== '/app' || location.search) navigate('/app', { replace: true });
   }
 
   function updateCall(next) {
@@ -134,7 +143,7 @@ export default function Chats() {
       writeCache('me', user, 'global');
       writeCache('chats', loadedChats, user._id);
       const requestedChatId = new URLSearchParams(location.search).get('chat');
-      setActiveChat(requestedChatId ? loadedChats.find((chat) => chat._id === requestedChatId) || null : null);
+      if (requestedChatId) setActiveChat(loadedChats.find((chat) => chat._id === requestedChatId) || null);
     }
     load().catch(() => {});
   }, [location.search]);
@@ -520,6 +529,25 @@ export default function Chats() {
     closeProfile();
   }
 
+  async function hideChatFromFeed(chatId, displayName) {
+    if (hidingChatId) return;
+    const ok = window.confirm(`Delete ${displayName || 'this chat'} from your chat list? New messages will bring it back.`);
+    if (!ok) return;
+
+    const previousChats = chats;
+    try {
+      setHidingChatId(chatId);
+      setChats((current) => current.filter((chat) => chat._id !== chatId));
+      setActiveChat((current) => (current?._id === chatId ? null : current));
+      await api(`/api/chats/${chatId}/hide`, { method: 'PATCH' });
+    } catch (err) {
+      setChats(previousChats);
+      window.alert(err.message || 'Could not delete chat from feed');
+    } finally {
+      setHidingChatId('');
+    }
+  }
+
   async function blockUser(userId, chatId) {
     await api('/api/safety/block', {
       method: 'POST',
@@ -735,7 +763,7 @@ export default function Chats() {
           setText={handleTextChange}
           onSend={sendMessage}
           onSendMedia={sendMedia}
-          onBack={() => setActiveChat(null)}
+          onBack={closeConversation}
           onProfile={(user) => openProfile(user, activeChat)}
           replyTo={replyTo}
           onReply={setReplyTo}
@@ -764,7 +792,7 @@ export default function Chats() {
               placeholder="Search friends or messages"
             />
           </label>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24">
+          <div data-chat-feed className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24">
           {visibleChats.map((chat) => {
             const other = chat.members?.find((member) => normalizeId(member) !== currentUserId);
             const displayName = getNickname(chat, currentUserId, other);
@@ -788,6 +816,15 @@ export default function Chats() {
                       </span>
                     )}
                   </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => hideChatFromFeed(chat._id, displayName)}
+                  disabled={hidingChatId === chat._id}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/7 text-white/45 transition hover:bg-coral/12 hover:text-coral disabled:opacity-35"
+                  aria-label={`Delete ${displayName || 'chat'} from feed`}
+                >
+                  <Trash2 size={16} />
                 </button>
               </article>
             );

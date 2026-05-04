@@ -10,6 +10,7 @@ const chatSchema = new mongoose.Schema(
     lastCall: { type: mongoose.Schema.Types.ObjectId, ref: 'Call' },
     unreadCounts: { type: Map, of: Number, default: {} },
     nicknames: { type: Map, of: String, default: {} },
+    hiddenFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     expiresAt: Date
   },
   { timestamps: true }

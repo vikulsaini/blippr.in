@@ -64,7 +64,8 @@ export const listChats = asyncHandler(async (req, res) => {
   const chats = await Chat.find({
     $and: [
       { members: req.user._id },
-      { members: { $nin: hiddenMemberIds } }
+      { members: { $nin: hiddenMemberIds } },
+      { hiddenFor: { $ne: req.user._id } }
     ]
   })
     .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
@@ -166,6 +167,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   });
   const message = await populateMessage(createdMessage._id);
   chat.lastMessage = createdMessage._id;
+  chat.hiddenFor = [];
   if (!chat.unreadCounts) chat.unreadCounts = new Map();
   for (const memberId of chat.members) {
     const key = memberId.toString();
@@ -304,6 +306,22 @@ export const deleteChat = asyncHandler(async (req, res) => {
 
   const io = req.app.get('io');
   memberIds.forEach((memberId) => io?.to(`user:${memberId}`).emit('chat:removed', { chatId: chat._id }));
+  res.json({ ok: true });
+});
+
+export const hideChatFromFeed = asyncHandler(async (req, res) => {
+  const chat = await Chat.findOne({ _id: req.params.chatId, type: 'direct', members: req.user._id });
+  if (!chat) {
+    const error = new Error('Chat not found');
+    error.status = 404;
+    throw error;
+  }
+
+  chat.hiddenFor.addToSet(req.user._id);
+  if (!chat.unreadCounts) chat.unreadCounts = new Map();
+  chat.unreadCounts.set(req.user._id.toString(), 0);
+  await chat.save();
+  req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:removed', { chatId: chat._id, hidden: true });
   res.json({ ok: true });
 });
 

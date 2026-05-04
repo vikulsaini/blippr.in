@@ -88,6 +88,7 @@ export function registerSockets(io) {
         .populate('sender', 'name username avatar')
         .populate('replyTo', 'text sender');
       chat.lastMessage = createdMessage._id;
+        chat.hiddenFor = [];
         if (!chat.unreadCounts) chat.unreadCounts = new Map();
         for (const memberId of chat.members) {
           const key = memberId.toString();
