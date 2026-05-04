@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Ban, Bell, ChevronRight, Database, LockKeyhole, LogOut, MapPin, Save, Settings, Shield, Smartphone, Unlock, UserRound } from 'lucide-react';
+import { ArrowLeft, Ban, Bell, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Unlock, UserRound, Volume2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import InstallAppButton from '../components/InstallAppButton.jsx';
 import { api } from '../lib/api.js';
 import { clearVartaCache } from '../lib/cache.js';
 import { enablePushNotifications } from '../lib/notifications.js';
 import { presenceText } from '../lib/presence.js';
+import { previewSound } from '../lib/sounds.js';
+import { loadSoundPrefs, mediaToSound, packSound, saveSoundPrefs, setSoundPreference, soundPack } from '../lib/soundPrefs.js';
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -12,6 +15,7 @@ export default function Profile() {
   const [form, setForm] = useState({ name: '', username: '', age: '', gender: 'female', bio: '', avatar: '' });
   const [message, setMessage] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [soundPrefs, setSoundPrefs] = useState(() => loadSoundPrefs());
 
   useEffect(() => {
     async function load() {
@@ -31,6 +35,14 @@ export default function Profile() {
       });
     }
     load().catch((err) => setMessage(err.message));
+  }, []);
+
+  useEffect(() => {
+    function handleSoundPrefs(event) {
+      setSoundPrefs(event.detail || loadSoundPrefs());
+    }
+    window.addEventListener('varta:sound-prefs', handleSoundPrefs);
+    return () => window.removeEventListener('varta:sound-prefs', handleSoundPrefs);
   }, []);
 
   function setField(field, value) {
@@ -108,6 +120,25 @@ export default function Profile() {
     window.location.href = '/auth';
   }
 
+  async function uploadSound(key, file) {
+    try {
+      const sound = await mediaToSound(file);
+      setSoundPrefs(setSoundPreference(key, sound));
+      setMessage(`${key === 'ringtone' ? 'Call ringtone' : 'Chat notification'} updated`);
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  function updateSound(key, sound) {
+    setSoundPrefs(setSoundPreference(key, sound));
+  }
+
+  function toggleDnd() {
+    const next = saveSoundPrefs({ dnd: !soundPrefs.dnd });
+    setSoundPrefs(next);
+  }
+
   if (settingsOpen) {
     return (
       <div className="space-y-3">
@@ -183,12 +214,42 @@ export default function Profile() {
 
         <SettingsSection icon={Bell} title="Notifications">
           <ActionRow icon={Bell} title="Push notifications" subtitle="Messages, requests, and calls" action="Enable" onClick={turnOnNotifications} />
+          <SoundPicker
+            title="Call ringtone"
+            value={soundPrefs.ringtone}
+            onSelect={(sound) => updateSound('ringtone', sound)}
+            onUpload={(file) => uploadSound('ringtone', file)}
+            onPreview={() => previewSound(soundPrefs.ringtone, 'call')}
+          />
+          <SoundPicker
+            title="Chat notification"
+            value={soundPrefs.messageTone}
+            onSelect={(sound) => updateSound('messageTone', sound)}
+            onUpload={(file) => uploadSound('messageTone', file)}
+            onPreview={() => previewSound(soundPrefs.messageTone, 'message')}
+          />
+          <button type="button" onClick={toggleDnd} className="flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><Bell size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">Quiet mode</span>
+              <span className="block truncate text-xs text-white/45">Mute in-app tones and vibrations</span>
+            </span>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${soundPrefs.dnd ? 'bg-coral text-ink' : 'bg-white/8 text-white/70'}`}>{soundPrefs.dnd ? 'On' : 'Off'}</span>
+          </button>
           <InstallAppButton />
         </SettingsSection>
 
         <SettingsSection icon={Database} title="Data">
           <InfoRow icon={Database} title="Account data" subtitle="Profile, chats, blocks and requests are stored securely" value="Synced" />
           <InfoRow icon={Shield} title="Safety data" subtitle="Reports help keep Match safer" value="Enabled" />
+          <Link to="/privacy" className="flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><FileText size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">Privacy policy</span>
+              <span className="block truncate text-xs text-white/45">How Varta handles account, chat, call and safety data</span>
+            </span>
+            <ChevronRight size={17} className="text-white/35" />
+          </Link>
         </SettingsSection>
 
         <button onClick={logout} className="surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
@@ -227,6 +288,7 @@ export default function Profile() {
         <MenuRow icon={Settings} title="Settings" subtitle="Profile, security, notifications and data" onClick={() => setSettingsOpen(true)} />
         <MenuRow icon={MapPin} title="Matching location" subtitle={user?.location?.updatedAt ? 'Location is ready for nearby matches' : 'Refresh to improve matches'} onClick={refreshLocation} />
         <MenuRow icon={Shield} title="Privacy" subtitle={`${blockedUsers.length} blocked users`} onClick={() => setSettingsOpen(true)} />
+        <MenuRow icon={FileText} title="Privacy policy" subtitle="Data, calls, safety and permissions" onClick={() => { window.location.href = '/privacy'; }} />
       </section>
     </div>
   );
@@ -309,6 +371,39 @@ function InfoRow({ icon: Icon, title, subtitle, value }) {
         <span className="block truncate text-xs text-white/45">{subtitle}</span>
       </span>
       <span className="rounded-full bg-white/8 px-3 py-1 text-xs font-semibold text-white/72">{value}</span>
+    </div>
+  );
+}
+
+function SoundPicker({ title, value, onSelect, onUpload, onPreview }) {
+  return (
+    <div className="rounded-[14px] bg-ink/35 p-3">
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-mint"><Music size={18} /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{title}</span>
+          <span className="block truncate text-xs text-white/45">{value?.name || 'Default tone'}</span>
+        </span>
+        <button type="button" onClick={onPreview} className="grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label={`Preview ${title}`}>
+          <Volume2 size={17} />
+        </button>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {soundPack.map((sound) => (
+          <button
+            key={sound.id}
+            type="button"
+            onClick={() => onSelect(packSound(sound.id))}
+            className={`rounded-[13px] px-3 py-2 text-xs font-semibold ${value?.type === 'pack' && value.id === sound.id ? 'btn-primary' : 'bg-white/8 text-white/68'}`}
+          >
+            {sound.name}
+          </button>
+        ))}
+      </div>
+      <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-[13px] border border-white/8 bg-white/7 px-3 py-2 text-xs font-semibold text-white/75">
+        Upload from media
+        <input type="file" accept="audio/*" className="hidden" onChange={(event) => onUpload(event.target.files?.[0])} />
+      </label>
     </div>
   );
 }

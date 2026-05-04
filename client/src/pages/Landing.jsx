@@ -27,6 +27,7 @@ export default function Landing() {
             <a href="#features" className="hover:text-white">Features</a>
             <a href="#safety" className="hover:text-white">Safety</a>
             <a href="#install" className="hover:text-white">Install</a>
+            <Link to="/privacy" className="hover:text-white">Privacy</Link>
           </div>
           <Link to={appLink} className="btn-secondary rounded-full px-4 py-2 text-sm font-semibold">
             {getToken() ? 'Open app' : 'Login'}

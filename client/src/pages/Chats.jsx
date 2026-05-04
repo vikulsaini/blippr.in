@@ -26,6 +26,7 @@ export default function Chats() {
   const [query, setQuery] = useState('');
   const [typingChatId, setTypingChatId] = useState(null);
   const [call, setCall] = useState(null);
+  const [callMinimized, setCallMinimized] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const currentUserId = normalizeId(me?._id || tokenUserId);
   const typingTimerRef = useRef(null);
@@ -85,9 +86,9 @@ export default function Chats() {
     }, 45000);
   }
 
-  function startRingtone({ tone = 'incoming', shouldVibrate = false } = {}) {
+  function startRingtone({ tone = 'incoming', shouldVibrate = false, peerId } = {}) {
     stopRingtone();
-    startCallSound({ outgoing: tone === 'outgoing' });
+    startCallSound({ outgoing: tone === 'outgoing', peerId });
     if (shouldVibrate) {
       const pattern = [700, 220, 700, 220, 1000];
       vibrateDevice(pattern);
@@ -192,7 +193,8 @@ export default function Chats() {
         socket.emit('call:reject', { to: from, callId });
         return;
       }
-      startRingtone({ tone: 'incoming', shouldVibrate: true });
+      startRingtone({ tone: 'incoming', shouldVibrate: true, peerId: from });
+      setCallMinimized(false);
       showIncomingCallNotification(fromUser, callType);
       updateCall({
         status: 'incoming',
@@ -606,7 +608,7 @@ export default function Chats() {
     if (!peerUser || !navigator.mediaDevices?.getUserMedia) return;
 
     try {
-      startRingtone({ tone: 'outgoing' });
+      startRingtone({ tone: 'outgoing', peerId: peerUser._id });
       const localStream = await getLocalStream(type);
       const peer = createCallPeer(peerUser);
       localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
@@ -614,6 +616,7 @@ export default function Chats() {
       await peer.setLocalDescription(offer);
 
       updateCall({ status: 'calling', direction: 'outgoing', type, peerUser, localStream, muted: false, cameraOff: false, speakerOn: type === 'video' });
+      setCallMinimized(false);
       getRealtimeSocket().emit('call:offer', { to: peerUser._id, offer, callType: type }, (ack) => {
         if (ack?.ok) {
           updateCall((current) => ({ ...current, callId: ack.callId }));
@@ -674,6 +677,7 @@ export default function Chats() {
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
     updateCall(null);
+    setCallMinimized(false);
   }
 
   function toggleMute() {
@@ -815,6 +819,9 @@ export default function Chats() {
       />
       <CallOverlay
         call={call}
+        minimized={callMinimized}
+        onMinimize={() => setCallMinimized(true)}
+        onExpand={() => setCallMinimized(false)}
         onAccept={acceptCall}
         onReject={rejectCall}
         onEnd={endCall}

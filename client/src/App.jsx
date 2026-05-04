@@ -6,6 +6,7 @@ import Stranger from './pages/Stranger.jsx';
 import Discover from './pages/Discover.jsx';
 import Profile from './pages/Profile.jsx';
 import Landing from './pages/Landing.jsx';
+import Privacy from './pages/Privacy.jsx';
 import { getToken } from './lib/api.js';
 
 function PrivateRoute({ children }) {
@@ -17,6 +18,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route
         path="/app"
         element={

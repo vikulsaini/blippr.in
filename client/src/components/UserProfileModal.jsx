@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Ban, Flag, Save, UserMinus, X } from 'lucide-react';
+import { Ban, Flag, Music, Save, UserMinus, Volume2, X } from 'lucide-react';
 import { presenceText } from '../lib/presence.js';
+import { previewSound } from '../lib/sounds.js';
+import { getRingtoneForFriend, mediaToSound, packSound, setFriendRingtone, soundPack } from '../lib/soundPrefs.js';
 
 export default function UserProfileModal({ user, chat, currentUserId, onClose, onNickname, onUnfriend, onBlock, onReport }) {
   const [nickname, setNickname] = useState('');
   const [reportReason, setReportReason] = useState('Inappropriate behavior');
   const [busyAction, setBusyAction] = useState('');
   const [notice, setNotice] = useState('');
+  const [friendTone, setFriendTone] = useState(null);
 
   useEffect(() => {
     if (!user || !chat || !currentUserId) {
@@ -14,6 +17,7 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
       return;
     }
     setNickname(chat.nicknames?.[`${currentUserId}:${user._id}`] || '');
+    setFriendTone(getRingtoneForFriend(user._id));
     setNotice('');
   }, [chat, currentUserId, user]);
 
@@ -29,6 +33,17 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
       setNotice(err.message || 'Something went wrong');
     } finally {
       setBusyAction('');
+    }
+  }
+
+  async function uploadFriendTone(file) {
+    try {
+      const sound = await mediaToSound(file);
+      setFriendRingtone(user._id, sound);
+      setFriendTone(sound);
+      setNotice('Friend ringtone saved');
+    } catch (err) {
+      setNotice(err.message);
     }
   }
 
@@ -82,6 +97,39 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
                   <Save size={17} />
                 </button>
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-ink/30 p-3">
+              <div className="flex items-center gap-2">
+                <Music size={16} className="text-mint" />
+                <p className="text-sm font-semibold">Friend ringtone</p>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {soundPack.map((sound) => (
+                  <button
+                    key={sound.id}
+                    onClick={() => {
+                      const next = packSound(sound.id);
+                      setFriendRingtone(user._id, next);
+                      setFriendTone(next);
+                    }}
+                    className={`rounded-2xl px-3 py-2 text-xs font-semibold ${friendTone?.type === 'pack' && friendTone.id === sound.id ? 'btn-primary' : 'bg-white/8 text-white/68'}`}
+                  >
+                    {sound.name}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-white/8 px-3 py-2 text-xs font-semibold text-white/75">
+                  <Music size={15} />
+                  Upload audio
+                  <input type="file" accept="audio/*" className="hidden" onChange={(event) => uploadFriendTone(event.target.files?.[0])} />
+                </label>
+                <button onClick={() => previewSound(friendTone, 'call')} className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10" aria-label="Preview friend ringtone">
+                  <Volume2 size={16} />
+                </button>
+              </div>
+              <p className="mt-2 truncate text-xs text-white/42">{friendTone?.name || 'Default ringtone'}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">

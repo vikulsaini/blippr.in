@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, MicOff, Phone, PhoneOff, RotateCw, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
+import { Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, RotateCw, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
 
-export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleMute, onToggleCamera, onSwitchCamera, onToggleSpeaker }) {
+export default function CallOverlay({ call, minimized = false, onMinimize, onExpand, onAccept, onReject, onEnd, onToggleMute, onToggleCamera, onSwitchCamera, onToggleSpeaker }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
@@ -25,6 +25,33 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
   const isVideo = call.type === 'video';
   const title = call.status === 'incoming' ? 'Incoming call' : call.status === 'calling' ? 'Calling...' : 'Connected';
 
+  if (minimized) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -12, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className="fixed inset-x-3 top-3 z-50 mx-auto max-w-md rounded-[22px] border border-white/12 bg-ink/92 p-3 text-white shadow-glow backdrop-blur"
+      >
+        <div className="flex items-center gap-3">
+          <img src={call.peerUser?.avatar} alt="" className="h-11 w-11 rounded-2xl bg-white/8 object-cover" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{call.peerUser?.name || 'Varta friend'}</p>
+            <p className="truncate text-xs text-white/45">{title} - {isVideo ? 'video' : 'voice'}</p>
+          </div>
+          {call.status === 'incoming' ? (
+            <>
+              <button onClick={onReject} className="grid h-10 w-10 place-items-center rounded-full bg-coral text-ink" aria-label="Reject call"><PhoneOff size={17} /></button>
+              <button onClick={onAccept} className="grid h-10 w-10 place-items-center rounded-full bg-mint text-ink" aria-label="Accept call"><Phone size={17} /></button>
+            </>
+          ) : (
+            <button onClick={onEnd} className="grid h-10 w-10 place-items-center rounded-full bg-coral text-ink" aria-label="End call"><PhoneOff size={17} /></button>
+          )}
+          <button onClick={onExpand} className="grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label="Open call"><Maximize2 size={17} /></button>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-ink text-white">
       <motion.section
@@ -33,6 +60,9 @@ export default function CallOverlay({ call, onAccept, onReject, onEnd, onToggleM
         className="relative flex h-dvh flex-col px-4 py-5"
       >
         <div className="text-center">
+          <button onClick={onMinimize} className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label="Minimize call">
+            <Minimize2 size={18} />
+          </button>
           <p className="text-sm text-white/50">{title}</p>
           <h2 className="mt-1 text-2xl font-semibold">{call.peerUser?.name || 'Varta friend'}</h2>
           <p className="mt-1 text-sm text-white/45">{isVideo ? 'Video call' : 'Voice call'}</p>

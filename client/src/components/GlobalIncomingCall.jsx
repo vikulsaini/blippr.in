@@ -6,6 +6,7 @@ import { createPeer } from '../lib/webrtc.js';
 
 export default function GlobalIncomingCall() {
   const [call, setCall] = useState(null);
+  const [minimized, setMinimized] = useState(false);
   const callRef = useRef(null);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -17,9 +18,9 @@ export default function GlobalIncomingCall() {
     setCall(callRef.current);
   }
 
-  function startRingtone() {
+  function startRingtone(peerId) {
     stopRingtone();
-    startCallSound({ outgoing: false });
+    startCallSound({ outgoing: false, peerId });
     const pattern = [700, 220, 700, 220, 1000];
     vibrateDevice(pattern);
     vibrationTimerRef.current = window.setInterval(() => vibrateDevice(pattern), 2600);
@@ -39,7 +40,8 @@ export default function GlobalIncomingCall() {
         socket.emit('call:reject', { to: from, callId });
         return;
       }
-      startRingtone();
+      startRingtone(from);
+      setMinimized(false);
       updateCall({
         status: 'incoming',
         direction: 'incoming',
@@ -157,6 +159,7 @@ export default function GlobalIncomingCall() {
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
     updateCall(null);
+    setMinimized(false);
   }
 
   function toggleMute() {
@@ -176,6 +179,9 @@ export default function GlobalIncomingCall() {
   return (
     <CallOverlay
       call={call}
+      minimized={minimized}
+      onMinimize={() => setMinimized(true)}
+      onExpand={() => setMinimized(false)}
       onAccept={acceptCall}
       onReject={rejectCall}
       onEnd={endCall}
