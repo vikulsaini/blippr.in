@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
     name: { type: String, default: 'Varta User', trim: true },
     username: { type: String, lowercase: true, trim: true, sparse: true, unique: true, index: true },
     age: { type: Number, min: 18, max: 120 },
+    dob: Date,
+    contact: { type: String, trim: true, maxlength: 40 },
     gender: { type: String, enum: ['male', 'female'] },
     avatar: String,
     bio: { type: String, maxlength: 160 },
@@ -23,6 +25,7 @@ const userSchema = new mongoose.Schema(
     pushTokens: [String],
     lastSeenAt: Date,
     isOnline: { type: Boolean, default: false },
+    guestExpiresAt: Date,
     lastIp: { type: String, select: false },
     ipHistory: {
       type: [

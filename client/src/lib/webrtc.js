@@ -6,7 +6,8 @@ export function createPeer({ onTrack, onIceCandidate, onConnectionStateChange })
       { urls: 'stun:global.stun.twilio.com:3478' }
     ],
     bundlePolicy: 'max-bundle',
-    rtcpMuxPolicy: 'require'
+    rtcpMuxPolicy: 'require',
+    iceCandidatePoolSize: 8
   });
 
   peer.ontrack = (event) => onTrack?.(event.streams[0]);

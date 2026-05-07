@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Search, Trash2 } from 'lucide-react';
+import { Pin, Search, Star, Trash2, X } from 'lucide-react';
 import CallOverlay from '../components/CallOverlay.jsx';
 import ChatWindow from '../components/ChatWindow.jsx';
 import UserProfileModal from '../components/UserProfileModal.jsx';
@@ -29,7 +29,7 @@ export default function Chats() {
   const [call, setCall] = useState(null);
   const [callMinimized, setCallMinimized] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
-  const [hidingChatId, setHidingChatId] = useState('');
+  const [selectedChats, setSelectedChats] = useState(new Set());
   const currentUserId = normalizeId(me?._id || tokenUserId);
   const typingTimerRef = useRef(null);
   const callRef = useRef(null);
@@ -45,7 +45,7 @@ export default function Chats() {
     setChats((current) => {
       const withCount = { ...updatedChat, unreadCount };
       const rest = current.filter((chat) => chat._id !== updatedChat._id);
-      return [withCount, ...rest].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return sortChats([withCount, ...rest]);
     });
     setActiveChat((current) => (current?._id === updatedChat._id ? { ...updatedChat, unreadCount } : current));
   }
@@ -73,6 +73,27 @@ export default function Chats() {
     setReplyTo(null);
     setText('');
     if (location.pathname !== '/app' || location.search) navigate('/app', { replace: true });
+  }
+
+  function clearSelection() {
+    setSelectedChats(new Set());
+  }
+
+  function toggleSelect(chatId) {
+    setSelectedChats((current) => {
+      const next = new Set(current);
+      if (next.has(chatId)) next.delete(chatId);
+      else next.add(chatId);
+      return next;
+    });
+  }
+
+  function handleChatOpen(chat) {
+    if (selectedChats.size) {
+      toggleSelect(chat._id);
+      return;
+    }
+    setActiveChat(chat);
   }
 
   function updateCall(next) {
@@ -529,23 +550,31 @@ export default function Chats() {
     closeProfile();
   }
 
-  async function hideChatFromFeed(chatId, displayName) {
-    if (hidingChatId) return;
-    const ok = window.confirm(`Delete ${displayName || 'this chat'} from your chat list? New messages will bring it back.`);
+  async function hideSelectedChats() {
+    const ids = [...selectedChats];
+    if (!ids.length) return;
+    const ok = window.confirm(`Delete ${ids.length} selected chat${ids.length > 1 ? 's' : ''} from your chat list?`);
     if (!ok) return;
-
     const previousChats = chats;
     try {
-      setHidingChatId(chatId);
-      setChats((current) => current.filter((chat) => chat._id !== chatId));
-      setActiveChat((current) => (current?._id === chatId ? null : current));
-      await api(`/api/chats/${chatId}/hide`, { method: 'PATCH' });
+      clearSelection();
+      setChats((current) => current.filter((chat) => !ids.includes(chat._id)));
+      await Promise.all(ids.map((chatId) => api(`/api/chats/${chatId}/hide`, { method: 'PATCH' })));
     } catch (err) {
       setChats(previousChats);
-      window.alert(err.message || 'Could not delete chat from feed');
-    } finally {
-      setHidingChatId('');
+      window.alert(err.message || 'Could not delete selected chats');
     }
+  }
+
+  async function setSelectedPreference(kind) {
+    const ids = [...selectedChats];
+    if (!ids.length) return;
+    const enabled = ids.some((chatId) => !chats.find((chat) => chat._id === chatId)?.[kind === 'pin' ? 'pinned' : 'starred']);
+    const path = kind === 'pin' ? 'pin' : 'star';
+    const flag = kind === 'pin' ? 'pinned' : 'starred';
+    setChats((current) => sortChats(current.map((chat) => (ids.includes(chat._id) ? { ...chat, [flag]: enabled } : chat))));
+    clearSelection();
+    await Promise.all(ids.map((chatId) => api(`/api/chats/${chatId}/${path}`, { method: 'PATCH', body: JSON.stringify({ enabled }) }).catch(() => null)));
   }
 
   async function blockUser(userId, chatId) {
@@ -568,9 +597,11 @@ export default function Chats() {
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 48000
       },
-      video: type === 'video' ? { facingMode: 'user' } : false
+      video: type === 'video' ? { facingMode: 'user', width: { ideal: 640, max: 960 }, height: { ideal: 360, max: 540 }, frameRate: { ideal: 24, max: 30 } } : false
     };
     let stream;
     try {
@@ -778,12 +809,24 @@ export default function Chats() {
       ) : (
         <section className="flex min-h-0 flex-1 flex-col px-4 pt-3">
           <div className="mb-3 flex shrink-0 items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold">Chats</h2>
-              <p className="text-sm text-white/45">{chats.length} friends</p>
-            </div>
+            {selectedChats.size ? (
+              <>
+                <button onClick={clearSelection} className="btn-icon h-10 w-10" aria-label="Cancel selection"><X size={18} /></button>
+                <p className="font-semibold">{selectedChats.size} selected</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setSelectedPreference('pin')} className="btn-icon h-10 w-10" aria-label="Pin selected"><Pin size={17} /></button>
+                  <button onClick={() => setSelectedPreference('star')} className="btn-icon h-10 w-10" aria-label="Star selected"><Star size={17} /></button>
+                  <button onClick={hideSelectedChats} className="grid h-10 w-10 place-items-center rounded-full bg-coral/12 text-coral" aria-label="Delete selected"><Trash2 size={17} /></button>
+                </div>
+              </>
+            ) : (
+              <div>
+                <h2 className="text-2xl font-semibold">Chats</h2>
+                <p className="text-sm text-white/45">{chats.length} friends</p>
+              </div>
+            )}
           </div>
-          <label className="mb-3 flex shrink-0 items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
+          {!selectedChats.size && <label className="mb-3 flex shrink-0 items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
             <Search size={18} className="text-white/40" />
             <input
               value={query}
@@ -791,20 +834,31 @@ export default function Chats() {
               className="min-w-0 flex-1 bg-transparent text-sm outline-none"
               placeholder="Search friends or messages"
             />
-          </label>
+          </label>}
           <div data-chat-feed className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24">
           {visibleChats.map((chat) => {
             const other = chat.members?.find((member) => normalizeId(member) !== currentUserId);
             const displayName = getNickname(chat, currentUserId, other);
             return (
-              <article key={chat._id} className={`flex w-full items-center gap-3 border-b border-white/8 px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-white/5' : ''}`}>
+              <article
+                key={chat._id}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  toggleSelect(chat._id);
+                }}
+                className={`flex w-full items-center gap-3 border-b border-white/8 px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-white/5' : ''} ${selectedChats.has(chat._id) ? 'bg-mint/10' : ''}`}
+              >
                 <button onClick={() => other && openProfile(other, chat)} aria-label={`View ${displayName || 'friend'} profile`}>
                   {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-white/8" />}
                 </button>
-                <button onClick={() => setActiveChat(chat)} className="min-w-0 flex-1 text-left">
+                <ChatRowButton chatId={chat._id} onOpen={() => handleChatOpen(chat)} onLongSelect={() => toggleSelect(chat._id)}>
                   <div className="flex items-center justify-between gap-3">
                     <p className="truncate font-medium">{displayName || 'Friend'}</p>
-                    <span className={`h-2 w-2 rounded-full ${other?.isOnline ? 'bg-mint' : 'bg-white/25'}`} />
+                    <span className="flex items-center gap-1">
+                      {chat.pinned && <Pin size={12} className="text-mint" />}
+                      {chat.starred && <Star size={12} className="fill-mint text-mint" />}
+                      <span className={`h-2 w-2 rounded-full ${other?.isOnline ? 'bg-mint' : 'bg-white/25'}`} />
+                    </span>
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-3">
                     <p className={`truncate text-xs ${typingChatId === chat._id ? 'font-semibold text-mint' : chat.unreadCount ? 'font-semibold text-white' : 'text-white/45'}`}>
@@ -816,16 +870,7 @@ export default function Chats() {
                       </span>
                     )}
                   </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => hideChatFromFeed(chat._id, displayName)}
-                  disabled={hidingChatId === chat._id}
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/7 text-white/45 transition hover:bg-coral/12 hover:text-coral disabled:opacity-35"
-                  aria-label={`Delete ${displayName || 'chat'} from feed`}
-                >
-                  <Trash2 size={16} />
-                </button>
+                </ChatRowButton>
               </article>
             );
           })}
@@ -874,6 +919,45 @@ export default function Chats() {
 function getNickname(chat, currentUserId, user) {
   if (!user) return '';
   return chat?.nicknames?.[`${currentUserId}:${user._id}`] || user.name;
+}
+
+function ChatRowButton({ children, onOpen, onLongSelect }) {
+  const timerRef = useRef(null);
+  const longPressRef = useRef(false);
+  function start() {
+    clearTimeout(timerRef.current);
+    longPressRef.current = false;
+    timerRef.current = setTimeout(() => {
+      longPressRef.current = true;
+      onLongSelect();
+    }, 420);
+  }
+  function clear() {
+    clearTimeout(timerRef.current);
+  }
+  function click() {
+    if (longPressRef.current) {
+      longPressRef.current = false;
+      return;
+    }
+    onOpen();
+  }
+  return (
+    <button
+      onClick={click}
+      onPointerDown={start}
+      onPointerUp={clear}
+      onPointerLeave={clear}
+      onPointerCancel={clear}
+      className="min-w-0 flex-1 text-left"
+    >
+      {children}
+    </button>
+  );
+}
+
+function sortChats(chats) {
+  return [...chats].sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || new Date(b.updatedAt) - new Date(a.updatedAt));
 }
 
 function getMessageSenderId(message) {

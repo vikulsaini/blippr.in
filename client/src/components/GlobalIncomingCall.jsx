@@ -100,8 +100,8 @@ export default function GlobalIncomingCall() {
 
   async function getLocalStream(type) {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      video: type === 'video' ? { facingMode: 'user' } : false
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 },
+      video: type === 'video' ? { facingMode: 'user', width: { ideal: 640, max: 960 }, height: { ideal: 360, max: 540 }, frameRate: { ideal: 24, max: 30 } } : false
     });
     localStreamRef.current = stream;
     return stream;

@@ -3,6 +3,7 @@ import { animate, motion, useAnimation, useMotionValue, useTransform } from 'fra
 import { Check, ChevronLeft, ChevronRight, Flag, MapPin, RotateCw, Shuffle, UserPlus } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
+import { readCache, writeCache } from '../lib/cache.js';
 import { presenceText } from '../lib/presence.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 
@@ -23,6 +24,13 @@ export default function Stranger() {
   const rotate = useTransform(x, [-140, 0, 140], [-5, 0, 5]);
 
   useEffect(() => {
+    const cached = readCache('match:nearby', 'global', null);
+    if (cached?.users?.length) {
+      setAvailable(cached.users);
+      setSource(cached.source || 'nearby');
+      setLoading(false);
+      setStatus(`${cached.users.length} active nearby users`);
+    }
     loadMatch();
   }, []);
 
@@ -48,9 +56,10 @@ export default function Stranger() {
 
   async function loadMatch() {
     try {
-      const { user } = await api('/api/users/me');
+      const cachedUser = readCache('me', 'global', null);
+      const { user } = cachedUser ? { user: cachedUser } : await api('/api/users/me');
       if (user.location?.coordinates?.length) {
-        await refreshLocationInBackground();
+        refreshLocationInBackground().catch(() => {});
       } else if (!sessionStorage.getItem('varta_location_prompted')) {
         sessionStorage.setItem('varta_location_prompted', 'true');
         await requestAndSaveLocation();
@@ -65,15 +74,13 @@ export default function Stranger() {
     setMode('nearby');
     setLoading(true);
     try {
-      const [data, sent] = await Promise.all([
-        api('/api/users/available'),
-        api('/api/friends/requests/sent')
-      ]);
+      const data = await api('/api/users/available');
       setAvailable(shuffle(data.users));
-      setSentIds(new Set(sent.requests.map((request) => request.to._id)));
+      setSentIds(new Set());
       setSource(data.source);
       setActiveIndex(0);
       setStatus(data.users.length ? `${data.users.length} active nearby users` : 'No active users nearby right now.');
+      writeCache('match:nearby', { users: data.users, source: data.source }, 'global', 60 * 1000);
     } finally {
       setLoading(false);
     }
@@ -84,15 +91,13 @@ export default function Stranger() {
       setStatus('Shuffling random people...');
       setLoading(true);
       setMode('random');
-      const [data, sent] = await Promise.all([
-        api('/api/users/available/random'),
-        api('/api/friends/requests/sent')
-      ]);
+      const data = await api('/api/users/available/random');
       setAvailable(shuffle(data.users));
-      setSentIds(new Set(sent.requests.map((request) => request.to._id)));
+      setSentIds(new Set());
       setSource(data.source);
       setActiveIndex(0);
       setStatus(data.users.length ? `${data.users.length} active random users` : 'No active random users right now.');
+      writeCache('match:random', { users: data.users, source: data.source }, 'global', 60 * 1000);
     } catch (err) {
       setStatus(err.message);
     } finally {

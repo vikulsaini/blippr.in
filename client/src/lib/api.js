@@ -30,6 +30,11 @@ export async function api(path, options = {}) {
     }
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || 'Request failed');
+  if (!res.ok) {
+    const error = new Error(body.message || 'Request failed');
+    error.code = body.code;
+    if (error.code === 'GUEST_EXPIRED') window.dispatchEvent(new CustomEvent('varta:guest-expired'));
+    throw error;
+  }
   return body;
 }

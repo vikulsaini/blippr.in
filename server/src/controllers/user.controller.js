@@ -9,6 +9,8 @@ export const updateProfileSchema = Joi.object({
   name: Joi.string().max(80).optional(),
   username: Joi.string().lowercase().pattern(/^[a-z0-9_]{3,24}$/).optional(),
   age: Joi.number().integer().min(18).max(120).optional(),
+  dob: Joi.date().iso().optional(),
+  contact: Joi.string().trim().max(40).allow('').optional(),
   gender: Joi.string().valid('male', 'female').optional(),
   bio: Joi.string().max(160).allow('').optional(),
   avatar: Joi.string().uri().optional(),
@@ -102,11 +104,13 @@ export const nearbyUsers = asyncHandler(async (req, res) => {
 
 export const availableUsers = asyncHandler(async (req, res) => {
   const coordinates = req.user.location?.coordinates;
-  const friendChats = await Chat.find({ type: 'direct', members: req.user._id }).select('members');
-  const pendingRequests = await FriendRequest.find({
-    status: 'pending',
-    $or: [{ from: req.user._id }, { to: req.user._id }]
-  }).select('from to');
+  const [friendChats, pendingRequests] = await Promise.all([
+    Chat.find({ type: 'direct', members: req.user._id }).select('members').lean(),
+    FriendRequest.find({
+      status: 'pending',
+      $or: [{ from: req.user._id }, { to: req.user._id }]
+    }).select('from to').lean()
+  ]);
   const connectedIds = friendChats.flatMap((chat) => chat.members.map((memberId) => memberId.toString()));
   const pendingIds = pendingRequests.flatMap((request) => [request.from.toString(), request.to.toString()]);
   const baseFilter = {
@@ -142,11 +146,13 @@ export const availableUsers = asyncHandler(async (req, res) => {
 });
 
 export const randomAvailableUsers = asyncHandler(async (req, res) => {
-  const friendChats = await Chat.find({ type: 'direct', members: req.user._id }).select('members');
-  const pendingRequests = await FriendRequest.find({
-    status: 'pending',
-    $or: [{ from: req.user._id }, { to: req.user._id }]
-  }).select('from to');
+  const [friendChats, pendingRequests] = await Promise.all([
+    Chat.find({ type: 'direct', members: req.user._id }).select('members').lean(),
+    FriendRequest.find({
+      status: 'pending',
+      $or: [{ from: req.user._id }, { to: req.user._id }]
+    }).select('from to').lean()
+  ]);
   const connectedIds = friendChats.flatMap((chat) => chat.members.map((memberId) => memberId.toString()));
   const pendingIds = pendingRequests.flatMap((request) => [request.from.toString(), request.to.toString()]);
   const excludedIds = [req.user._id.toString(), ...connectedIds, ...pendingIds, ...(req.user.blockedUsers || []).map((userId) => userId.toString())];

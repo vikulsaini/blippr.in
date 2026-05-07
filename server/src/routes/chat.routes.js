@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   createDirectChat,
   createDirectChatSchema,
+  chatPreferenceSchema,
   deleteChat,
   hideChatFromFeed,
   deleteMessage,
@@ -16,6 +17,8 @@ import {
   reactionSchema,
   reactToMessage,
   sendMessage,
+  setChatPinned,
+  setChatStarred,
   updateNickname
 } from '../controllers/chat.controller.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -34,6 +37,8 @@ router.post('/:chatId/messages/:messageId/reactions', validate(reactionSchema), 
 router.patch('/:chatId/read', markChatRead);
 router.patch('/:chatId/nicknames', validate(nicknameSchema), updateNickname);
 router.patch('/:chatId/hide', hideChatFromFeed);
+router.patch('/:chatId/pin', validate(chatPreferenceSchema), setChatPinned);
+router.patch('/:chatId/star', validate(chatPreferenceSchema), setChatStarred);
 router.delete('/:chatId/messages/:messageId', deleteMessage);
 router.delete('/:chatId', deleteChat);
 

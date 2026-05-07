@@ -4,7 +4,7 @@ import { Mail, Phone, UserRound } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { api, setToken } from '../lib/api.js';
 
-const initialProfile = { name: '', username: '', age: '', gender: 'female', bio: '' };
+const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', gender: 'female', bio: '', hobbies: '' };
 
 export default function Auth() {
   const [mode, setMode] = useState('login');
@@ -33,7 +33,9 @@ export default function Auth() {
   function profilePayload() {
     return {
       ...profile,
-      age: Number(profile.age)
+      age: Number(profile.age || ageFromDob(profile.dob) || 18),
+      dob: profile.dob || undefined,
+      interests: profile.hobbies.split(',').map((item) => item.trim()).filter(Boolean)
     };
   }
 
@@ -224,8 +226,25 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
           ))}
         </div>
       </div>
+      {!compact && (
+        <div className="grid grid-cols-2 gap-3">
+          <TextInput value={profile.dob} onChange={(value) => update('dob', value)} placeholder="Date of birth" type="date" />
+          <TextInput value={profile.contact} onChange={(value) => update('contact', value)} placeholder="Contact" />
+        </div>
+      )}
+      {!compact && <TextInput value={profile.hobbies} onChange={(value) => update('hobbies', value)} placeholder="Hobbies, comma separated" />}
       {!compact && <textarea value={profile.bio} onChange={(event) => update('bio', event.target.value)} className="min-h-20 w-full resize-none rounded-[16px] border border-white/8 bg-white/5 px-4 py-3 outline-none" placeholder="Short bio" maxLength={160} />}
       {compact && <TextInput value={profile.bio} onChange={(value) => update('bio', value)} placeholder="Short bio" />}
     </div>
   );
+}
+
+function ageFromDob(dob) {
+  if (!dob) return 18;
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const month = today.getMonth() - birth.getMonth();
+  if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) age -= 1;
+  return Math.max(18, age);
 }

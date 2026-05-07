@@ -18,6 +18,18 @@ export async function requireAuth(req, _res, next) {
       error.status = 401;
       throw error;
     }
+    if (
+      user.isGuest &&
+      user.guestExpiresAt &&
+      user.guestExpiresAt.getTime() < Date.now() &&
+      req.originalUrl !== '/api/auth/guest/upgrade' &&
+      req.originalUrl !== '/api/users/me'
+    ) {
+      const error = new Error('Guest session expired. Create an account to continue.');
+      error.status = 403;
+      error.code = 'GUEST_EXPIRED';
+      throw error;
+    }
     req.user = user;
     trackUserActivity(user._id, req);
     next();

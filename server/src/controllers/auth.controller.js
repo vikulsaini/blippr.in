@@ -19,8 +19,11 @@ export const verifyOtpSchema = Joi.object({
   name: Joi.string().trim().min(2).max(80).required(),
   username: Joi.string().lowercase().pattern(/^[a-z0-9_]{3,24}$/).optional(),
   age: Joi.number().integer().min(18).max(120).required(),
+  dob: Joi.date().iso().optional(),
+  contact: Joi.string().trim().max(40).allow('').optional(),
   gender: Joi.string().valid('male', 'female').required(),
-  bio: Joi.string().max(160).allow('').optional()
+  bio: Joi.string().max(160).allow('').optional(),
+  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional()
 });
 
 export const googleLoginSchema = Joi.object({
@@ -66,8 +69,11 @@ export const emailSignupSchema = Joi.object({
   email: Joi.string().email().lowercase().required(),
   password: Joi.string().min(8).max(72).required(),
   age: Joi.number().integer().min(18).max(120).required(),
+  dob: Joi.date().iso().optional(),
+  contact: Joi.string().trim().max(40).allow('').optional(),
   gender: Joi.string().valid('male', 'female').required(),
-  bio: Joi.string().max(160).allow('').optional()
+  bio: Joi.string().max(160).allow('').optional(),
+  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional()
 });
 
 export const emailLoginSchema = Joi.object({
@@ -80,8 +86,11 @@ export const guestUpgradeSchema = Joi.object({
   email: Joi.string().email().lowercase().required(),
   password: Joi.string().min(8).max(72).required(),
   age: Joi.number().integer().min(18).max(120).required(),
+  dob: Joi.date().iso().optional(),
+  contact: Joi.string().trim().max(40).allow('').optional(),
   gender: Joi.string().valid('male', 'female').required(),
-  bio: Joi.string().max(160).allow('').optional()
+  bio: Joi.string().max(160).allow('').optional(),
+  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional()
 });
 
 export const guestSchema = Joi.object({
@@ -128,8 +137,11 @@ export const verifyPhoneOtp = asyncHandler(async (req, res) => {
       $set: {
         name: req.body.name,
         age: req.body.age,
+        dob: req.body.dob,
+        contact: req.body.contact || '',
         gender: req.body.gender,
-        bio: req.body.bio || ''
+        bio: req.body.bio || '',
+        interests: req.body.interests || []
       },
       $setOnInsert: {
         phone: req.body.phone,
@@ -164,9 +176,12 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
     passwordHash,
     username: req.body.username,
     age: req.body.age,
+    dob: req.body.dob,
+    contact: req.body.contact || '',
     gender: req.body.gender,
     avatar: avatarForGender(req.body.gender, req.body.username),
     bio: req.body.bio || '',
+    interests: req.body.interests || [],
     isGuest: false
   });
 
@@ -202,6 +217,7 @@ export const continueAsGuest = asyncHandler(async (req, res) => {
     if (existingGuest) {
       existingGuest.lastIp = ip;
       existingGuest.lastSeenAt = new Date();
+      existingGuest.guestExpiresAt = existingGuest.guestExpiresAt || new Date(Date.now() + Number(process.env.GUEST_LIMIT_MINUTES || 10) * 60 * 1000);
       existingGuest.ipHistory = [...(existingGuest.ipHistory || []), { ip, at: new Date() }].slice(-8);
       await existingGuest.save();
       return res.json({ token: signJwt(existingGuest), user: existingGuest, reused: true });
@@ -215,6 +231,7 @@ export const continueAsGuest = asyncHandler(async (req, res) => {
     gender: req.body.gender,
     bio: req.body.bio || '',
     isGuest: true,
+    guestExpiresAt: new Date(Date.now() + Number(process.env.GUEST_LIMIT_MINUTES || 10) * 60 * 1000),
     lastIp: ip || undefined,
     lastSeenAt: new Date(),
     ipHistory: ip ? [{ ip, at: new Date() }] : []
@@ -242,10 +259,14 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
   req.user.username = req.user.username || (await createUniqueUsername(req.body.name));
   req.user.passwordHash = await bcrypt.hash(req.body.password, 12);
   req.user.age = req.body.age;
+  req.user.dob = req.body.dob;
+  req.user.contact = req.body.contact || '';
   req.user.gender = req.body.gender;
   req.user.avatar = req.user.avatar || avatarForGender(req.body.gender, req.user.username);
   req.user.bio = req.body.bio || req.user.bio || '';
+  req.user.interests = req.body.interests || req.user.interests || [];
   req.user.isGuest = false;
+  req.user.guestExpiresAt = undefined;
   await req.user.save();
 
   res.json({ token: signJwt(req.user), user: req.user });

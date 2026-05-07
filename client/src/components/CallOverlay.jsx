@@ -14,7 +14,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   useEffect(() => {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = call?.remoteStream || null;
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = call?.remoteStream || null;
-    if (remoteAudioRef.current) remoteAudioRef.current.volume = call?.speakerOn ? 1 : 0.72;
+    if (remoteAudioRef.current) remoteAudioRef.current.volume = 1;
     setAudioOutput(remoteAudioRef.current, call?.speakerOn, call?.type).catch(() => {});
     remoteAudioRef.current?.play?.().catch(() => {});
     remoteVideoRef.current?.play?.().catch(() => {});
@@ -116,6 +116,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
 
 async function setAudioOutput(audioElement, speakerOn, callType) {
   if (!audioElement?.setSinkId || !navigator.mediaDevices?.enumerateDevices) return;
+  audioElement.setAttribute('playsinline', 'true');
 
   const outputs = await navigator.mediaDevices.enumerateDevices();
   const audioOutputs = outputs.filter((device) => device.kind === 'audiooutput');

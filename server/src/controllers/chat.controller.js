@@ -35,9 +35,15 @@ export const nicknameSchema = Joi.object({
   nickname: Joi.string().trim().max(40).allow('').required()
 });
 
+export const chatPreferenceSchema = Joi.object({
+  enabled: Joi.boolean().required()
+});
+
 function withUnreadCount(chat, userId) {
   const item = chat.toObject ? chat.toObject({ flattenMaps: true }) : chat;
   item.unreadCount = chat.unreadCounts?.get(userId.toString()) || 0;
+  item.pinned = (chat.pinnedFor || []).some((id) => id.toString() === userId.toString());
+  item.starred = (chat.starredFor || []).some((id) => id.toString() === userId.toString());
   return item;
 }
 
@@ -72,8 +78,11 @@ export const listChats = asyncHandler(async (req, res) => {
     .populate('lastMessage')
     .populate('lastCall')
     .sort('-updatedAt');
+  const decorated = chats
+    .map((chat) => withUnreadCount(chat, req.user._id))
+    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || new Date(b.updatedAt) - new Date(a.updatedAt));
   res.json({
-    chats: chats.map((chat) => withUnreadCount(chat, req.user._id))
+    chats: decorated
   });
 });
 
@@ -323,6 +332,48 @@ export const hideChatFromFeed = asyncHandler(async (req, res) => {
   await chat.save();
   req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:removed', { chatId: chat._id, hidden: true });
   res.json({ ok: true });
+});
+
+export const setChatPinned = asyncHandler(async (req, res) => {
+  const chat = await Chat.findOne({ _id: req.params.chatId, type: 'direct', members: req.user._id });
+  if (!chat) {
+    const error = new Error('Chat not found');
+    error.status = 404;
+    throw error;
+  }
+  if (req.body.enabled) chat.pinnedFor.addToSet(req.user._id);
+  else chat.pinnedFor.pull(req.user._id);
+  await chat.save();
+  const populatedChat = await Chat.findById(chat._id)
+    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('lastMessage')
+    .populate('lastCall');
+  req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:updated', {
+    chat: withUnreadCount(populatedChat, req.user._id),
+    unreadCount: populatedChat.unreadCounts?.get(req.user._id.toString()) || 0
+  });
+  res.json({ chat: withUnreadCount(populatedChat, req.user._id) });
+});
+
+export const setChatStarred = asyncHandler(async (req, res) => {
+  const chat = await Chat.findOne({ _id: req.params.chatId, type: 'direct', members: req.user._id });
+  if (!chat) {
+    const error = new Error('Chat not found');
+    error.status = 404;
+    throw error;
+  }
+  if (req.body.enabled) chat.starredFor.addToSet(req.user._id);
+  else chat.starredFor.pull(req.user._id);
+  await chat.save();
+  const populatedChat = await Chat.findById(chat._id)
+    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('lastMessage')
+    .populate('lastCall');
+  req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:updated', {
+    chat: withUnreadCount(populatedChat, req.user._id),
+    unreadCount: populatedChat.unreadCounts?.get(req.user._id.toString()) || 0
+  });
+  res.json({ chat: withUnreadCount(populatedChat, req.user._id) });
 });
 
 export const editMessage = asyncHandler(async (req, res) => {

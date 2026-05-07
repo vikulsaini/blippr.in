@@ -11,6 +11,8 @@ const chatSchema = new mongoose.Schema(
     unreadCounts: { type: Map, of: Number, default: {} },
     nicknames: { type: Map, of: String, default: {} },
     hiddenFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    pinnedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    starredFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     expiresAt: Date
   },
   { timestamps: true }
