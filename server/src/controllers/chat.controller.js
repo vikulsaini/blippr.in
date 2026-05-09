@@ -44,6 +44,7 @@ function withUnreadCount(chat, userId) {
   item.unreadCount = chat.unreadCounts?.get(userId.toString()) || 0;
   item.pinned = (chat.pinnedFor || []).some((id) => id.toString() === userId.toString());
   item.starred = (chat.starredFor || []).some((id) => id.toString() === userId.toString());
+  item.muted = (chat.mutedFor || []).some((id) => id.toString() === userId.toString());
   return item;
 }
 
@@ -198,6 +199,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   await Promise.all(
     chat.members
       .filter((memberId) => memberId.toString() !== req.user._id.toString())
+      .filter((memberId) => !(chat.mutedFor || []).some((mutedId) => mutedId.toString() === memberId.toString()))
       .map((memberId) =>
         notifyUser(memberId, {
           title: req.user.name,
@@ -364,6 +366,27 @@ export const setChatStarred = asyncHandler(async (req, res) => {
   }
   if (req.body.enabled) chat.starredFor.addToSet(req.user._id);
   else chat.starredFor.pull(req.user._id);
+  await chat.save();
+  const populatedChat = await Chat.findById(chat._id)
+    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('lastMessage')
+    .populate('lastCall');
+  req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:updated', {
+    chat: withUnreadCount(populatedChat, req.user._id),
+    unreadCount: populatedChat.unreadCounts?.get(req.user._id.toString()) || 0
+  });
+  res.json({ chat: withUnreadCount(populatedChat, req.user._id) });
+});
+
+export const setChatMuted = asyncHandler(async (req, res) => {
+  const chat = await Chat.findOne({ _id: req.params.chatId, type: 'direct', members: req.user._id });
+  if (!chat) {
+    const error = new Error('Chat not found');
+    error.status = 404;
+    throw error;
+  }
+  if (req.body.enabled) chat.mutedFor.addToSet(req.user._id);
+  else chat.mutedFor.pull(req.user._id);
   await chat.save();
   const populatedChat = await Chat.findById(chat._id)
     .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')

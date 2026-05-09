@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Pin, Search, Star, Trash2, X } from 'lucide-react';
+import { BellOff, Pin, Search, Star, Trash2, X } from 'lucide-react';
 import CallOverlay from '../components/CallOverlay.jsx';
 import ChatWindow from '../components/ChatWindow.jsx';
 import UserProfileModal from '../components/UserProfileModal.jsx';
@@ -569,9 +569,10 @@ export default function Chats() {
   async function setSelectedPreference(kind) {
     const ids = [...selectedChats];
     if (!ids.length) return;
-    const enabled = ids.some((chatId) => !chats.find((chat) => chat._id === chatId)?.[kind === 'pin' ? 'pinned' : 'starred']);
-    const path = kind === 'pin' ? 'pin' : 'star';
-    const flag = kind === 'pin' ? 'pinned' : 'starred';
+    const flagMap = { pin: 'pinned', star: 'starred', mute: 'muted' };
+    const flag = flagMap[kind];
+    const enabled = ids.some((chatId) => !chats.find((chat) => chat._id === chatId)?.[flag]);
+    const path = kind === 'pin' ? 'pin' : kind === 'star' ? 'star' : 'mute';
     setChats((current) => sortChats(current.map((chat) => (ids.includes(chat._id) ? { ...chat, [flag]: enabled } : chat))));
     clearSelection();
     await Promise.all(ids.map((chatId) => api(`/api/chats/${chatId}/${path}`, { method: 'PATCH', body: JSON.stringify({ enabled }) }).catch(() => null)));
@@ -816,6 +817,7 @@ export default function Chats() {
                 <div className="flex gap-2">
                   <button onClick={() => setSelectedPreference('pin')} className="btn-icon h-10 w-10" aria-label="Pin selected"><Pin size={17} /></button>
                   <button onClick={() => setSelectedPreference('star')} className="btn-icon h-10 w-10" aria-label="Star selected"><Star size={17} /></button>
+                  <button onClick={() => setSelectedPreference('mute')} className="btn-icon h-10 w-10" aria-label="Mute selected"><BellOff size={17} /></button>
                   <button onClick={hideSelectedChats} className="grid h-10 w-10 place-items-center rounded-full bg-coral/12 text-coral" aria-label="Delete selected"><Trash2 size={17} /></button>
                 </div>
               </>
@@ -857,6 +859,7 @@ export default function Chats() {
                     <span className="flex items-center gap-1">
                       {chat.pinned && <Pin size={12} className="text-mint" />}
                       {chat.starred && <Star size={12} className="fill-mint text-mint" />}
+                      {chat.muted && <BellOff size={12} className="text-white/35" />}
                       <span className={`h-2 w-2 rounded-full ${other?.isOnline ? 'bg-mint' : 'bg-white/25'}`} />
                     </span>
                   </div>

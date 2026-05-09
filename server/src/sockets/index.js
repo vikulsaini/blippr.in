@@ -109,6 +109,7 @@ export function registerSockets(io) {
         const notifications = await Promise.all(
           chat.members
             .filter((memberId) => memberId.toString() !== userId)
+            .filter((memberId) => !(chat.mutedFor || []).some((mutedId) => mutedId.toString() === memberId.toString()))
             .map((memberId) =>
               notifyUser(memberId, {
                 title: socket.user.name,

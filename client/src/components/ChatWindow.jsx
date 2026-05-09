@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, CheckCheck, Edit3, Flag, MessageCircle, Mic, Phone, PhoneMissed, Plus, Reply, Send, Smile, Square, Trash2, Video, X } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Copy, Edit3, Flag, MessageCircle, Mic, Phone, PhoneMissed, Plus, Reply, Search, Send, Smile, Square, Trash2, Video, X } from 'lucide-react';
 import { presenceText } from '../lib/presence.js';
 
 const quickEmojis = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F64F}'];
@@ -13,6 +13,8 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const timeline = buildTimeline(messages, calls);
   const [actionTarget, setActionTarget] = useState(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [messageSearch, setMessageSearch] = useState('');
   const [recording, setRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
@@ -20,6 +22,10 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const fileInputRef = useRef(null);
   const recorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const normalizedSearch = messageSearch.trim().toLowerCase();
+  const visibleTimeline = normalizedSearch
+    ? timeline.filter((item) => item.kind === 'message' && `${item.message.text || ''} ${item.message.media?.name || ''}`.toLowerCase().includes(normalizedSearch))
+    : timeline;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
@@ -51,6 +57,12 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   function handleTextInput(value) {
     if (emojiOpen) setEmojiOpen(false);
     setText(value);
+  }
+
+  async function copyMessage(message) {
+    const value = message.text || message.media?.url || '';
+    if (!value) return;
+    await navigator.clipboard?.writeText(value).catch(() => {});
   }
 
   async function handleFilePick(event) {
@@ -117,17 +129,25 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         <div className="flex gap-2">
           <IconButton label="Audio call" icon={Phone} onClick={() => onStartCall?.('audio')} />
           <IconButton label="Video call" icon={Video} onClick={() => onStartCall?.('video')} />
+          <IconButton label="Search messages" icon={Search} onClick={() => setSearchOpen((open) => !open)} />
         </div>
         </div>
+        {searchOpen && (
+          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-3">
+            <Search size={16} className="text-white/35" />
+            <input value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" placeholder="Search in conversation" />
+            {messageSearch && <button onClick={() => setMessageSearch('')} type="button" className="rounded-full bg-white/10 p-1" aria-label="Clear search"><X size={13} /></button>}
+          </label>
+        )}
       </header>
 
       <section className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
-        {!timeline.length ? (
+        {!visibleTimeline.length ? (
           <EmptyState name={displayName} />
         ) : (
           <div className="space-y-3">
-            {timeline.map((item, index) => {
-              const showDate = shouldShowDate(timeline[index - 1], item);
+            {visibleTimeline.map((item, index) => {
+              const showDate = shouldShowDate(visibleTimeline[index - 1], item);
               if (item.kind === 'call') {
                 return (
                   <div key={`call-${item.call._id}`}>
@@ -181,6 +201,10 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             }}
             onDeleteEveryone={() => {
               onDeleteMessage?.(actionTarget._id, 'everyone');
+              setActionTarget(null);
+            }}
+            onCopy={() => {
+              copyMessage(actionTarget);
               setActionTarget(null);
             }}
             onReport={() => {
@@ -309,7 +333,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
   );
 }
 
-function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, onDeleteMe, onDeleteEveryone, onReport }) {
+function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, onDeleteMe, onDeleteEveryone, onCopy, onReport }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-[60] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
       <button className="fixed inset-0 cursor-default bg-black/35 backdrop-blur-[2px]" onClick={onClose} aria-label="Close message actions" />
@@ -327,6 +351,7 @@ function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, 
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <ActionButton icon={Reply} label="Reply" onClick={onReply} />
+          <ActionButton icon={Copy} label="Copy" onClick={onCopy} disabled={!message.text && !message.media?.url} />
           {mine && <ActionButton icon={Edit3} label="Edit" onClick={onEdit} />}
           <ActionButton icon={Trash2} label="Delete for me" onClick={onDeleteMe} tone="danger" />
           {mine && <ActionButton icon={Trash2} label="Delete everyone" onClick={onDeleteEveryone} tone="danger" />}

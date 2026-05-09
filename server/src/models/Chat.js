@@ -13,6 +13,7 @@ const chatSchema = new mongoose.Schema(
     hiddenFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     pinnedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     starredFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    mutedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     expiresAt: Date
   },
   { timestamps: true }
