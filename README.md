@@ -69,6 +69,10 @@ Important values:
 - `GOOGLE_CLIENT_ID`
 - `VAPID_PUBLIC_KEY`
 - `VAPID_PRIVATE_KEY`
+- `TURN_URL` or `TURN_URLS` - comma-separated TURN URLs for production WebRTC
+- `TURN_USERNAME`
+- `TURN_PASSWORD`
+- `JWT_COOKIE_MAX_AGE_MS` - optional httpOnly auth cookie lifetime
 
 Client env lives in `client/.env`.
 
@@ -77,6 +81,13 @@ Important values:
 - `VITE_API_URL`
 - `VITE_SOCKET_URL`
 - `VITE_GOOGLE_CLIENT_ID`
+- `VITE_TURN_URLS` - comma-separated TURN URLs for reliable calls across mobile networks
+- `VITE_TURN_USERNAME`
+- `VITE_TURN_PASSWORD`
+
+For WebRTC calls, STUN is enough only on some networks. Use a TURN provider for production so audio/video can connect through strict NATs, carrier networks, and office Wi-Fi.
+
+The API also sets an httpOnly `varta_token` cookie on login/signup/guest auth. The frontend still keeps the JWT for compatibility with Socket.IO auth, but REST requests now include credentials and the backend can authenticate from the cookie when no bearer token is sent.
 
 ## Browser Install
 

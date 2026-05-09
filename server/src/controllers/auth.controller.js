@@ -8,6 +8,7 @@ import { avatarForGender, createUniqueUsername, guestIdentity } from '../utils/i
 import { getClientIp } from '../utils/clientIp.js';
 import { issueOtp, verifyOtp } from '../services/otp.service.js';
 import { notifyUser } from '../services/notification.service.js';
+import { clearAuthCookie, setAuthCookie } from '../utils/authCookie.js';
 
 export const requestOtpSchema = Joi.object({
   phone: Joi.string().min(8).max(18).required()
@@ -61,6 +62,11 @@ async function recordLogin(req, user) {
     });
     req.app.get('io')?.to(`user:${user._id}`).emit('notification:new', { notification });
   }
+}
+
+function sendAuth(res, token, user, status = 200, extra = {}) {
+  setAuthCookie(res, token);
+  return res.status(status).json({ token, user, ...extra });
 }
 
 export const emailSignupSchema = Joi.object({
@@ -152,7 +158,7 @@ export const verifyPhoneOtp = asyncHandler(async (req, res) => {
     { upsert: true, new: true }
   );
   await recordLogin(req, user);
-  res.json({ token: signJwt(user), user });
+  return sendAuth(res, signJwt(user), user);
 });
 
 export const signupWithEmail = asyncHandler(async (req, res) => {
@@ -185,7 +191,7 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
     isGuest: false
   });
 
-  res.status(201).json({ token: signJwt(user), user });
+  return sendAuth(res, signJwt(user), user, 201);
 });
 
 export const loginWithEmail = asyncHandler(async (req, res) => {
@@ -200,7 +206,7 @@ export const loginWithEmail = asyncHandler(async (req, res) => {
 
   user.isGuest = false;
   await recordLogin(req, user);
-  res.json({ token: signJwt(user), user });
+  return sendAuth(res, signJwt(user), user);
 });
 
 export const continueAsGuest = asyncHandler(async (req, res) => {
@@ -220,7 +226,7 @@ export const continueAsGuest = asyncHandler(async (req, res) => {
       existingGuest.guestExpiresAt = existingGuest.guestExpiresAt || new Date(Date.now() + Number(process.env.GUEST_LIMIT_MINUTES || 10) * 60 * 1000);
       existingGuest.ipHistory = [...(existingGuest.ipHistory || []), { ip, at: new Date() }].slice(-8);
       await existingGuest.save();
-      return res.json({ token: signJwt(existingGuest), user: existingGuest, reused: true });
+      return sendAuth(res, signJwt(existingGuest), existingGuest, 200, { reused: true });
     }
   }
 
@@ -237,7 +243,7 @@ export const continueAsGuest = asyncHandler(async (req, res) => {
     ipHistory: ip ? [{ ip, at: new Date() }] : []
   });
 
-  res.status(201).json({ token: signJwt(user), user });
+  return sendAuth(res, signJwt(user), user, 201);
 });
 
 export const upgradeGuest = asyncHandler(async (req, res) => {
@@ -269,7 +275,7 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
   req.user.guestExpiresAt = undefined;
   await req.user.save();
 
-  res.json({ token: signJwt(req.user), user: req.user });
+  return sendAuth(res, signJwt(req.user), req.user);
 });
 
 export const googleLogin = asyncHandler(async (req, res) => {
@@ -297,5 +303,10 @@ export const googleLogin = asyncHandler(async (req, res) => {
     { upsert: true, new: true }
   ).select('+lastIp +ipHistory');
   await recordLogin(req, user);
-  res.json({ token: signJwt(user), user });
+  return sendAuth(res, signJwt(user), user);
+});
+
+export const logout = asyncHandler(async (_req, res) => {
+  clearAuthCookie(res);
+  res.json({ ok: true });
 });

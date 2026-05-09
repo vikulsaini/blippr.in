@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Ban, Bell, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Unlock, UserRound, Volume2 } from 'lucide-react';
+import { ArrowLeft, Ban, Bell, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Trash2, Unlock, UserRound, Volume2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import ConfirmSheet from '../components/ConfirmSheet.jsx';
 import InstallAppButton from '../components/InstallAppButton.jsx';
 import { api } from '../lib/api.js';
 import { clearVartaCache } from '../lib/cache.js';
@@ -12,9 +13,10 @@ import { loadSoundPrefs, mediaToSound, packSound, saveSoundPrefs, setSoundPrefer
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState([]);
-  const [form, setForm] = useState({ name: '', username: '', age: '', gender: 'female', bio: '', avatar: '' });
+  const [form, setForm] = useState({ name: '', username: '', age: '', gender: 'female', bio: '', avatar: '', showLastSeen: true, readReceipts: true, blockedWords: '' });
   const [message, setMessage] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [soundPrefs, setSoundPrefs] = useState(() => loadSoundPrefs());
 
   useEffect(() => {
@@ -31,7 +33,10 @@ export default function Profile() {
         age: currentUser.age || '',
         gender: currentUser.gender || 'female',
         bio: currentUser.bio || '',
-        avatar: currentUser.avatar || ''
+        avatar: currentUser.avatar || '',
+        showLastSeen: currentUser.privacy?.showLastSeen !== false,
+        readReceipts: currentUser.privacy?.readReceipts !== false,
+        blockedWords: currentUser.safety?.blockedWords?.join(', ') || ''
       });
     }
     load().catch((err) => setMessage(err.message));
@@ -52,7 +57,21 @@ export default function Profile() {
   async function saveProfile(event) {
     event.preventDefault();
     try {
-      const payload = { ...form, age: Number(form.age) };
+      const payload = {
+        name: form.name,
+        username: form.username,
+        age: Number(form.age),
+        gender: form.gender,
+        bio: form.bio,
+        avatar: form.avatar,
+        privacy: {
+          showLastSeen: form.showLastSeen,
+          readReceipts: form.readReceipts
+        },
+        safety: {
+          blockedWords: form.blockedWords.split(',').map((word) => word.trim().toLowerCase()).filter(Boolean)
+        }
+      };
       if (!payload.avatar.trim()) delete payload.avatar;
       const { user: updated } = await api('/api/users/me', {
         method: 'PATCH',
@@ -114,7 +133,31 @@ export default function Profile() {
     }
   }
 
-  function logout() {
+  async function logout() {
+    await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    clearVartaCache();
+    localStorage.removeItem('varta_token');
+    window.location.href = '/auth';
+  }
+
+  async function exportData() {
+    try {
+      const data = await api('/api/users/me/export');
+      const blob = new Blob([JSON.stringify(data.export, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'varta-account-export.json';
+      link.click();
+      URL.revokeObjectURL(url);
+      setMessage('Account export prepared');
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function deleteAccount() {
+    await api('/api/users/me', { method: 'DELETE' });
     clearVartaCache();
     localStorage.removeItem('varta_token');
     window.location.href = '/auth';
@@ -138,6 +181,8 @@ export default function Profile() {
     const next = saveSoundPrefs({ dnd: !soundPrefs.dnd });
     setSoundPrefs(next);
   }
+
+  if (!user && !message) return <ProfileSkeleton />;
 
   if (settingsOpen) {
     return (
@@ -181,6 +226,8 @@ export default function Profile() {
 
         <SettingsSection icon={Shield} title="Privacy">
           <ActionRow icon={MapPin} title="Matching location" subtitle={user?.location?.updatedAt ? 'Location saved for nearby matches' : 'Not shared yet'} action="Refresh" onClick={refreshLocation} />
+          <ToggleRow title="Show last seen" subtitle="Let friends see when you were last active" checked={form.showLastSeen} onChange={() => setField('showLastSeen', !form.showLastSeen)} />
+          <ToggleRow title="Read receipts" subtitle="Send seen status when you read messages" checked={form.readReceipts} onChange={() => setField('readReceipts', !form.readReceipts)} />
           <div className="space-y-2 pt-1">
             <div className="flex items-center gap-3 px-1">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-coral/10 text-coral"><Ban size={17} /></span>
@@ -205,6 +252,15 @@ export default function Profile() {
               {!blockedUsers.length && <p className="rounded-[14px] bg-white/4 px-3 py-3 text-center text-sm text-white/42">Blocked people will appear here.</p>}
             </div>
           </div>
+        </SettingsSection>
+
+        <SettingsSection icon={Shield} title="Safety filter">
+          <label className="block">
+            <span className="text-xs text-white/45">Blocked words</span>
+            <textarea value={form.blockedWords} onChange={(event) => setField('blockedWords', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[14px] border border-white/8 bg-ink/35 px-3 py-2.5 text-sm outline-none" placeholder="Comma separated words" />
+          </label>
+          <p className="text-xs leading-5 text-white/45">Messages you send containing these words are masked before delivery.</p>
+          <button onClick={saveProfile} className="btn-primary w-full rounded-[14px] py-3 text-sm font-semibold">Save safety filter</button>
         </SettingsSection>
 
         <SettingsSection icon={LockKeyhole} title="Security">
@@ -240,7 +296,7 @@ export default function Profile() {
         </SettingsSection>
 
         <SettingsSection icon={Database} title="Data">
-          <InfoRow icon={Database} title="Account data" subtitle="Profile, chats, blocks and requests are stored securely" value="Synced" />
+          <ActionRow icon={Database} title="Export account data" subtitle="Download profile, chats, notifications and reports JSON" action="Export" onClick={exportData} />
           <InfoRow icon={Shield} title="Safety data" subtitle="Reports help keep Match safer" value="Enabled" />
           <Link to="/privacy" className="flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><FileText size={18} /></span>
@@ -251,6 +307,21 @@ export default function Profile() {
             <ChevronRight size={17} className="text-white/35" />
           </Link>
         </SettingsSection>
+
+        <button onClick={() => setDeleteConfirmOpen(true)} className="surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
+          <span className="rounded-[14px] bg-coral/10 p-3"><Trash2 size={18} /></span>
+          <span className="font-medium">Delete account</span>
+        </button>
+
+        <ConfirmSheet
+          open={deleteConfirmOpen}
+          title="Delete account?"
+          description="This permanently removes your Varta account and cannot be undone."
+          confirmLabel="Delete"
+          tone="danger"
+          onCancel={() => setDeleteConfirmOpen(false)}
+          onConfirm={deleteAccount}
+        />
 
         <button onClick={logout} className="surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
           <span className="rounded-[14px] bg-coral/10 p-3"><LogOut size={18} /></span>
@@ -290,6 +361,26 @@ export default function Profile() {
         <MenuRow icon={Shield} title="Privacy" subtitle={`${blockedUsers.length} blocked users`} onClick={() => setSettingsOpen(true)} />
         <MenuRow icon={FileText} title="Privacy policy" subtitle="Data, calls, safety and permissions" onClick={() => { window.location.href = '/privacy'; }} />
       </section>
+    </div>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="space-y-3">
+      <section className="rounded-[20px] border border-white/8 bg-white/5 p-4">
+        <div className="flex animate-pulse items-center gap-4">
+          <div className="h-20 w-20 rounded-full bg-white/10" />
+          <div className="flex-1 space-y-3">
+            <div className="h-6 w-40 rounded-full bg-white/10" />
+            <div className="h-3 w-28 rounded-full bg-white/8" />
+            <div className="h-3 w-20 rounded-full bg-white/8" />
+          </div>
+        </div>
+      </section>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="h-16 animate-pulse rounded-[18px] border border-white/8 bg-white/5" />
+      ))}
     </div>
   );
 }
@@ -372,6 +463,20 @@ function InfoRow({ icon: Icon, title, subtitle, value }) {
       </span>
       <span className="rounded-full bg-white/8 px-3 py-1 text-xs font-semibold text-white/72">{value}</span>
     </div>
+  );
+}
+
+function ToggleRow({ title, subtitle, checked, onChange }) {
+  return (
+    <button type="button" onClick={onChange} className="flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium">{title}</span>
+        <span className="block truncate text-xs text-white/45">{subtitle}</span>
+      </span>
+      <span className={`relative h-7 w-12 rounded-full transition ${checked ? 'bg-mint' : 'bg-white/14'}`}>
+        <span className={`absolute top-1 h-5 w-5 rounded-full bg-ink transition ${checked ? 'left-6' : 'left-1'}`} />
+      </span>
+    </button>
   );
 }
 

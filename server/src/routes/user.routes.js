@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import {
   me,
+  deleteAccount,
+  exportAccountData,
   availableUsers,
   nearbyUsers,
   randomAvailableUsers,
@@ -20,6 +22,8 @@ router.use(requireAuth);
 router.get('/me', me);
 router.patch('/me', validate(updateProfileSchema), updateProfile);
 router.patch('/me/location', validate(updateLocationSchema), updateLocation);
+router.get('/me/export', exportAccountData);
+router.delete('/me', deleteAccount);
 router.get('/search', searchUsers);
 router.get('/suggested', suggestedUsers);
 router.get('/nearby', nearbyUsers);

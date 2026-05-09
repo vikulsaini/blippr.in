@@ -1,11 +1,12 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { trackUserActivity } from '../services/activity.service.js';
+import { readAuthCookie } from '../utils/authCookie.js';
 
 export async function requireAuth(req, _res, next) {
   try {
     const header = req.headers.authorization || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    const token = header.startsWith('Bearer ') ? header.slice(7) : readAuthCookie(req);
     if (!token) {
       const error = new Error('Authentication required');
       error.status = 401;

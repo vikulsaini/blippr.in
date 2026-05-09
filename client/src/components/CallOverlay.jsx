@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, RotateCw, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
+import { Gauge, Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, RotateCw, Signal, SignalLow, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
 
-export default function CallOverlay({ call, minimized = false, onMinimize, onExpand, onAccept, onReject, onEnd, onToggleMute, onToggleCamera, onSwitchCamera, onToggleSpeaker }) {
+export default function CallOverlay({ call, minimized = false, onMinimize, onExpand, onAccept, onReject, onEnd, onToggleMute, onToggleCamera, onSwitchCamera, onToggleSpeaker, onToggleLowDataMode }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
@@ -23,7 +23,10 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   if (!call) return null;
 
   const isVideo = call.type === 'video';
-  const title = call.status === 'incoming' ? 'Incoming call' : call.status === 'calling' ? 'Calling...' : 'Connected';
+  const title = call.status === 'incoming' ? 'Incoming call' : call.status === 'calling' ? 'Calling...' : call.status === 'reconnecting' ? 'Reconnecting...' : 'Connected';
+  const routeLabel = isVideo ? 'Video speaker' : call.speakerOn ? 'Speaker' : 'Receiver';
+  const QualityIcon = call.quality === 'poor' ? SignalLow : Signal;
+  const qualityLabel = call.quality === 'reconnecting' ? 'Reconnecting' : call.quality === 'poor' ? 'Poor connection' : call.quality === 'good' ? 'Good connection' : 'Checking connection';
 
   if (minimized) {
     return (
@@ -36,7 +39,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
           <img src={call.peerUser?.avatar} alt="" className="h-11 w-11 rounded-2xl bg-white/8 object-cover" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{call.peerUser?.name || 'Varta friend'}</p>
-            <p className="truncate text-xs text-white/45">{title} - {isVideo ? 'video' : 'voice'}</p>
+            <p className="truncate text-xs text-white/45">{title} - {qualityLabel}</p>
           </div>
           {call.status === 'incoming' ? (
             <>
@@ -65,7 +68,14 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
           </button>
           <p className="text-sm text-white/50">{title}</p>
           <h2 className="mt-1 text-2xl font-semibold">{call.peerUser?.name || 'Varta friend'}</h2>
-          <p className="mt-1 text-sm text-white/45">{isVideo ? 'Video call' : 'Voice call'}</p>
+          <div className="mt-2 flex items-center justify-center gap-2 text-sm text-white/48">
+            <span>{routeLabel}</span>
+            <span className="h-1 w-1 rounded-full bg-white/25" />
+            <span className={`inline-flex items-center gap-1 ${call.quality === 'poor' ? 'text-coral' : call.quality === 'reconnecting' ? 'text-white/55' : 'text-mint'}`}>
+              <QualityIcon size={15} />
+              {qualityLabel}
+            </span>
+          </div>
         </div>
 
         <div className="relative mt-7 flex flex-1 items-center justify-center overflow-hidden rounded-[24px] border border-white/8 bg-panel">
@@ -78,7 +88,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                 <span className="absolute inset-0 animate-ping rounded-full bg-mint/15" />
                 <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-white/8 object-cover" />
               </div>
-              <p className="mt-5 text-sm text-white/52">{call.status === 'connected' ? 'Voice connected' : 'Waiting for answer'}</p>
+              <p className="mt-5 text-sm text-white/52">{call.status === 'reconnecting' ? 'Trying to restore audio...' : call.status === 'connected' ? 'Voice connected' : 'Waiting for answer'}</p>
             </div>
           )}
 
@@ -100,10 +110,11 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
               <CallButton label="Accept" icon={Phone} onClick={onAccept} tone="mint" />
             </div>
           ) : (
-            <div className="grid grid-cols-5 gap-2">
+            <div className={`grid gap-2 ${isVideo ? 'grid-cols-6' : 'grid-cols-5'}`}>
               <CallButton label={call.muted ? 'Unmute' : 'Mute'} icon={call.muted ? MicOff : Mic} onClick={onToggleMute} />
-              <CallButton label="Speaker" icon={call.speakerOn ? Volume2 : VolumeX} onClick={onToggleSpeaker} active={call.speakerOn} />
+              <CallButton label={isVideo ? 'Speaker' : call.speakerOn ? 'Speaker' : 'Receiver'} icon={call.speakerOn ? Volume2 : VolumeX} onClick={onToggleSpeaker} active={call.speakerOn} />
               <CallButton label={call.cameraOff ? 'Camera' : 'Video'} icon={call.cameraOff ? VideoOff : Video} onClick={onToggleCamera} disabled={!isVideo} />
+              {isVideo && <CallButton label="Low data" icon={Gauge} onClick={onToggleLowDataMode} active={call.lowDataMode} />}
               <CallButton label="Switch" icon={RotateCw} onClick={onSwitchCamera} disabled={!isVideo || call.cameraOff} />
               <CallButton label="End" icon={PhoneOff} onClick={onEnd} tone="danger" />
             </div>

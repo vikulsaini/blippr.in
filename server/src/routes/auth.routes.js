@@ -8,6 +8,7 @@ import {
   googleLogin,
   googleLoginSchema,
   loginWithEmail,
+  logout,
   requestOtp,
   requestOtpSchema,
   signupWithEmail,
@@ -28,5 +29,6 @@ router.post('/email/login', authLimiter, validate(emailLoginSchema), loginWithEm
 router.post('/guest', guestLimiter, validate(guestSchema), continueAsGuest);
 router.post('/guest/upgrade', requireAuth, validate(guestUpgradeSchema), upgradeGuest);
 router.post('/google', authLimiter, validate(googleLoginSchema), googleLogin);
+router.post('/logout', logout);
 
 export default router;

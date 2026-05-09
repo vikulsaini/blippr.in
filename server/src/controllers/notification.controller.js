@@ -27,14 +27,36 @@ export const getPublicKey = asyncHandler(async (_req, res) => {
   res.json({ publicKey: isValid ? publicKey : null });
 });
 
+function pageLimit(value, fallback = 30, max = 80) {
+  return Math.min(Math.max(Number(value) || fallback, 1), max);
+}
+
+function dateCursor(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export const listNotifications = asyncHandler(async (req, res) => {
-  const notifications = await Notification.find({ user: req.user._id })
+  const limit = pageLimit(req.query.limit, 40, 80);
+  const cursor = dateCursor(req.query.cursor);
+  const notifications = await Notification.find({
+    user: req.user._id,
+    ...(cursor ? { createdAt: { $lt: cursor } } : {})
+  })
     .sort({ createdAt: -1 })
-    .limit(60)
+    .limit(limit)
     .populate('actor', 'name username avatar gender age')
     .lean();
   const unreadCount = await Notification.countDocuments({ user: req.user._id, readAt: null });
-  res.json({ notifications, unreadCount });
+  res.json({
+    notifications,
+    unreadCount,
+    pageInfo: {
+      nextCursor: notifications.length === limit ? notifications[notifications.length - 1]?.createdAt?.toISOString?.() || String(notifications[notifications.length - 1]?.createdAt || '') : null,
+      hasMore: notifications.length === limit
+    }
+  });
 });
 
 export const markNotificationsRead = asyncHandler(async (req, res) => {

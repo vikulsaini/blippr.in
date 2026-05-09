@@ -17,6 +17,7 @@ import {
   reactionSchema,
   reactToMessage,
   sendMessage,
+  setChatArchived,
   setChatMuted,
   setChatPinned,
   setChatStarred,
@@ -38,6 +39,7 @@ router.post('/:chatId/messages/:messageId/reactions', validate(reactionSchema), 
 router.patch('/:chatId/read', markChatRead);
 router.patch('/:chatId/nicknames', validate(nicknameSchema), updateNickname);
 router.patch('/:chatId/hide', hideChatFromFeed);
+router.patch('/:chatId/archive', validate(chatPreferenceSchema), setChatArchived);
 router.patch('/:chatId/pin', validate(chatPreferenceSchema), setChatPinned);
 router.patch('/:chatId/star', validate(chatPreferenceSchema), setChatStarred);
 router.patch('/:chatId/mute', validate(chatPreferenceSchema), setChatMuted);

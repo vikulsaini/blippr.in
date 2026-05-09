@@ -2,6 +2,9 @@ import Joi from 'joi';
 import mongoose from 'mongoose';
 import Chat from '../models/Chat.js';
 import FriendRequest from '../models/FriendRequest.js';
+import Message from '../models/Message.js';
+import Notification from '../models/Notification.js';
+import Report from '../models/Report.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -14,13 +17,62 @@ export const updateProfileSchema = Joi.object({
   gender: Joi.string().valid('male', 'female').optional(),
   bio: Joi.string().max(160).allow('').optional(),
   avatar: Joi.string().uri().optional(),
-  interests: Joi.array().items(Joi.string().max(40)).max(12).optional()
+  interests: Joi.array().items(Joi.string().max(40)).max(12).optional(),
+  privacy: Joi.object({
+    showLastSeen: Joi.boolean().optional(),
+    readReceipts: Joi.boolean().optional()
+  }).optional(),
+  safety: Joi.object({
+    blockedWords: Joi.array().items(Joi.string().trim().lowercase().max(40)).max(80).optional()
+  }).optional()
 });
 
 export const updateLocationSchema = Joi.object({
   latitude: Joi.number().min(-90).max(90).required(),
   longitude: Joi.number().min(-180).max(180).required()
 });
+
+const matchUserFields = 'name username avatar bio interests isOnline lastSeenAt age gender location';
+
+function pageLimit(value, fallback = 20, max = 50) {
+  return Math.min(Math.max(Number(value) || fallback, 1), max);
+}
+
+function dateCursor(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function matchPageInfo(users, limit, field = 'lastSeenAt') {
+  const last = users[users.length - 1];
+  const cursorValue = last?.[field] || last?.updatedAt;
+  return {
+    nextCursor: users.length === limit && cursorValue ? new Date(cursorValue).toISOString() : null,
+    hasMore: users.length === limit
+  };
+}
+
+async function getExcludedMatchUserIds(user) {
+  const [friendChats, pendingRequests] = await Promise.all([
+    Chat.find({ type: 'direct', members: user._id }).select('members').lean(),
+    FriendRequest.find({
+      status: 'pending',
+      $or: [{ from: user._id }, { to: user._id }]
+    }).select('from to').lean()
+  ]);
+
+  return [
+    user._id.toString(),
+    ...friendChats.flatMap((chat) => chat.members.map((memberId) => memberId.toString())),
+    ...pendingRequests.flatMap((request) => [request.from.toString(), request.to.toString()]),
+    ...(user.blockedUsers || []).map((userId) => userId.toString())
+  ];
+}
+
+function toObjectIds(ids) {
+  return ids.filter((id) => mongoose.Types.ObjectId.isValid(id)).map((id) => new mongoose.Types.ObjectId(id));
+}
 
 export const me = asyncHandler(async (req, res) => res.json({ user: req.user }));
 
@@ -36,6 +88,36 @@ export const updateProfile = asyncHandler(async (req, res) => {
   Object.assign(req.user, req.body);
   await req.user.save();
   res.json({ user: req.user });
+});
+
+export const exportAccountData = asyncHandler(async (req, res) => {
+  const [chats, messages, notifications, reports] = await Promise.all([
+    Chat.find({ members: req.user._id }).lean(),
+    Message.find({ $or: [{ sender: req.user._id }, { seenBy: req.user._id }] }).limit(1000).lean(),
+    Notification.find({ user: req.user._id }).limit(1000).lean(),
+    Report.find({ reporter: req.user._id }).limit(1000).lean()
+  ]);
+  res.json({
+    export: {
+      generatedAt: new Date().toISOString(),
+      user: req.user.toObject(),
+      chats,
+      messages,
+      notifications,
+      reports
+    }
+  });
+});
+
+export const deleteAccount = asyncHandler(async (req, res) => {
+  await Promise.all([
+    Chat.updateMany({ members: req.user._id }, { $pull: { members: req.user._id } }),
+    Message.updateMany({ sender: req.user._id }, { $set: { text: '', deletedAt: new Date() } }),
+    Notification.deleteMany({ user: req.user._id }),
+    FriendRequest.deleteMany({ $or: [{ from: req.user._id }, { to: req.user._id }] })
+  ]);
+  await User.deleteOne({ _id: req.user._id });
+  res.json({ ok: true, message: 'Account deleted' });
 });
 
 export const searchUsers = asyncHandler(async (req, res) => {
@@ -74,6 +156,8 @@ export const updateLocation = asyncHandler(async (req, res) => {
 });
 
 export const nearbyUsers = asyncHandler(async (req, res) => {
+  const limit = pageLimit(req.query.limit, 20, 50);
+  const cursor = dateCursor(req.query.cursor);
   const maxDistance = Math.min(Number(req.query.maxDistance || 25000), 100000);
   const coordinates = req.user.location?.coordinates;
   const excludedIds = [req.user._id, ...(req.user.blockedUsers || [])];
@@ -89,6 +173,7 @@ export const nearbyUsers = asyncHandler(async (req, res) => {
     blockedUsers: { $ne: req.user._id },
     isOnline: true,
     age: { $gte: 18 },
+    ...(cursor ? { lastSeenAt: { $lt: cursor } } : {}),
     location: {
       $near: {
         $geometry: { type: 'Point', coordinates },
@@ -96,28 +181,24 @@ export const nearbyUsers = asyncHandler(async (req, res) => {
       }
     }
   })
-    .select('name username avatar bio interests isOnline lastSeenAt age gender location')
-    .limit(20);
+    .select(matchUserFields)
+    .limit(limit)
+    .lean();
 
-  res.json({ users });
+  res.json({ users, pageInfo: matchPageInfo(users, limit, 'lastSeenAt') });
 });
 
 export const availableUsers = asyncHandler(async (req, res) => {
+  const limit = pageLimit(req.query.limit, 20, 50);
+  const cursor = dateCursor(req.query.cursor);
   const coordinates = req.user.location?.coordinates;
-  const [friendChats, pendingRequests] = await Promise.all([
-    Chat.find({ type: 'direct', members: req.user._id }).select('members').lean(),
-    FriendRequest.find({
-      status: 'pending',
-      $or: [{ from: req.user._id }, { to: req.user._id }]
-    }).select('from to').lean()
-  ]);
-  const connectedIds = friendChats.flatMap((chat) => chat.members.map((memberId) => memberId.toString()));
-  const pendingIds = pendingRequests.flatMap((request) => [request.from.toString(), request.to.toString()]);
+  const excludedIds = await getExcludedMatchUserIds(req.user);
   const baseFilter = {
-    _id: { $nin: [req.user._id.toString(), ...connectedIds, ...pendingIds, ...(req.user.blockedUsers || []).map((userId) => userId.toString())] },
+    _id: { $nin: excludedIds },
     blockedUsers: { $ne: req.user._id },
     isOnline: true,
-    age: { $gte: 18 }
+    age: { $gte: 18 },
+    ...(cursor ? { lastSeenAt: { $lt: cursor } } : {})
   };
 
   if (coordinates?.length) {
@@ -130,42 +211,35 @@ export const availableUsers = asyncHandler(async (req, res) => {
         }
       }
     })
-      .select('name username avatar bio interests isOnline lastSeenAt age gender location')
-      .sort({ updatedAt: -1 })
-      .limit(20);
+      .select(matchUserFields)
+      .limit(limit)
+      .lean();
 
-    return res.json({ users, source: 'nearby' });
+    return res.json({ users, source: 'nearby', pageInfo: matchPageInfo(users, limit, 'lastSeenAt') });
   }
 
   const users = await User.find({ ...baseFilter, isOnline: true })
-    .select('name username avatar bio interests isOnline lastSeenAt age gender location')
+    .select(matchUserFields)
     .sort('-lastSeenAt')
-    .limit(20);
+    .limit(limit)
+    .lean();
 
-  res.json({ users, source: 'online' });
+  res.json({ users, source: 'online', pageInfo: matchPageInfo(users, limit, 'lastSeenAt') });
 });
 
 export const randomAvailableUsers = asyncHandler(async (req, res) => {
-  const [friendChats, pendingRequests] = await Promise.all([
-    Chat.find({ type: 'direct', members: req.user._id }).select('members').lean(),
-    FriendRequest.find({
-      status: 'pending',
-      $or: [{ from: req.user._id }, { to: req.user._id }]
-    }).select('from to').lean()
-  ]);
-  const connectedIds = friendChats.flatMap((chat) => chat.members.map((memberId) => memberId.toString()));
-  const pendingIds = pendingRequests.flatMap((request) => [request.from.toString(), request.to.toString()]);
-  const excludedIds = [req.user._id.toString(), ...connectedIds, ...pendingIds, ...(req.user.blockedUsers || []).map((userId) => userId.toString())];
+  const limit = pageLimit(req.query.limit, 20, 50);
+  const excludedIds = await getExcludedMatchUserIds(req.user);
   const users = await User.aggregate([
     {
       $match: {
-        _id: { $nin: excludedIds.map((userId) => new mongoose.Types.ObjectId(userId)) },
+        _id: { $nin: toObjectIds(excludedIds) },
         blockedUsers: { $ne: req.user._id },
         isOnline: true,
         age: { $gte: 18 }
       }
     },
-    { $sample: { size: 20 } },
+    { $sample: { size: limit } },
     {
       $project: {
         name: 1,
@@ -182,5 +256,5 @@ export const randomAvailableUsers = asyncHandler(async (req, res) => {
     }
   ]);
 
-  res.json({ users, source: 'random' });
+  res.json({ users, source: 'random', pageInfo: { nextCursor: null, hasMore: users.length === limit } });
 });

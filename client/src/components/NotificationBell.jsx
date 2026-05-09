@@ -19,6 +19,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
 
   async function loadFeed() {
     try {
@@ -33,6 +34,8 @@ export default function NotificationBell() {
       setRequests([]);
       setNotifications([]);
       setUnreadCount(0);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -142,15 +145,35 @@ export default function NotificationBell() {
           </div>
           {message && <p className="mt-2 text-sm text-mint">{message}</p>}
           <div className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
-            {feed.map((item) => (
+            {loading && <NotificationSkeleton />}
+            {!loading && feed.map((item) => (
               <NotificationItem key={item._id} item={item} onRespond={respond} />
             ))}
-            {!feed.length && <p className="py-8 text-center text-sm text-white/45">No notifications yet.</p>}
+            {!loading && !feed.length && (
+              <div className="py-8 text-center">
+                <Bell className="mx-auto text-white/35" size={24} />
+                <p className="mt-2 text-sm text-white/45">No notifications yet.</p>
+                <button onClick={loadFeed} className="btn-secondary mt-4 rounded-full px-4 py-2 text-xs font-semibold">Refresh</button>
+              </div>
+            )}
           </div>
         </section>
       )}
     </div>
   );
+}
+
+function NotificationSkeleton() {
+  return Array.from({ length: 4 }).map((_, index) => (
+    <div key={index} className="flex animate-pulse gap-3 rounded-2xl border border-white/10 bg-white/7 p-3">
+      <div className="h-10 w-10 rounded-2xl bg-white/10" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3 w-24 rounded-full bg-white/10" />
+        <div className="h-3 w-40 rounded-full bg-white/8" />
+        <div className="h-2.5 w-52 rounded-full bg-white/6" />
+      </div>
+    </div>
+  ));
 }
 
 function NotificationItem({ item, onRespond }) {

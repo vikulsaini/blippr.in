@@ -1,0 +1,300 @@
+import { useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Archive, BellOff, MessageCircle, Pin, Search, Star, Trash2, X } from 'lucide-react';
+import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
+import { haptics } from '../lib/haptics.js';
+import { presenceText } from '../lib/presence.js';
+
+export default function ChatList({
+  chats,
+  currentUserId,
+  query,
+  setQuery,
+  typingChatId,
+  selectedChats,
+  onClearSelection,
+  onPreference,
+  onDeleteSelected,
+  onSetChatPreference,
+  onOpenChat,
+  onToggleSelect,
+  onOpenProfile,
+  loading = false
+}) {
+  const [tab, setTab] = useState('chats');
+  const visibleChats = useMemo(() => {
+    const scoped = chats.filter((chat) => {
+      if (tab === 'archived') return chat.archived;
+      if (tab === 'favorites') return chat.starred && !chat.archived;
+      return !chat.archived;
+    });
+    return filterChats(scoped, query, currentUserId);
+  }, [chats, currentUserId, query, tab]);
+
+  return (
+    <section className="flex min-h-0 flex-1 flex-col px-4 pt-3">
+      <div className="sticky top-0 z-10 -mx-4 bg-ink/95 px-4 pb-3 backdrop-blur">
+        {selectedChats.size ? (
+          <SelectionToolbar
+            count={selectedChats.size}
+            onClear={onClearSelection}
+            onPreference={(kind) => {
+              haptics.success();
+              onPreference(kind);
+            }}
+            onDelete={onDeleteSelected}
+          />
+        ) : (
+          <div className="mb-3 flex shrink-0 items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold">Chats</h2>
+              <p className="text-sm text-white/45">{chats.filter((chat) => !chat.archived).length} active, {chats.filter((chat) => chat.archived).length} archived</p>
+            </div>
+          </div>
+        )}
+
+        {!selectedChats.size && (
+          <>
+            <div className="mb-3 grid grid-cols-3 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1">
+              <TabButton active={tab === 'chats'} onClick={() => setTab('chats')} label="Chats" />
+              <TabButton active={tab === 'favorites'} onClick={() => setTab('favorites')} label="Favorites" />
+              <TabButton active={tab === 'archived'} onClick={() => setTab('archived')} label="Archived" />
+            </div>
+            <label className="flex shrink-0 items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
+              <Search size={18} className="text-white/40" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                placeholder="Search friends or messages"
+              />
+            </label>
+          </>
+        )}
+      </div>
+
+      <div data-chat-feed className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24">
+        {loading ? (
+          <ChatSkeleton />
+        ) : (
+          visibleChats.map((chat) => {
+            const other = getOtherMember(chat, currentUserId);
+            const displayName = getNickname(chat, currentUserId, other);
+            return (
+              <SwipeChatRow
+                key={chat._id}
+                chat={chat}
+                selected={selectedChats.has(chat._id)}
+                currentUserId={currentUserId}
+                typing={typingChatId === chat._id}
+                displayName={displayName}
+                other={other}
+                onOpen={() => onOpenChat(chat)}
+                onProfile={() => other && onOpenProfile(other, chat)}
+                onSelect={() => {
+                  haptics.select();
+                  onToggleSelect(chat._id);
+                }}
+                onPreference={onPreference}
+                onSetChatPreference={onSetChatPreference}
+              />
+            );
+          })
+        )}
+        {!loading && !chats.length && (
+          <EmptyState
+            icon={MessageCircle}
+            title="No friends yet"
+            text="Discover people nearby and send a request to start chatting."
+            action="Find people"
+            onAction={() => { window.location.href = '/app/discover'; }}
+          />
+        )}
+        {!loading && chats.length > 0 && !visibleChats.length && (
+          <EmptyState
+            icon={tab === 'archived' ? Archive : Search}
+            title={tab === 'archived' ? 'No archived chats' : 'No chats found'}
+            text={tab === 'favorites' ? 'Star close friends to see them here.' : 'Try another name or message.'}
+            action={tab === 'archived' ? 'Back to chats' : 'Clear search'}
+            onAction={() => (tab === 'archived' ? setTab('chats') : setQuery(''))}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function SelectionToolbar({ count, onClear, onPreference, onDelete }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="rounded-[20px] border border-white/10 bg-white/7 p-2 shadow-glow">
+      <div className="flex items-center gap-2">
+        <button onClick={onClear} className="btn-icon h-10 w-10" aria-label="Cancel selection"><X size={18} /></button>
+        <motion.p key={count} initial={{ scale: 0.86 }} animate={{ scale: 1 }} className="min-w-0 flex-1 font-semibold">{count} selected</motion.p>
+        <ToolbarButton icon={Archive} label="Archive" onClick={() => onPreference('archive')} />
+        <ToolbarButton icon={Pin} label="Pin" onClick={() => onPreference('pin')} />
+        <ToolbarButton icon={Star} label="Favorite" onClick={() => onPreference('star')} />
+        <ToolbarButton icon={BellOff} label="Mute" onClick={() => onPreference('mute')} />
+        <ToolbarButton icon={Trash2} label="Delete" onClick={onDelete} danger />
+      </div>
+    </motion.div>
+  );
+}
+
+function ToolbarButton({ icon: Icon, label, onClick, danger = false }) {
+  return (
+    <button onClick={onClick} className={`grid min-w-[3.1rem] justify-items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[10px] font-semibold ${danger ? 'bg-coral/12 text-coral' : 'bg-white/8 text-white/70'}`}>
+      <Icon size={16} />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, other, onOpen, onProfile, onSelect, onSetChatPreference }) {
+  const xRef = useRef(0);
+
+  function handleSwipeEnd(_, info) {
+    if (info.offset.x > 86) {
+      haptics.success();
+      onSetChatPreference(chat, 'archive');
+    } else if (info.offset.x < -86) {
+      haptics.tap();
+      onSetChatPreference(chat, 'mute');
+    }
+  }
+
+  return (
+    <div className="relative overflow-hidden border-b border-white/8">
+      <div className="absolute inset-y-0 left-0 flex items-center gap-2 pl-3 text-xs font-semibold text-mint">
+        <Archive size={17} />
+        Archive
+      </div>
+      <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3 text-xs font-semibold text-white/65">
+        <BellOff size={17} />
+        Mute
+      </div>
+      <motion.article
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.18}
+        onDrag={(_, info) => { xRef.current = info.offset.x; }}
+        onDragEnd={handleSwipeEnd}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          onSelect();
+        }}
+        className={`relative flex w-full items-center gap-3 bg-ink px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-white/5' : ''} ${selected ? 'bg-mint/10' : ''}`}
+      >
+        <button onClick={onProfile} aria-label={`View ${displayName || 'friend'} profile`}>
+          {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-white/8" />}
+        </button>
+        <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="truncate font-medium">{displayName || 'Friend'}</p>
+            <span className="flex items-center gap-1">
+              {chat.archived && <Archive size={12} className="text-white/35" />}
+              {chat.pinned && <Pin size={12} className="text-mint" />}
+              {chat.starred && <Star size={12} className="fill-mint text-mint" />}
+              {chat.muted && <BellOff size={12} className="text-white/35" />}
+              <span className={`h-2 w-2 rounded-full ${other?.isOnline ? 'bg-mint' : 'bg-white/25'}`} />
+            </span>
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <p className={`truncate text-xs ${typing ? 'font-semibold text-mint' : chat.unreadCount ? 'font-semibold text-white' : 'text-white/45'}`}>
+              {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
+            </p>
+            {chat.unreadCount > 0 && (
+              <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-ink">
+                {chat.unreadCount}
+              </span>
+            )}
+          </div>
+        </ChatRowButton>
+      </motion.article>
+    </div>
+  );
+}
+
+function ChatSkeleton() {
+  return (
+    <div className="space-y-1 pt-1">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div key={index} className="flex animate-pulse items-center gap-3 border-b border-white/8 px-1 py-3">
+          <div className="h-10 w-10 rounded-full bg-white/8" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3 w-32 rounded-full bg-white/10" />
+            <div className="h-2.5 w-48 rounded-full bg-white/7" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, title, text, action, onAction }) {
+  return (
+    <div className="surface mt-4 rounded-[20px] p-6 text-center">
+      <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white/8 text-mint"><Icon size={22} /></span>
+      <p className="mt-3 font-medium">{title}</p>
+      <p className="mt-1 text-sm text-white/55">{text}</p>
+      <button onClick={onAction} className="btn-primary mt-4 rounded-full px-4 py-2 text-sm font-semibold">{action}</button>
+    </div>
+  );
+}
+
+function TabButton({ active, label, onClick }) {
+  return (
+    <button onClick={onClick} className={`rounded-[12px] py-2 text-xs font-semibold ${active ? 'btn-primary' : 'text-white/55'}`}>
+      {label}
+    </button>
+  );
+}
+
+function filterChats(chats, query, currentUserId) {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return chats;
+  return chats.filter((chat) => {
+    const other = getOtherMember(chat, currentUserId);
+    const displayName = getNickname(chat, currentUserId, other);
+    const value = `${displayName} ${other?.name || ''} ${other?.username || ''} ${chat.lastMessage?.text || ''} ${callPreview(chat.lastCall, currentUserId)}`.toLowerCase();
+    return value.includes(needle);
+  });
+}
+
+function ChatRowButton({ children, onOpen, onLongSelect }) {
+  const timerRef = useRef(null);
+  const longPressRef = useRef(false);
+
+  function start() {
+    clearTimeout(timerRef.current);
+    longPressRef.current = false;
+    timerRef.current = setTimeout(() => {
+      longPressRef.current = true;
+      onLongSelect();
+    }, 420);
+  }
+
+  function clear() {
+    clearTimeout(timerRef.current);
+  }
+
+  function click() {
+    if (longPressRef.current) {
+      longPressRef.current = false;
+      return;
+    }
+    onOpen();
+  }
+
+  return (
+    <button
+      onClick={click}
+      onPointerDown={start}
+      onPointerUp={clear}
+      onPointerLeave={clear}
+      onPointerCancel={clear}
+      className="min-w-0 flex-1 text-left"
+    >
+      {children}
+    </button>
+  );
+}

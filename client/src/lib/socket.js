@@ -4,7 +4,7 @@ import { getToken } from './api';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
 
 export function createSocket() {
-  return io(SOCKET_URL, {
+  const socket = io(SOCKET_URL, {
     autoConnect: false,
     auth: { token: getToken() },
     transports: ['websocket', 'polling'],
@@ -15,4 +15,11 @@ export function createSocket() {
     reconnectionDelayMax: 6000,
     timeout: 20000
   });
+
+  socket.on('connect', () => window.dispatchEvent(new CustomEvent('varta:socket-state', { detail: { state: 'connected' } })));
+  socket.io.on('reconnect_attempt', () => window.dispatchEvent(new CustomEvent('varta:socket-state', { detail: { state: 'connecting' } })));
+  socket.io.on('reconnect', () => window.dispatchEvent(new CustomEvent('varta:socket-state', { detail: { state: 'reconnected' } })));
+  socket.on('disconnect', () => window.dispatchEvent(new CustomEvent('varta:socket-state', { detail: { state: 'connecting' } })));
+
+  return socket;
 }

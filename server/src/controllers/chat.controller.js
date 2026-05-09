@@ -39,12 +39,30 @@ export const chatPreferenceSchema = Joi.object({
   enabled: Joi.boolean().required()
 });
 
+function pageLimit(value, fallback = 30, max = 80) {
+  return Math.min(Math.max(Number(value) || fallback, 1), max);
+}
+
+function dateCursor(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function pageInfo(items, limit, field = 'createdAt') {
+  return {
+    nextCursor: items.length === limit ? items[items.length - 1]?.[field]?.toISOString?.() || String(items[items.length - 1]?.[field] || '') : null,
+    hasMore: items.length === limit
+  };
+}
+
 function withUnreadCount(chat, userId) {
   const item = chat.toObject ? chat.toObject({ flattenMaps: true }) : chat;
   item.unreadCount = chat.unreadCounts?.get(userId.toString()) || 0;
   item.pinned = (chat.pinnedFor || []).some((id) => id.toString() === userId.toString());
   item.starred = (chat.starredFor || []).some((id) => id.toString() === userId.toString());
   item.muted = (chat.mutedFor || []).some((id) => id.toString() === userId.toString());
+  item.archived = (chat.archivedFor || []).some((id) => id.toString() === userId.toString());
   return item;
 }
 
@@ -58,32 +76,80 @@ function receiverIds(chat, senderId) {
   return chat.members.filter((memberId) => memberId.toString() !== senderId.toString());
 }
 
+function applyBlockedWords(text = '', blockedWords = []) {
+  return blockedWords.reduce((value, word) => {
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escaped ? value.replace(new RegExp(escaped, 'gi'), '***') : value;
+  }, text);
+}
+
+function deliveryReceiptsFor(chat, senderId, io) {
+  return receiverIds(chat, senderId).map((memberId) => {
+    const connected = (io?.sockets?.adapter?.rooms?.get(`user:${memberId}`)?.size || 0) > 0;
+    return {
+      user: memberId,
+      status: connected ? 'delivered' : 'sent',
+      deliveredAt: connected ? new Date() : undefined
+    };
+  });
+}
+
 function receiverIsConnected(io, chat, senderId) {
   return receiverIds(chat, senderId).some((memberId) => (io?.sockets?.adapter?.rooms?.get(`user:${memberId}`)?.size || 0) > 0);
 }
 
+async function updateChatPreference(req, res, field) {
+  const chat = await Chat.findOne({ _id: req.params.chatId, type: 'direct', members: req.user._id });
+  if (!chat) {
+    const error = new Error('Chat not found');
+    error.status = 404;
+    throw error;
+  }
+  if (req.body.enabled) chat[field].addToSet(req.user._id);
+  else chat[field].pull(req.user._id);
+  await chat.save();
+  const populatedChat = await Chat.findById(chat._id)
+    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('lastMessage')
+    .populate('lastCall');
+  const decorated = withUnreadCount(populatedChat, req.user._id);
+  req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:updated', {
+    chat: decorated,
+    unreadCount: decorated.unreadCount || 0
+  });
+  res.json({ chat: decorated });
+}
+
 export const listChats = asyncHandler(async (req, res) => {
+  const limit = pageLimit(req.query.limit, 30, 60);
+  const cursor = dateCursor(req.query.cursor);
+  const includeArchived = req.query.archived === 'true';
   const usersBlockingMe = await User.find({ blockedUsers: req.user._id }).select('_id');
   const hiddenMemberIds = [
     ...(req.user.blockedUsers || []),
     ...usersBlockingMe.map((user) => user._id)
   ];
-  const chats = await Chat.find({
+  const filter = {
     $and: [
       { members: req.user._id },
       { members: { $nin: hiddenMemberIds } },
-      { hiddenFor: { $ne: req.user._id } }
+      { hiddenFor: { $ne: req.user._id } },
+      includeArchived ? { archivedFor: req.user._id } : { archivedFor: { $ne: req.user._id } },
+      ...(cursor ? [{ updatedAt: { $lt: cursor } }] : [])
     ]
-  })
+  };
+  const chats = await Chat.find(filter)
     .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
     .populate('lastMessage')
     .populate('lastCall')
-    .sort('-updatedAt');
+    .sort('-updatedAt')
+    .limit(limit);
   const decorated = chats
     .map((chat) => withUnreadCount(chat, req.user._id))
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || new Date(b.updatedAt) - new Date(a.updatedAt));
   res.json({
-    chats: decorated
+    chats: decorated,
+    pageInfo: pageInfo(decorated, limit, 'updatedAt')
   });
 });
 
@@ -124,6 +190,8 @@ export const createDirectChat = asyncHandler(async (req, res) => {
 });
 
 export const listMessages = asyncHandler(async (req, res) => {
+  const limit = pageLimit(req.query.limit, 80, 100);
+  const cursor = dateCursor(req.query.cursor);
   const chat = await Chat.findOne({ _id: req.params.chatId, members: req.user._id });
   if (!chat) {
     const error = new Error('Chat not found');
@@ -133,16 +201,28 @@ export const listMessages = asyncHandler(async (req, res) => {
   const io = req.app.get('io');
   await Message.updateMany(
     { chat: chat._id, sender: { $ne: req.user._id }, status: 'sent', deletedAt: { $exists: false } },
-    { $set: { status: 'delivered' } }
+    {
+      $set: {
+        status: 'delivered',
+        'deliveryReceipts.$[receipt].status': 'delivered',
+        'deliveryReceipts.$[receipt].deliveredAt': new Date()
+      }
+    },
+    { arrayFilters: [{ 'receipt.user': req.user._id, 'receipt.status': 'sent' }] }
   );
   io?.to(`chat:${chat._id}`).emit('message:delivered', { chatId: chat._id, userId: req.user._id });
 
-  const messages = await Message.find({ chat: chat._id, deletedFor: { $ne: req.user._id }, deletedAt: { $exists: false } })
+  const messages = await Message.find({
+    chat: chat._id,
+    deletedFor: { $ne: req.user._id },
+    deletedAt: { $exists: false },
+    ...(cursor ? { createdAt: { $lt: cursor } } : {})
+  })
     .populate('sender', 'name username avatar')
     .populate('replyTo', 'text sender')
     .sort('-createdAt')
-    .limit(80);
-  res.json({ messages: messages.reverse() });
+    .limit(limit);
+  res.json({ messages: messages.reverse(), pageInfo: pageInfo(messages, limit, 'createdAt') });
 });
 
 export const listCalls = asyncHandler(async (req, res) => {
@@ -169,11 +249,14 @@ export const sendMessage = asyncHandler(async (req, res) => {
     throw error;
   }
   const io = req.app.get('io');
+  const safeText = applyBlockedWords(req.body.text || '', req.user.safety?.blockedWords || []);
   const createdMessage = await Message.create({
     chat: chat._id,
     sender: req.user._id,
     status: receiverIsConnected(io, chat, req.user._id) ? 'delivered' : 'sent',
-    ...req.body
+    deliveryReceipts: deliveryReceiptsFor(chat, req.user._id, io),
+    ...req.body,
+    text: safeText
   });
   const message = await populateMessage(createdMessage._id);
   chat.lastMessage = createdMessage._id;
@@ -257,11 +340,21 @@ export const markChatRead = asyncHandler(async (req, res) => {
   if (!chat.unreadCounts) chat.unreadCounts = new Map();
   chat.unreadCounts.set(req.user._id.toString(), 0);
   await chat.save();
-  await Message.updateMany(
-    { chat: chat._id, sender: { $ne: req.user._id }, deletedAt: { $exists: false } },
-    { $set: { status: 'seen' }, $addToSet: { seenBy: req.user._id } }
-  );
-  req.app.get('io')?.to(`chat:${chat._id}`).emit('message:seen', { chatId: chat._id, userId: req.user._id });
+  if (req.user.privacy?.readReceipts !== false) {
+    await Message.updateMany(
+      { chat: chat._id, sender: { $ne: req.user._id }, deletedAt: { $exists: false } },
+      {
+        $set: {
+          status: 'seen',
+          'deliveryReceipts.$[receipt].status': 'seen',
+          'deliveryReceipts.$[receipt].seenAt': new Date()
+        },
+        $addToSet: { seenBy: req.user._id }
+      },
+      { arrayFilters: [{ 'receipt.user': req.user._id }] }
+    );
+    req.app.get('io')?.to(`chat:${chat._id}`).emit('message:seen', { chatId: chat._id, userId: req.user._id });
+  }
   res.json({ ok: true });
 });
 
@@ -336,67 +429,20 @@ export const hideChatFromFeed = asyncHandler(async (req, res) => {
   res.json({ ok: true });
 });
 
+export const setChatArchived = asyncHandler(async (req, res) => {
+  await updateChatPreference(req, res, 'archivedFor');
+});
+
 export const setChatPinned = asyncHandler(async (req, res) => {
-  const chat = await Chat.findOne({ _id: req.params.chatId, type: 'direct', members: req.user._id });
-  if (!chat) {
-    const error = new Error('Chat not found');
-    error.status = 404;
-    throw error;
-  }
-  if (req.body.enabled) chat.pinnedFor.addToSet(req.user._id);
-  else chat.pinnedFor.pull(req.user._id);
-  await chat.save();
-  const populatedChat = await Chat.findById(chat._id)
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
-    .populate('lastMessage')
-    .populate('lastCall');
-  req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:updated', {
-    chat: withUnreadCount(populatedChat, req.user._id),
-    unreadCount: populatedChat.unreadCounts?.get(req.user._id.toString()) || 0
-  });
-  res.json({ chat: withUnreadCount(populatedChat, req.user._id) });
+  await updateChatPreference(req, res, 'pinnedFor');
 });
 
 export const setChatStarred = asyncHandler(async (req, res) => {
-  const chat = await Chat.findOne({ _id: req.params.chatId, type: 'direct', members: req.user._id });
-  if (!chat) {
-    const error = new Error('Chat not found');
-    error.status = 404;
-    throw error;
-  }
-  if (req.body.enabled) chat.starredFor.addToSet(req.user._id);
-  else chat.starredFor.pull(req.user._id);
-  await chat.save();
-  const populatedChat = await Chat.findById(chat._id)
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
-    .populate('lastMessage')
-    .populate('lastCall');
-  req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:updated', {
-    chat: withUnreadCount(populatedChat, req.user._id),
-    unreadCount: populatedChat.unreadCounts?.get(req.user._id.toString()) || 0
-  });
-  res.json({ chat: withUnreadCount(populatedChat, req.user._id) });
+  await updateChatPreference(req, res, 'starredFor');
 });
 
 export const setChatMuted = asyncHandler(async (req, res) => {
-  const chat = await Chat.findOne({ _id: req.params.chatId, type: 'direct', members: req.user._id });
-  if (!chat) {
-    const error = new Error('Chat not found');
-    error.status = 404;
-    throw error;
-  }
-  if (req.body.enabled) chat.mutedFor.addToSet(req.user._id);
-  else chat.mutedFor.pull(req.user._id);
-  await chat.save();
-  const populatedChat = await Chat.findById(chat._id)
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
-    .populate('lastMessage')
-    .populate('lastCall');
-  req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:updated', {
-    chat: withUnreadCount(populatedChat, req.user._id),
-    unreadCount: populatedChat.unreadCounts?.get(req.user._id.toString()) || 0
-  });
-  res.json({ chat: withUnreadCount(populatedChat, req.user._id) });
+  await updateChatPreference(req, res, 'mutedFor');
 });
 
 export const editMessage = asyncHandler(async (req, res) => {

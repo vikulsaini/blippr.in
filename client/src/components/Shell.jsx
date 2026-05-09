@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, Shuffle, Search, UserRound } from 'lucide-react';
 import BrandLogo from './BrandLogo.jsx';
+import GuestLimitBanner from './GuestLimitBanner.jsx';
 import GuestUpgradeModal from './GuestUpgradeModal.jsx';
 import GlobalIncomingCall from './GlobalIncomingCall.jsx';
 import NotificationBell from './NotificationBell.jsx';
+import SocketStateBanner from './SocketStateBanner.jsx';
 import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
 
 const tabs = [
@@ -93,6 +95,8 @@ export default function Shell() {
         onTouchEnd={handleTouchEnd}
         className={`min-h-0 flex-1 ${navHidden || isChats ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24'} ${isChats ? '-mx-4' : ''}`}
       >
+        {!bottomNavHidden && <SocketStateBanner />}
+        {!bottomNavHidden && <GuestLimitBanner />}
         <Outlet context={{ setBottomNavHidden }} />
       </section>
       {!isChats && <GlobalIncomingCall />}

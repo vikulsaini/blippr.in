@@ -21,6 +21,13 @@ const userSchema = new mongoose.Schema(
       updatedAt: Date
     },
     interests: [{ type: String, trim: true, lowercase: true }],
+    privacy: {
+      showLastSeen: { type: Boolean, default: true },
+      readReceipts: { type: Boolean, default: true }
+    },
+    safety: {
+      blockedWords: [{ type: String, trim: true, lowercase: true }]
+    },
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     pushTokens: [String],
     lastSeenAt: Date,
@@ -49,6 +56,7 @@ function hidePrivateFields(_doc, ret) {
 userSchema.set('toJSON', { transform: hidePrivateFields });
 userSchema.set('toObject', { transform: hidePrivateFields });
 userSchema.index({ location: '2dsphere' });
+userSchema.index({ isOnline: 1, age: 1, lastSeenAt: -1 });
 userSchema.index({ isGuest: 1, lastIp: 1, updatedAt: -1 });
 userSchema.index({ name: 'text', username: 'text', phone: 'text', email: 'text' });
 

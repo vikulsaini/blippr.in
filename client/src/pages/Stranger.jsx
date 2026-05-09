@@ -7,30 +7,39 @@ import { readCache, writeCache } from '../lib/cache.js';
 import { presenceText } from '../lib/presence.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 
+const MATCH_CACHE_TTL = 90 * 1000;
+const deckConfig = {
+  nearby: {
+    endpoint: '/api/users/available',
+    cacheKey: 'match:nearby',
+    loadingText: 'Finding active people nearby...',
+    emptyText: 'No active users nearby right now.'
+  },
+  random: {
+    endpoint: '/api/users/available/random',
+    cacheKey: 'match:random',
+    loadingText: 'Shuffling active people...',
+    emptyText: 'No active random users right now.'
+  }
+};
+
 export default function Stranger() {
   const [available, setAvailable] = useState([]);
   const [sentIds, setSentIds] = useState(new Set());
   const [profileUser, setProfileUser] = useState(null);
   const [status, setStatus] = useState('Loading matches...');
-  const [source, setSource] = useState('nearby');
   const [mode, setMode] = useState('nearby');
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionBusy, setActionBusy] = useState(false);
   const dragMovedRef = useRef(false);
   const swipeLockedRef = useRef(false);
+  const loadSeqRef = useRef(0);
   const controls = useAnimation();
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-140, 0, 140], [-5, 0, 5]);
 
   useEffect(() => {
-    const cached = readCache('match:nearby', 'global', null);
-    if (cached?.users?.length) {
-      setAvailable(cached.users);
-      setSource(cached.source || 'nearby');
-      setLoading(false);
-      setStatus(`${cached.users.length} active nearby users`);
-    }
     loadMatch();
   }, []);
 
@@ -56,6 +65,7 @@ export default function Stranger() {
 
   async function loadMatch() {
     try {
+      hydrateDeckFromCache('nearby');
       const cachedUser = readCache('me', 'global', null);
       const { user } = cachedUser ? { user: cachedUser } : await api('/api/users/me');
       if (user.location?.coordinates?.length) {
@@ -64,45 +74,64 @@ export default function Stranger() {
         sessionStorage.setItem('varta_location_prompted', 'true');
         await requestAndSaveLocation();
       }
-      await loadAvailable();
+      await loadDeck('nearby');
+      prefetchDeck('random');
     } catch (err) {
       setStatus(err.message);
+      setLoading(false);
     }
   }
 
-  async function loadAvailable() {
-    setMode('nearby');
-    setLoading(true);
+  function hydrateDeckFromCache(nextMode) {
+    const cached = readCache(deckConfig[nextMode].cacheKey, 'global', null);
+    if (!cached?.users) return false;
+    setMode(nextMode);
+    setAvailable(cached.users);
+    setActiveIndex(0);
+    setLoading(false);
+    setStatus(formatDeckStatus(nextMode, cached.users.length));
+    return true;
+  }
+
+  function applyDeck(nextMode, data) {
+    const users = shuffle(data.users || []);
+    setMode(nextMode);
+    setAvailable(users);
+    setSentIds(new Set());
+    setActiveIndex(0);
+    setStatus(formatDeckStatus(nextMode, users.length));
+    writeCache(deckConfig[nextMode].cacheKey, { users, source: data.source || nextMode }, 'global', MATCH_CACHE_TTL);
+  }
+
+  async function loadDeck(nextMode, { silent = false } = {}) {
+    const seq = ++loadSeqRef.current;
+    if (!silent) {
+      setMode(nextMode);
+      setStatus(deckConfig[nextMode].loadingText);
+      setLoading(true);
+    }
     try {
-      const data = await api('/api/users/available');
-      setAvailable(shuffle(data.users));
-      setSentIds(new Set());
-      setSource(data.source);
-      setActiveIndex(0);
-      setStatus(data.users.length ? `${data.users.length} active nearby users` : 'No active users nearby right now.');
-      writeCache('match:nearby', { users: data.users, source: data.source }, 'global', 60 * 1000);
+      const data = await api(deckConfig[nextMode].endpoint);
+      if (silent) {
+        writeCache(deckConfig[nextMode].cacheKey, { users: shuffle(data.users || []), source: data.source || nextMode }, 'global', MATCH_CACHE_TTL);
+      } else if (seq === loadSeqRef.current) {
+        applyDeck(nextMode, data);
+      }
+    } catch (err) {
+      if (!silent) setStatus(err.message);
     } finally {
-      setLoading(false);
+      if (!silent && seq === loadSeqRef.current) setLoading(false);
     }
   }
 
   async function loadRandomAvailable() {
-    try {
-      setStatus('Shuffling random people...');
-      setLoading(true);
-      setMode('random');
-      const data = await api('/api/users/available/random');
-      setAvailable(shuffle(data.users));
-      setSentIds(new Set());
-      setSource(data.source);
-      setActiveIndex(0);
-      setStatus(data.users.length ? `${data.users.length} active random users` : 'No active random users right now.');
-      writeCache('match:random', { users: data.users, source: data.source }, 'global', 60 * 1000);
-    } catch (err) {
-      setStatus(err.message);
-    } finally {
-      setLoading(false);
-    }
+    hydrateDeckFromCache('random');
+    await loadDeck('random');
+  }
+
+  function prefetchDeck(nextMode) {
+    if (readCache(deckConfig[nextMode].cacheKey, 'global', null)?.users?.length) return;
+    loadDeck(nextMode, { silent: true }).catch(() => {});
   }
 
   async function refreshLocationInBackground() {
@@ -235,21 +264,24 @@ export default function Stranger() {
   const requestSent = activeUser && sentIds.has(activeUser._id);
 
   return (
-    <div className="space-y-4">
-      <section className="flex items-center gap-2">
-        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 text-sm">
-          <Badge icon={mode === 'random' ? Shuffle : MapPin} label={source === 'random' ? 'Random anywhere' : source === 'nearby' ? 'Nearby first' : 'Online fallback'} />
-          <Badge icon={Shuffle} label={status} />
+    <div className="space-y-4 pb-2">
+      <section className="rounded-[24px] border border-white/8 bg-white/[0.045] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur">
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mint/80">Match</p>
+            <h2 className="mt-1 truncate text-xl font-semibold">{mode === 'random' ? 'Random anywhere' : 'Nearby online'}</h2>
+            <p className="mt-1 truncate text-xs text-white/48">{status}</p>
+          </div>
+          <button onClick={mode === 'random' ? loadRandomAvailable : loadMatch} className="btn-icon h-11 w-11 shrink-0 rounded-[16px]" aria-label="Refresh matches">
+            <RotateCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
-        <button onClick={loadMatch} className="btn-icon h-11 w-11 shrink-0 rounded-[16px]" aria-label="Refresh matches">
-          <RotateCw size={18} />
-        </button>
-      </section>
 
-      <div className="grid grid-cols-2 gap-2">
-        <ModeButton active={mode === 'nearby'} onClick={loadMatch} icon={MapPin} label="Nearby" />
-        <ModeButton active={mode === 'random'} onClick={loadRandomAvailable} icon={Shuffle} label="Random anywhere" />
-      </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <ModeButton active={mode === 'nearby'} onClick={loadMatch} icon={MapPin} label="Nearby" />
+          <ModeButton active={mode === 'random'} onClick={loadRandomAvailable} icon={Shuffle} label="Random" />
+        </div>
+      </section>
 
       <div className="relative overflow-visible px-1">
         <div className="pointer-events-none absolute inset-y-16 left-0 z-0 flex items-center">
@@ -303,8 +335,8 @@ export default function Stranger() {
           >
             <img src={activeUser.avatar} alt="" className="h-[28rem] max-h-[56vh] w-full bg-white/10 object-cover" />
             <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-2">
-              <span className="rounded-full border border-white/10 bg-ink/55 px-3 py-1 text-[11px] font-medium text-white/75 backdrop-blur">Left: previous</span>
-              <span className="rounded-full border border-white/10 bg-ink/55 px-3 py-1 text-[11px] font-medium text-white/75 backdrop-blur">Right: next</span>
+              <span className="rounded-full border border-white/10 bg-ink/55 px-3 py-1 text-[11px] font-medium text-white/75 backdrop-blur">Swipe left: previous</span>
+              <span className="rounded-full border border-white/10 bg-ink/55 px-3 py-1 text-[11px] font-medium text-white/75 backdrop-blur">Swipe right: next</span>
             </div>
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/72 to-transparent p-4 pt-24 text-left">
               <div className="flex items-end justify-between gap-3">
@@ -335,6 +367,11 @@ export default function Stranger() {
       <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
     </div>
   );
+}
+
+function formatDeckStatus(mode, count) {
+  if (count) return `${count} active ${mode === 'random' ? 'random' : 'nearby'} user${count > 1 ? 's' : ''}`;
+  return deckConfig[mode].emptyText;
 }
 
 function MatchSkeleton() {
@@ -374,15 +411,6 @@ function EmptyMatch({ mode, onRetry }) {
         </button>
       </div>
     </motion.div>
-  );
-}
-
-function Badge({ icon: Icon, label }) {
-  return (
-    <div className="flex min-w-0 items-center gap-2 rounded-[16px] border border-white/8 bg-white/5 px-3 py-2">
-      <Icon size={15} className="shrink-0 text-mint" />
-      <span className="truncate text-xs text-white/62">{label}</span>
-    </div>
   );
 }
 

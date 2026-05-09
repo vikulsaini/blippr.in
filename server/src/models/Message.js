@@ -24,6 +24,14 @@ const messageSchema = new mongoose.Schema(
       }
     ],
     status: { type: String, enum: ['sent', 'delivered', 'seen'], default: 'sent' },
+    deliveryReceipts: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        status: { type: String, enum: ['sent', 'delivered', 'seen'], default: 'sent' },
+        deliveredAt: Date,
+        seenAt: Date
+      }
+    ],
     seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     editedAt: Date,
@@ -31,5 +39,7 @@ const messageSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+messageSchema.index({ chat: 1, createdAt: -1 });
 
 export default mongoose.model('Message', messageSchema);

@@ -23,6 +23,7 @@ export async function api(path, options = {}) {
   const isFormData = options.body instanceof FormData;
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       Authorization: getToken() ? `Bearer ${getToken()}` : '',
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),

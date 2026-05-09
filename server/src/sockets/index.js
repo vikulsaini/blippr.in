@@ -43,6 +43,26 @@ function emitCallUpdate(io, userId, peerId, call) {
   emitCallChatUpdate(io, call);
 }
 
+function deliveryReceiptsFor(io, chat, senderId) {
+  return chat.members
+    .filter((memberId) => memberId.toString() !== senderId.toString())
+    .map((memberId) => {
+      const connected = (io.sockets.adapter.rooms.get(`user:${memberId}`)?.size || 0) > 0;
+      return {
+        user: memberId,
+        status: connected ? 'delivered' : 'sent',
+        deliveredAt: connected ? new Date() : undefined
+      };
+    });
+}
+
+function applyBlockedWords(text = '', blockedWords = []) {
+  return blockedWords.reduce((value, word) => {
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escaped ? value.replace(new RegExp(escaped, 'gi'), '***') : value;
+  }, text);
+}
+
 async function markMissedCallIfStillRinging(io, callId) {
   const current = await Call.findById(callId);
   if (!current || current.status !== 'ringing') return;
@@ -67,6 +87,7 @@ export function registerSockets(io) {
 
   io.on('connection', async (socket) => {
     const userId = socket.user._id.toString();
+    const typingState = new Map();
     socket.join(`user:${userId}`);
     await User.findByIdAndUpdate(userId, { isOnline: true, lastSeenAt: new Date() });
     socket.broadcast.emit('presence:update', { userId, isOnline: true });
@@ -83,7 +104,14 @@ export function registerSockets(io) {
       const delivered = chat.members
         .filter((memberId) => memberId.toString() !== socket.user._id.toString())
         .some((memberId) => (io.sockets.adapter.rooms.get(`user:${memberId}`)?.size || 0) > 0);
-      const createdMessage = await Message.create({ chat: chat._id, sender: socket.user._id, text, media, status: delivered ? 'delivered' : 'sent' });
+      const createdMessage = await Message.create({
+        chat: chat._id,
+        sender: socket.user._id,
+        text: applyBlockedWords(text || '', socket.user.safety?.blockedWords || []),
+        media,
+        status: delivered ? 'delivered' : 'sent',
+        deliveryReceipts: deliveryReceiptsFor(io, chat, socket.user._id)
+      });
       const message = await Message.findById(createdMessage._id)
         .populate('sender', 'name username avatar')
         .populate('replyTo', 'text sender');
@@ -133,21 +161,56 @@ export function registerSockets(io) {
     });
 
     socket.on('message:delivered', async ({ messageId }) => {
-      const message = await Message.findByIdAndUpdate(messageId, { status: 'delivered' }, { new: true });
-      if (message) io.to(`chat:${message.chat}`).emit('message:status', { messageId, status: message.status });
-    });
-
-    socket.on('message:seen', async ({ messageId }) => {
-      const message = await Message.findByIdAndUpdate(
-        messageId,
-        { status: 'seen', $addToSet: { seenBy: socket.user._id } },
+      const message = await Message.findOneAndUpdate(
+        { _id: messageId, 'deliveryReceipts.user': socket.user._id },
+        {
+          $set: {
+            status: 'delivered',
+            'deliveryReceipts.$.status': 'delivered',
+            'deliveryReceipts.$.deliveredAt': new Date()
+          }
+        },
         { new: true }
       );
       if (message) io.to(`chat:${message.chat}`).emit('message:status', { messageId, status: message.status });
     });
 
-    socket.on('typing:start', ({ chatId }) => socket.to(`chat:${chatId}`).emit('typing:start', { chatId, userId }));
-    socket.on('typing:stop', ({ chatId }) => socket.to(`chat:${chatId}`).emit('typing:stop', { chatId, userId }));
+    socket.on('message:seen', async ({ messageId }) => {
+      const message = await Message.findOneAndUpdate(
+        { _id: messageId, 'deliveryReceipts.user': socket.user._id },
+        {
+          $addToSet: { seenBy: socket.user._id },
+          $set: {
+            status: 'seen',
+            'deliveryReceipts.$.status': 'seen',
+            'deliveryReceipts.$.seenAt': new Date()
+          }
+        },
+        { new: true }
+      );
+      if (message) io.to(`chat:${message.chat}`).emit('message:status', { messageId, status: message.status });
+    });
+
+    function stopTyping(chatId) {
+      const state = typingState.get(chatId);
+      if (!state) return;
+      clearTimeout(state.timer);
+      typingState.delete(chatId);
+      socket.to(`chat:${chatId}`).emit('typing:stop', { chatId, userId });
+    }
+
+    socket.on('typing:start', ({ chatId }) => {
+      if (!chatId) return;
+      const state = typingState.get(chatId);
+      if (!state) socket.to(`chat:${chatId}`).emit('typing:start', { chatId, userId });
+      clearTimeout(state?.timer);
+      typingState.set(chatId, {
+        timer: setTimeout(() => stopTyping(chatId), 1800)
+      });
+    });
+    socket.on('typing:stop', ({ chatId }) => {
+      if (chatId) stopTyping(chatId);
+    });
 
     socket.on('stranger:find', async ({ interests = [] }, ack) => {
       const result = await findOrQueueUser(socket.user, interests);
@@ -204,17 +267,23 @@ export function registerSockets(io) {
       }, CALL_RING_TIMEOUT_MS);
       ack?.({ ok: true, callId: call._id });
     });
-    socket.on('call:answer', async ({ to, answer, callId }) => {
-      if (callId) {
-        const existingCall = await Call.findOne({ _id: callId, receiver: userId, status: 'ringing' });
-        const peerId = callPeerId(existingCall, userId);
-        if (!existingCall || peerId !== to || !(await findDirectChatBetween(userId, peerId))) return;
-        const call = await Call.findByIdAndUpdate(existingCall._id, { status: 'accepted', answeredAt: new Date() }, { new: true })
-          .populate('caller', 'name username avatar')
-          .populate('receiver', 'name username avatar');
-        emitCallUpdate(io, userId, peerId, call);
-        io.to(`user:${peerId}`).emit('call:answer', { from: userId, answer, callId });
+    socket.on('call:answer', async ({ to, answer, callId }, ack) => {
+      if (!callId) {
+        ack?.({ ok: false, message: 'Call not found' });
+        return;
       }
+      const existingCall = await Call.findOne({ _id: callId, receiver: userId, status: 'ringing' });
+      const peerId = callPeerId(existingCall, userId);
+      if (!existingCall || peerId !== to || !(await findDirectChatBetween(userId, peerId))) {
+        ack?.({ ok: false, message: 'Call is no longer available' });
+        return;
+      }
+      const call = await Call.findByIdAndUpdate(existingCall._id, { status: 'accepted', answeredAt: new Date() }, { new: true })
+        .populate('caller', 'name username avatar')
+        .populate('receiver', 'name username avatar');
+      emitCallUpdate(io, userId, peerId, call);
+      io.to(`user:${peerId}`).emit('call:answer', { from: userId, answer, callId });
+      ack?.({ ok: true, callId });
     });
     socket.on('call:ice-candidate', async ({ to, candidate, callId }) => {
       const chat = await findDirectChatBetween(userId, to);
@@ -250,6 +319,7 @@ export function registerSockets(io) {
     });
 
     socket.on('disconnect', async () => {
+      for (const chatId of typingState.keys()) stopTyping(chatId);
       await leaveQueues(userId);
       await User.findByIdAndUpdate(userId, { isOnline: false, lastSeenAt: new Date() });
       socket.broadcast.emit('presence:update', { userId, isOnline: false });
