@@ -180,11 +180,18 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
         onDragEnd={handleSwipeEnd}
         onContextMenu={(event) => {
           event.preventDefault();
+          event.stopPropagation();
           onSelect();
         }}
         className={`relative flex w-full items-center gap-3 bg-ink px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-white/5' : ''} ${selected ? 'bg-mint/10' : ''}`}
       >
-        <button onClick={onProfile} aria-label={`View ${displayName || 'friend'} profile`}>
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            onProfile();
+          }}
+          aria-label={`View ${displayName || 'friend'} profile`}
+        >
           {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-white/8" />}
         </button>
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
@@ -263,22 +270,34 @@ function filterChats(chats, query, currentUserId) {
 function ChatRowButton({ children, onOpen, onLongSelect }) {
   const timerRef = useRef(null);
   const longPressRef = useRef(false);
+  const pointerRef = useRef(null);
 
-  function start() {
+  function start(event) {
     clearTimeout(timerRef.current);
     longPressRef.current = false;
+    pointerRef.current = { x: event.clientX, y: event.clientY };
     timerRef.current = setTimeout(() => {
       longPressRef.current = true;
       onLongSelect();
     }, 420);
   }
 
-  function clear() {
-    clearTimeout(timerRef.current);
+  function move(event) {
+    const startPoint = pointerRef.current;
+    if (!startPoint) return;
+    const moved = Math.hypot(event.clientX - startPoint.x, event.clientY - startPoint.y);
+    if (moved > 10) clear();
   }
 
-  function click() {
+  function clear() {
+    clearTimeout(timerRef.current);
+    pointerRef.current = null;
+  }
+
+  function click(event) {
     if (longPressRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
       longPressRef.current = false;
       return;
     }
@@ -289,9 +308,14 @@ function ChatRowButton({ children, onOpen, onLongSelect }) {
     <button
       onClick={click}
       onPointerDown={start}
+      onPointerMove={move}
       onPointerUp={clear}
       onPointerLeave={clear}
       onPointerCancel={clear}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       className="min-w-0 flex-1 text-left"
     >
       {children}

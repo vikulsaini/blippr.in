@@ -97,6 +97,10 @@ export default function Chats() {
       return;
     }
     setActiveChat(chat);
+    const nextSearch = `?chat=${chat._id}`;
+    if (location.pathname !== '/app' || location.search !== nextSearch) {
+      navigate(`/app${nextSearch}`);
+    }
   }
 
   useEffect(() => {
@@ -121,12 +125,22 @@ export default function Chats() {
       setChats(loadedChats);
       writeCache('me', user, 'global');
       writeCache('chats', loadedChats, user._id);
-      const requestedChatId = new URLSearchParams(location.search).get('chat');
-      if (requestedChatId) setActiveChat(loadedChats.find((chat) => chat._id === requestedChatId) || null);
       setLoadingChats(false);
     }
     load().catch(() => setLoadingChats(false));
-  }, [location.search, tokenUserId]);
+  }, [tokenUserId]);
+
+  useEffect(() => {
+    const requestedChatId = new URLSearchParams(location.search).get('chat');
+    if (!requestedChatId) {
+      setActiveChat(null);
+      return;
+    }
+    setActiveChat((current) => {
+      if (current?._id === requestedChatId) return current;
+      return chats.find((chat) => chat._id === requestedChatId) || current || null;
+    });
+  }, [chats, location.search]);
 
   useEffect(() => {
     if (me) writeCache('me', me, 'global');
