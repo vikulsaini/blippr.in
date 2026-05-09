@@ -280,6 +280,7 @@ export default function Chats() {
           onOpenChat={handleChatOpen}
           onToggleSelect={toggleSelect}
           onOpenProfile={openProfile}
+          onFindPeople={() => navigate('/app/discover')}
         />
       )}
 

@@ -265,14 +265,14 @@ export default function Stranger() {
 
   return (
     <div className="space-y-4 pb-2">
-      <section className="rounded-[24px] border border-white/8 bg-white/[0.045] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur">
+      <section className="accent-card rounded-[24px] p-3 backdrop-blur">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mint/80">Match</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold/85">Match</p>
             <h2 className="mt-1 truncate text-xl font-semibold">{mode === 'random' ? 'Random anywhere' : 'Nearby online'}</h2>
             <p className="mt-1 truncate text-xs text-white/48">{status}</p>
           </div>
-          <button onClick={mode === 'random' ? loadRandomAvailable : loadMatch} className="btn-icon h-11 w-11 shrink-0 rounded-[16px]" aria-label="Refresh matches">
+          <button onClick={mode === 'random' ? loadRandomAvailable : loadMatch} className="btn-icon h-11 w-11 shrink-0 rounded-[16px] text-sky" aria-label="Refresh matches">
             <RotateCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -315,7 +315,7 @@ export default function Stranger() {
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
         animate={controls}
         whileDrag={{ scale: 0.985 }}
-        className="surface relative z-10 overflow-hidden rounded-[28px] shadow-[0_24px_70px_rgba(0,0,0,0.35)]"
+        className="surface relative z-10 overflow-hidden rounded-[28px] shadow-[0_24px_70px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.04)]"
       >
         {loading ? (
           <MatchSkeleton />
@@ -335,17 +335,17 @@ export default function Stranger() {
           >
             <img src={activeUser.avatar} alt="" className="h-[28rem] max-h-[56vh] w-full bg-white/10 object-cover" />
             <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-2">
-              <span className="rounded-full border border-white/10 bg-ink/55 px-3 py-1 text-[11px] font-medium text-white/75 backdrop-blur">Swipe left: previous</span>
-              <span className="rounded-full border border-white/10 bg-ink/55 px-3 py-1 text-[11px] font-medium text-white/75 backdrop-blur">Swipe right: next</span>
+              <span className="rounded-full border border-rose/20 bg-rose/15 px-3 py-1 text-[11px] font-medium text-white/80 backdrop-blur">Swipe left: previous</span>
+              <span className="rounded-full border border-mint/20 bg-mint/15 px-3 py-1 text-[11px] font-medium text-white/80 backdrop-blur">Swipe right: next</span>
             </div>
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/72 to-transparent p-4 pt-24 text-left">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/78 to-transparent p-4 pt-24 text-left">
               <div className="flex items-end justify-between gap-3">
                 <div className="min-w-0">
                   <h3 className="truncate text-2xl font-semibold">{activeUser.name}</h3>
                   <p className="mt-1 truncate text-sm text-white/70">@{activeUser.username} - {activeUser.gender} - {activeUser.age}</p>
                   <p className={`mt-1 text-sm ${activeUser.isOnline ? 'text-mint' : 'text-white/55'}`}>{presenceText(activeUser)}</p>
                 </div>
-                <span className={`h-3 w-3 rounded-full ${activeUser.isOnline ? 'bg-mint' : 'bg-white/35'}`} />
+                <span className={`h-3 w-3 rounded-full ${activeUser.isOnline ? 'bg-mint shadow-[0_0_18px_rgba(61,214,198,0.7)]' : 'bg-white/35'}`} />
               </div>
               {activeUser.bio && <p className="mt-3 line-clamp-2 text-sm text-white/72">{activeUser.bio}</p>}
             </div>
@@ -419,7 +419,7 @@ function ActionButton({ label, icon: Icon, onClick, primary = false, active = fa
     <button
       disabled={disabled}
       onClick={onClick}
-      className={`grid h-14 w-14 place-items-center rounded-full text-[10px] font-semibold transition disabled:opacity-35 ${primary ? 'bg-white text-ink shadow-[0_10px_24px_rgba(255,255,255,0.16)]' : active ? 'bg-mint text-ink' : 'bg-white/9 text-white/74 hover:bg-white/14'}`}
+      className={`grid h-14 w-14 place-items-center rounded-full text-[10px] font-semibold transition disabled:opacity-35 ${primary ? 'bg-gradient-to-br from-mint to-sky text-ink shadow-[0_10px_24px_rgba(61,214,198,0.18)]' : active ? 'bg-gradient-to-br from-gold to-mint text-ink' : label === 'Report' ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'bg-white/9 text-white/74 hover:bg-white/14'}`}
       aria-label={label}
     >
       <span className="grid gap-0.5 justify-items-center">

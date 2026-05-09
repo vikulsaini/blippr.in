@@ -12,12 +12,12 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   }, [call?.localStream]);
 
   useEffect(() => {
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = call?.remoteStream || null;
-    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = call?.remoteStream || null;
-    if (remoteAudioRef.current) remoteAudioRef.current.volume = 1;
-    setAudioOutput(remoteAudioRef.current, call?.speakerOn, call?.type).catch(() => {});
-    remoteAudioRef.current?.play?.().catch(() => {});
-    remoteVideoRef.current?.play?.().catch(() => {});
+    const remoteElement = call?.type === 'video' ? remoteVideoRef.current : remoteAudioRef.current;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = call?.type === 'video' ? call?.remoteStream || null : null;
+    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = call?.type === 'video' ? null : call?.remoteStream || null;
+    if (remoteElement) remoteElement.volume = 1;
+    setAudioOutput(remoteElement, call?.speakerOn, call?.type).catch(() => {});
+    remoteElement?.play?.().catch(() => {});
   }, [call?.remoteStream, call?.speakerOn, call?.type]);
 
   if (!call) return null;
@@ -79,9 +79,9 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
         </div>
 
         <div className="relative mt-7 flex flex-1 items-center justify-center overflow-hidden rounded-[24px] border border-white/8 bg-panel">
-          <audio ref={remoteAudioRef} autoPlay playsInline />
+          {!isVideo && <audio ref={remoteAudioRef} autoPlay playsInline />}
           {isVideo && call.remoteStream ? (
-            <video ref={remoteVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
+            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
           ) : (
             <div className="grid place-items-center text-center">
               <div className="relative">

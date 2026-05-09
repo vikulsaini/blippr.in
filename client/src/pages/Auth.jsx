@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, UserRound } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { api, setToken } from '../lib/api.js';
@@ -7,6 +8,7 @@ import { api, setToken } from '../lib/api.js';
 const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', gender: 'female', bio: '', hobbies: '' };
 
 export default function Auth() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +22,7 @@ export default function Auth() {
 
   function finishAuth(token) {
     setToken(token);
-    window.location.href = '/app';
+    navigate('/app', { replace: true });
   }
 
   function switchMode(nextMode) {
@@ -107,14 +109,14 @@ export default function Auth() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-8 text-white">
-      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="surface rounded-[22px] p-5 shadow-glow">
+    <main className="app-shell mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-8 text-white">
+      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="accent-card rounded-[22px] p-5">
         <div>
           <BrandLogo />
           <p className="mt-2 text-sm text-white/58">Meet people, become friends, and keep conversations close.</p>
         </div>
 
-        <div className="mt-6 grid grid-cols-4 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1 text-sm">
+        <div className="mt-6 grid grid-cols-4 gap-1 rounded-[16px] border border-white/8 bg-ink/35 p-1 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
           <ModeButton active={mode === 'login'} onClick={() => switchMode('login')} label="Login" />
           <ModeButton active={mode === 'signup'} onClick={() => switchMode('signup')} label="Signup" />
           <ModeButton active={mode === 'guest'} onClick={() => switchMode('guest')} label="Guest" />
@@ -177,7 +179,7 @@ function AuthForm({ title, icon: Icon, onSubmit, action, children, loading = fal
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4">
       <div className="flex items-center gap-3">
-        <span className="rounded-[14px] bg-white/8 p-3 text-mint"><Icon size={20} /></span>
+        <span className="rounded-[14px] border border-mint/18 bg-mint/10 p-3 text-mint"><Icon size={20} /></span>
         <h2 className="text-xl font-semibold">{title}</h2>
       </div>
       {children}
@@ -190,7 +192,7 @@ function AuthForm({ title, icon: Icon, onSubmit, action, children, loading = fal
 
 function TextInput({ value, onChange, placeholder, type = 'text', inputMode, prefix }) {
   return (
-    <div className="flex items-center rounded-[16px] border border-white/8 bg-white/5 px-4">
+    <div className="flex items-center rounded-[16px] border border-white/8 bg-ink/35 px-4 focus-within:border-mint/35 focus-within:bg-mint/5">
       {prefix && <span className="text-white/35">{prefix}</span>}
       <input
         value={value}
@@ -210,7 +212,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
   }
 
   return (
-    <div className="space-y-3 rounded-[18px] border border-white/8 bg-white/5 p-3">
+    <div className="space-y-3 rounded-[18px] border border-white/8 bg-ink/30 p-3">
       <div className="grid grid-cols-2 gap-3">
         <TextInput value={profile.age} onChange={(value) => update('age', value)} placeholder="Age 18+" type="number" />
         <div className="grid grid-cols-2 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1 text-sm">

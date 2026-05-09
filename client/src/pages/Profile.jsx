@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Ban, Bell, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Trash2, Unlock, UserRound, Volume2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ConfirmSheet from '../components/ConfirmSheet.jsx';
 import InstallAppButton from '../components/InstallAppButton.jsx';
 import { api } from '../lib/api.js';
@@ -11,6 +11,7 @@ import { previewSound } from '../lib/sounds.js';
 import { loadSoundPrefs, mediaToSound, packSound, saveSoundPrefs, setSoundPreference, soundPack } from '../lib/soundPrefs.js';
 
 export default function Profile() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [form, setForm] = useState({ name: '', username: '', age: '', gender: 'female', bio: '', avatar: '', showLastSeen: true, readReceipts: true, blockedWords: '' });
@@ -137,7 +138,7 @@ export default function Profile() {
     await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
     clearVartaCache();
     localStorage.removeItem('varta_token');
-    window.location.href = '/auth';
+    navigate('/auth', { replace: true });
   }
 
   async function exportData() {
@@ -160,7 +161,7 @@ export default function Profile() {
     await api('/api/users/me', { method: 'DELETE' });
     clearVartaCache();
     localStorage.removeItem('varta_token');
-    window.location.href = '/auth';
+    navigate('/auth', { replace: true });
   }
 
   async function uploadSound(key, file) {
@@ -359,7 +360,7 @@ export default function Profile() {
         <MenuRow icon={Settings} title="Settings" subtitle="Profile, security, notifications and data" onClick={() => setSettingsOpen(true)} />
         <MenuRow icon={MapPin} title="Matching location" subtitle={user?.location?.updatedAt ? 'Location is ready for nearby matches' : 'Refresh to improve matches'} onClick={refreshLocation} />
         <MenuRow icon={Shield} title="Privacy" subtitle={`${blockedUsers.length} blocked users`} onClick={() => setSettingsOpen(true)} />
-        <MenuRow icon={FileText} title="Privacy policy" subtitle="Data, calls, safety and permissions" onClick={() => { window.location.href = '/privacy'; }} />
+        <MenuRow icon={FileText} title="Privacy policy" subtitle="Data, calls, safety and permissions" onClick={() => navigate('/privacy')} />
       </section>
     </div>
   );

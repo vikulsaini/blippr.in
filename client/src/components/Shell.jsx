@@ -85,7 +85,7 @@ export default function Shell() {
   }
 
   return (
-    <main className="mx-auto flex h-dvh max-w-md flex-col overflow-hidden px-4 pt-4 text-white">
+    <main className="app-shell mx-auto flex h-dvh max-w-md flex-col overflow-hidden px-4 pt-4 text-white">
       <header className={`${showHeader ? 'mb-3 flex' : 'sr-only'} items-center justify-between`}>
         <BrandLogo />
         <NotificationBell />
@@ -102,9 +102,9 @@ export default function Shell() {
       {!isChats && <GlobalIncomingCall />}
       <GuestUpgradeModal />
       {!navHidden && (
-        <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-white/8 bg-ink/95 px-5 pt-1.5 backdrop-blur">
+        <nav className="safe-bottom premium-nav fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-white/8 px-5 pt-1.5 backdrop-blur">
           <div className="grid grid-cols-4">
-            {tabs.map(({ to, label, icon: Icon }) => (
+            {tabs.map(({ to, label, icon: Icon }, index) => (
               <NavLink
                 key={to}
                 to={to}
@@ -117,8 +117,10 @@ export default function Shell() {
               >
                 {({ isActive }) => (
                   <>
-                    <span className={`absolute top-0 h-0.5 w-5 rounded-full transition ${isActive ? 'bg-mint' : 'bg-transparent'}`} />
-                    <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                    <span className={`absolute top-0 h-0.5 w-5 rounded-full transition ${isActive ? navAccent(index) : 'bg-transparent'}`} />
+                    <span className={`grid h-8 w-8 place-items-center rounded-2xl transition ${isActive ? `${navGlow(index)} text-ink` : ''}`}>
+                      <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                    </span>
                     <span className={`text-[10px] font-medium ${isActive ? 'text-white' : 'text-white/42'}`}>{label}</span>
                   </>
                 )}
@@ -129,4 +131,17 @@ export default function Shell() {
       )}
     </main>
   );
+}
+
+function navAccent(index) {
+  return ['bg-mint', 'bg-rose', 'bg-sky', 'bg-gold'][index] || 'bg-mint';
+}
+
+function navGlow(index) {
+  return [
+    'bg-mint shadow-[0_8px_22px_rgba(61,214,198,0.22)]',
+    'bg-rose shadow-[0_8px_22px_rgba(255,138,168,0.20)]',
+    'bg-sky shadow-[0_8px_22px_rgba(98,168,255,0.20)]',
+    'bg-gold shadow-[0_8px_22px_rgba(240,189,72,0.18)]'
+  ][index] || 'bg-mint';
 }

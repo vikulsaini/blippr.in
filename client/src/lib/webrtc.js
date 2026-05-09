@@ -8,6 +8,46 @@ const baseIceServers = [
 
 let cachedIceServers;
 
+export function getCallMediaConstraints(type, { lowData = false, facingMode = 'user' } = {}) {
+  return {
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1,
+      sampleRate: 48000
+    },
+    video: type === 'video'
+      ? lowData
+        ? { facingMode, width: { ideal: 360, max: 480 }, height: { ideal: 240, max: 360 }, frameRate: { ideal: 15, max: 20 } }
+        : { facingMode, width: { ideal: 640, max: 960 }, height: { ideal: 360, max: 540 }, frameRate: { ideal: 24, max: 30 } }
+      : false
+  };
+}
+
+export async function getCallMediaStream(type, options = {}) {
+  const constraints = getCallMediaConstraints(type, options);
+  try {
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (error) {
+    if (error.name !== 'OverconstrainedError' && error.name !== 'ConstraintNotSatisfiedError') throw error;
+    return navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
+  }
+}
+
+export async function applyVideoSenderQuality(peer, enabled) {
+  const videoSender = peer?.getSenders().find((sender) => sender.track?.kind === 'video');
+  if (!videoSender) return;
+  const params = videoSender.getParameters();
+  params.encodings = params.encodings?.length ? params.encodings : [{}];
+  params.encodings[0].maxBitrate = enabled ? 220000 : 900000;
+  params.encodings[0].maxFramerate = enabled ? 15 : 30;
+  await videoSender.setParameters(params).catch(() => {});
+  await videoSender.track?.applyConstraints?.(
+    getCallMediaConstraints('video', { lowData: enabled }).video
+  ).catch(() => {});
+}
+
 function getEnvTurnServers() {
   const urls = (import.meta.env.VITE_TURN_URLS || '')
     .split(',')

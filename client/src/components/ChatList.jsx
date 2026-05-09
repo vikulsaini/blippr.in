@@ -19,6 +19,7 @@ export default function ChatList({
   onOpenChat,
   onToggleSelect,
   onOpenProfile,
+  onFindPeople,
   loading = false
 }) {
   const [tab, setTab] = useState('chats');
@@ -47,7 +48,7 @@ export default function ChatList({
         ) : (
           <div className="mb-3 flex shrink-0 items-center justify-between">
             <div>
-              <h2 className="text-2xl font-semibold">Chats</h2>
+              <h2 className="bg-gradient-to-r from-white via-mint to-sky bg-clip-text text-2xl font-semibold text-transparent">Chats</h2>
               <p className="text-sm text-white/45">{chats.filter((chat) => !chat.archived).length} active, {chats.filter((chat) => chat.archived).length} archived</p>
             </div>
           </div>
@@ -55,13 +56,13 @@ export default function ChatList({
 
         {!selectedChats.size && (
           <>
-            <div className="mb-3 grid grid-cols-3 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1">
+            <div className="mb-3 grid grid-cols-3 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <TabButton active={tab === 'chats'} onClick={() => setTab('chats')} label="Chats" />
               <TabButton active={tab === 'favorites'} onClick={() => setTab('favorites')} label="Favorites" />
               <TabButton active={tab === 'archived'} onClick={() => setTab('archived')} label="Archived" />
             </div>
-            <label className="flex shrink-0 items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
-              <Search size={18} className="text-white/40" />
+            <label className="flex shrink-0 items-center gap-3 rounded-[16px] border border-sky/15 bg-sky/5 px-4 py-3">
+              <Search size={18} className="text-sky/75" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -107,7 +108,7 @@ export default function ChatList({
             title="No friends yet"
             text="Discover people nearby and send a request to start chatting."
             action="Find people"
-            onAction={() => { window.location.href = '/app/discover'; }}
+            onAction={onFindPeople}
           />
         )}
         {!loading && chats.length > 0 && !visibleChats.length && (
@@ -126,7 +127,7 @@ export default function ChatList({
 
 function SelectionToolbar({ count, onClear, onPreference, onDelete }) {
   return (
-    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="rounded-[20px] border border-white/10 bg-white/7 p-2 shadow-glow">
+    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="accent-card rounded-[20px] p-2">
       <div className="flex items-center gap-2">
         <button onClick={onClear} className="btn-icon h-10 w-10" aria-label="Cancel selection"><X size={18} /></button>
         <motion.p key={count} initial={{ scale: 0.86 }} animate={{ scale: 1 }} className="min-w-0 flex-1 font-semibold">{count} selected</motion.p>
@@ -168,7 +169,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
         <Archive size={17} />
         Archive
       </div>
-      <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3 text-xs font-semibold text-white/65">
+      <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3 text-xs font-semibold text-rose/80">
         <BellOff size={17} />
         Mute
       </div>
@@ -183,7 +184,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
           event.stopPropagation();
           onSelect();
         }}
-        className={`relative flex w-full items-center gap-3 bg-ink px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-white/5' : ''} ${selected ? 'bg-mint/10' : ''}`}
+        className={`relative flex w-full items-center gap-3 bg-ink px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-sky/7' : ''} ${selected ? 'bg-mint/10' : ''}`}
       >
         <button
           onClick={(event) => {
@@ -192,17 +193,17 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
           }}
           aria-label={`View ${displayName || 'friend'} profile`}
         >
-          {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full object-cover" /> : <div className="h-10 w-10 rounded-full bg-white/8" />}
+          {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full border border-white/10 object-cover shadow-[0_8px_22px_rgba(0,0,0,0.24)]" /> : <div className="h-10 w-10 rounded-full border border-white/10 bg-white/8" />}
         </button>
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center justify-between gap-3">
             <p className="truncate font-medium">{displayName || 'Friend'}</p>
             <span className="flex items-center gap-1">
               {chat.archived && <Archive size={12} className="text-white/35" />}
-              {chat.pinned && <Pin size={12} className="text-mint" />}
-              {chat.starred && <Star size={12} className="fill-mint text-mint" />}
+              {chat.pinned && <Pin size={12} className="text-sky" />}
+              {chat.starred && <Star size={12} className="fill-gold text-gold" />}
               {chat.muted && <BellOff size={12} className="text-white/35" />}
-              <span className={`h-2 w-2 rounded-full ${other?.isOnline ? 'bg-mint' : 'bg-white/25'}`} />
+              <span className={`h-2 w-2 rounded-full ${other?.isOnline ? 'bg-mint shadow-[0_0_14px_rgba(61,214,198,0.55)]' : 'bg-white/25'}`} />
             </span>
           </div>
           <div className="mt-1 flex items-center justify-between gap-3">
@@ -210,7 +211,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
               {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
             </p>
             {chat.unreadCount > 0 && (
-              <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-ink">
+              <span className="shrink-0 rounded-full bg-gradient-to-r from-mint to-sky px-2 py-0.5 text-[10px] font-semibold text-ink">
                 {chat.unreadCount}
               </span>
             )}

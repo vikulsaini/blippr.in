@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "lint": "eslint src --ext js"
+    "lint": "eslint src --ext js",
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": "20.x"

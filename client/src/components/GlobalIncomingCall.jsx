@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import CallOverlay from './CallOverlay.jsx';
 import { getRealtimeSocket } from '../lib/realtime.js';
 import { startCallSound, stopCallSound, vibrate as vibrateDevice } from '../lib/sounds.js';
-import { createPeer } from '../lib/webrtc.js';
+import { createPeer, getCallMediaStream, getRtcIceServers } from '../lib/webrtc.js';
 
 export default function GlobalIncomingCall() {
   const [call, setCall] = useState(null);
@@ -99,16 +99,15 @@ export default function GlobalIncomingCall() {
   }
 
   async function getLocalStream(type) {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 },
-      video: type === 'video' ? { facingMode: 'user', width: { ideal: 640, max: 960 }, height: { ideal: 360, max: 540 }, frameRate: { ideal: 24, max: 30 } } : false
-    });
+    const stream = await getCallMediaStream(type);
     localStreamRef.current = stream;
     return stream;
   }
 
-  function createCallPeer(peerUser) {
+  async function createCallPeer(peerUser) {
+    const iceServers = await getRtcIceServers();
     const peer = createPeer({
+      iceServers,
       onTrack: (remoteStream) => updateCall((current) => ({ ...current, remoteStream })),
       onIceCandidate: (candidate) => getRealtimeSocket().emit('call:ice-candidate', { to: peerUser._id, candidate, callId: callRef.current?.callId }),
       onConnectionStateChange: (state) => {
@@ -126,7 +125,7 @@ export default function GlobalIncomingCall() {
     try {
       stopRingtone();
       const localStream = await getLocalStream(currentCall.type);
-      const peer = createCallPeer(currentCall.peerUser);
+      const peer = await createCallPeer(currentCall.peerUser);
       localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
       await peer.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
       await flushRemoteIceQueue();

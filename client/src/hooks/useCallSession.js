@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getOtherMember } from '../lib/chat.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 import { startCallSound, stopCallSound, vibrate as vibrateDevice } from '../lib/sounds.js';
-import { createPeer, getRtcIceServers } from '../lib/webrtc.js';
+import { applyVideoSenderQuality, createPeer, getCallMediaStream, getRtcIceServers } from '../lib/webrtc.js';
 
 const AUDIO_ROUTE_KEY = 'varta_call_audio_route';
 const LOW_DATA_KEY = 'varta_call_low_data';
@@ -174,27 +174,7 @@ export function useCallSession({ activeChat, chats, currentUserId, mergeCall, se
 
   async function getLocalStream(type) {
     const lowData = readBoolPreference(LOW_DATA_KEY, lowDataMode);
-    const constraints = {
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: 1,
-        sampleRate: 48000
-      },
-      video: type === 'video'
-        ? lowData
-          ? { facingMode: 'user', width: { ideal: 360, max: 480 }, height: { ideal: 240, max: 360 }, frameRate: { ideal: 15, max: 20 } }
-          : { facingMode: 'user', width: { ideal: 640, max: 960 }, height: { ideal: 360, max: 540 }, frameRate: { ideal: 24, max: 30 } }
-        : false
-    };
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-    } catch (error) {
-      if (error.name !== 'OverconstrainedError' && error.name !== 'ConstraintNotSatisfiedError') throw error;
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' ? true : false });
-    }
+    const stream = await getCallMediaStream(type, { lowData });
     localStreamRef.current = stream;
     return stream;
   }
@@ -238,19 +218,7 @@ export function useCallSession({ activeChat, chats, currentUserId, mergeCall, se
   }
 
   async function applyLowDataToSenders(enabled) {
-    const peer = peerRef.current;
-    const videoSender = peer?.getSenders().find((sender) => sender.track?.kind === 'video');
-    if (!videoSender) return;
-    const params = videoSender.getParameters();
-    params.encodings = params.encodings?.length ? params.encodings : [{}];
-    params.encodings[0].maxBitrate = enabled ? 220000 : 900000;
-    params.encodings[0].maxFramerate = enabled ? 15 : 30;
-    await videoSender.setParameters(params).catch(() => {});
-    await videoSender.track?.applyConstraints?.(
-      enabled
-        ? { width: { ideal: 360, max: 480 }, height: { ideal: 240, max: 360 }, frameRate: { ideal: 15, max: 20 } }
-        : { width: { ideal: 640, max: 960 }, height: { ideal: 360, max: 540 }, frameRate: { ideal: 24, max: 30 } }
-    ).catch(() => {});
+    await applyVideoSenderQuality(peerRef.current, enabled);
   }
 
   function startQualityMonitor() {
