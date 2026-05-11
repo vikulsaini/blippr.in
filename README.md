@@ -125,6 +125,34 @@ On Android Chrome/Edge this opens the native browser install prompt. If the prom
 
 This is browser-based installation, not a generated APK file. For a store/APK build later, wrap the deployed PWA with TWA or Capacitor.
 
+## Android With Capacitor
+
+Varta can also run as an independent Android app while keeping the same web app live.
+
+One-time setup after installing dependencies:
+
+```bash
+npm run android:add --workspace client
+```
+
+After frontend changes:
+
+```bash
+npm run cap:sync --workspace client
+```
+
+Open the Android project:
+
+```bash
+npm run android:open --workspace client
+```
+
+Then build an APK/AAB from Android Studio. The Android app uses the same backend API and Socket.IO server as the web app.
+
+Local APK builds require Android Studio plus a JDK with `JAVA_HOME` set. If `gradlew assembleDebug` says Java is missing, install Android Studio/JDK first, then reopen the terminal.
+
+For best Android calling and push behavior later, add native Capacitor plugins for push notifications, local notifications, media permissions, and audio routing.
+
 ## Main App Areas
 
 - `Chats`: friends list, search, unread counts, conversations, call history.

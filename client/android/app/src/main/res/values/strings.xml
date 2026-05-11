@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Varta</string>
+    <string name="title_activity_main">Varta</string>
+    <string name="package_name">app.varta.chat</string>
+    <string name="custom_url_scheme">app.varta.chat</string>
+</resources>
