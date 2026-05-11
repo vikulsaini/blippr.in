@@ -307,6 +307,14 @@ export default function Profile() {
             </span>
             <ChevronRight size={17} className="text-white/35" />
           </Link>
+          <Link to="/terms" className="flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><FileText size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">Terms of use</span>
+              <span className="block truncate text-xs text-white/45">Rules for beta testers, safety and account use</span>
+            </span>
+            <ChevronRight size={17} className="text-white/35" />
+          </Link>
         </SettingsSection>
 
         <button onClick={() => setDeleteConfirmOpen(true)} className="surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
@@ -361,6 +369,7 @@ export default function Profile() {
         <MenuRow icon={MapPin} title="Matching location" subtitle={user?.location?.updatedAt ? 'Location is ready for nearby matches' : 'Refresh to improve matches'} onClick={refreshLocation} />
         <MenuRow icon={Shield} title="Privacy" subtitle={`${blockedUsers.length} blocked users`} onClick={() => setSettingsOpen(true)} />
         <MenuRow icon={FileText} title="Privacy policy" subtitle="Data, calls, safety and permissions" onClick={() => navigate('/privacy')} />
+        <MenuRow icon={FileText} title="Terms of use" subtitle="Tester rules and account responsibilities" onClick={() => navigate('/terms')} />
       </section>
     </div>
   );

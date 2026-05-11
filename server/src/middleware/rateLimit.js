@@ -5,7 +5,7 @@ export const apiLimiter = rateLimit({
   limit: 500,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Too many requests. Please slow down for a moment.' }
+  message: { ok: false, message: 'Too many requests. Please slow down for a moment.' }
 });
 
 export const authLimiter = rateLimit({
@@ -14,13 +14,13 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
-  message: { message: 'Too many login attempts. Please wait a few minutes and try again.' }
+  message: { ok: false, message: 'Too many login attempts. Please wait a few minutes and try again.' }
 });
 
 export const guestLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  limit: 60,
+  limit: Number(process.env.GUEST_LOGIN_LIMIT_PER_WINDOW || 12),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Guest login is busy from this network. Please wait a moment and try again.' }
+  message: { ok: false, message: 'Guest login is busy from this network. Please wait a moment and try again.' }
 });

@@ -80,6 +80,7 @@ Important values:
 - `TURN_USERNAME`
 - `TURN_PASSWORD`
 - `JWT_COOKIE_MAX_AGE_MS` - optional httpOnly auth cookie lifetime.
+- `GUEST_LOGIN_LIMIT_PER_WINDOW` - optional guest-login throttle per 10 minutes, defaults to `12`.
 
 Client env lives in `client/.env`.
 
@@ -130,6 +131,22 @@ This is browser-based installation, not a generated APK file. For a store/APK bu
 - `Match`: active nearby matches and random-anywhere matches.
 - `Find`: username/name search only.
 - `Profile`: account edits, privacy, safety, blocked users, push notifications, sounds, install app.
+- `Privacy` and `Terms`: public pages linked from the landing page and profile settings.
+
+## Tester Checklist
+
+Share the live app link with testers and ask them to verify:
+
+- Signup/login, guest upgrade, and logout.
+- Sending friend requests, accepting requests, and opening the created chat.
+- Messaging, image upload, voice notes, reactions, edit/delete, and unread counts.
+- Matching on nearby mode and random mode.
+- Audio/video calls on two different mobile networks after TURN credentials are configured.
+- Push notifications after installing the PWA and allowing notifications.
+
+Live app:
+
+`https://client-bice-one-x6xfheue7f.vercel.app`
 
 ## Documentation
 
