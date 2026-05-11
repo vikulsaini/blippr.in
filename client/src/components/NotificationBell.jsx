@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, Check, LogIn, Phone, ShieldCheck, UserCheck, UserPlus, X } from 'lucide-react';
 import { api } from '../lib/api.js';
+import { showNativeNotification } from '../lib/native.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 
 const styles = {
@@ -53,6 +54,11 @@ export default function NotificationBell() {
     const handleNotification = ({ notification }) => {
       if (!notification) return;
       if (!importantTypes.has(notification.type)) return;
+      showNativeNotification({
+        title: notification.title,
+        body: notification.body,
+        extra: { type: notification.type, url: notification.url }
+      }).catch(() => {});
       setNotifications((current) => {
         if (current.some((item) => item._id === notification._id)) return current;
         return [notification, ...current].slice(0, 60);

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getOtherMember } from '../lib/chat.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
+import { showNativeNotification } from '../lib/native.js';
 import { startCallSound, stopCallSound, vibrate as vibrateDevice } from '../lib/sounds.js';
 import { applyVideoSenderQuality, createPeer, getCallMediaStream, getRtcIceServers } from '../lib/webrtc.js';
 
@@ -78,6 +79,11 @@ export function useCallSession({ activeChat, chats, currentUserId, mergeCall, se
   }
 
   function showIncomingCallNotification(fromUser, callType) {
+    showNativeNotification({
+      title: `${fromUser?.name || 'Varta friend'} is calling`,
+      body: `${callType === 'video' ? 'Video' : 'Audio'} call on Varta`,
+      extra: { type: 'call', userId: fromUser?._id }
+    }).catch(() => {});
     if (!('Notification' in window) || Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
     new Notification(`${fromUser?.name || 'Varta friend'} is calling`, {
       body: `${callType === 'video' ? 'Video' : 'Audio'} call on Varta`,

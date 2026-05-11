@@ -1,14 +1,30 @@
+import { nativeHaptic } from './native.js';
+
 export function haptic(pattern = 12) {
-  try {
-    navigator.vibrate?.(pattern);
-  } catch {
-    // Haptics are best-effort only.
-  }
+  nativeHaptic(Array.isArray(pattern) ? 'select' : 'tap').then((handled) => {
+    if (handled) return;
+    try {
+      navigator.vibrate?.(pattern);
+    } catch {
+      // Haptics are best-effort only.
+    }
+  });
+}
+
+function namedHaptic(kind, fallback) {
+  nativeHaptic(kind).then((handled) => {
+    if (handled) return;
+    try {
+      navigator.vibrate?.(fallback);
+    } catch {
+      // Haptics are best-effort only.
+    }
+  });
 }
 
 export const haptics = {
-  tap: () => haptic(8),
-  select: () => haptic([12, 30, 12]),
-  success: () => haptic([20, 40, 20]),
-  warning: () => haptic([35, 40, 35])
+  tap: () => namedHaptic('tap', 8),
+  select: () => namedHaptic('select', [12, 30, 12]),
+  success: () => namedHaptic('success', [20, 40, 20]),
+  warning: () => namedHaptic('warning', [35, 40, 35])
 };

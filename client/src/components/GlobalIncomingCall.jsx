@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import CallOverlay from './CallOverlay.jsx';
+import { showNativeNotification } from '../lib/native.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 import { startCallSound, stopCallSound, vibrate as vibrateDevice } from '../lib/sounds.js';
 import { createPeer, getCallMediaStream, getRtcIceServers } from '../lib/webrtc.js';
@@ -41,6 +42,11 @@ export default function GlobalIncomingCall() {
         return;
       }
       startRingtone(from);
+      showNativeNotification({
+        title: `${fromUser?.name || 'Varta friend'} is calling`,
+        body: `${callType === 'video' ? 'Video' : 'Audio'} call on Varta`,
+        extra: { type: 'call', userId: from }
+      }).catch(() => {});
       setMinimized(false);
       updateCall({
         status: 'incoming',

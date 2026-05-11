@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import { isNativeApp, requestNativeNotificationPermission } from './native.js';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -8,7 +9,13 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 export async function enablePushNotifications() {
+  if (isNativeApp()) {
+    const allowed = await requestNativeNotificationPermission();
+    if (!allowed) throw new Error('Notification permission was not granted');
+  }
+
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (isNativeApp()) return { native: true };
     throw new Error('Push notifications are not supported in this browser');
   }
 
@@ -22,6 +29,7 @@ export async function enablePushNotifications() {
 }
 
 export async function refreshPushSubscriptionIfAllowed() {
+  if (isNativeApp()) requestNativeNotificationPermission().catch(() => {});
   if (!('Notification' in window) || Notification.permission !== 'granted') return null;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
 
