@@ -277,7 +277,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       });
       const { message } = await api(`/api/chats/${activeChat._id}/messages`, {
         method: 'POST',
-        body: JSON.stringify({ media })
+        body: JSON.stringify({ media: { ...media, name: media.name || file.name, mimeType: media.mimeType || file.type, size: media.size || file.size } })
       });
       setMessages((current) => current.map((item) => (item._id === tempId ? message : item)));
       URL.revokeObjectURL(previewUrl);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Ban, Bell, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Trash2, Unlock, UserRound, Volume2 } from 'lucide-react';
+import { ArrowLeft, Ban, Bell, Camera, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Trash2, Unlock, UserRound, Volume2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import ConfirmSheet from '../components/ConfirmSheet.jsx';
 import InstallAppButton from '../components/InstallAppButton.jsx';
@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [settingsOpen] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [soundPrefs, setSoundPrefs] = useState(() => loadSoundPrefs());
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -142,6 +143,30 @@ export default function SettingsPage() {
     navigate('/auth', { replace: true });
   }
 
+  async function uploadProfilePhoto(file) {
+    if (!file) return;
+    if (!file.type?.startsWith('image/')) {
+      setMessage('Choose an image from your gallery');
+      return;
+    }
+    setPhotoUploading(true);
+    setMessage('Uploading profile photo...');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { media } = await api('/api/media/upload', {
+        method: 'POST',
+        body: formData
+      });
+      setField('avatar', media.url);
+      setMessage('Photo uploaded. Tap Save changes to update your profile.');
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
   async function exportData() {
     try {
       const data = await api('/api/users/me/export');
@@ -215,10 +240,16 @@ export default function SettingsPage() {
         {activeSection === 'profile' && (
         <form onSubmit={saveProfile} className="space-y-3">
           <SettingsSection icon={UserRound} title="Profile settings">
-            <div className="flex items-center gap-3">
-              {form.avatar ? <img src={form.avatar} alt="" className="h-14 w-14 rounded-full bg-white/8 object-cover" /> : <div className="h-14 w-14 rounded-full bg-white/8" />}
+            <div className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-ink/35 p-3">
+              {form.avatar ? <img src={form.avatar} alt="" className="h-16 w-16 rounded-full bg-white/8 object-cover" /> : <div className="grid h-16 w-16 place-items-center rounded-full bg-white/8 text-white/45"><UserRound size={22} /></div>}
               <div className="min-w-0 flex-1">
-                <Field label="Profile photo URL" value={form.avatar} onChange={(value) => setField('avatar', value)} />
+                <p className="text-sm font-semibold">Profile photo</p>
+                <p className="mt-0.5 text-xs text-white/45">Choose a photo from your gallery.</p>
+                <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-2 text-xs font-semibold text-white/78">
+                  <Camera size={15} />
+                  {photoUploading ? 'Uploading...' : 'Choose photo'}
+                  <input type="file" accept="image/*" className="hidden" disabled={photoUploading} onChange={(event) => uploadProfilePhoto(event.target.files?.[0])} />
+                </label>
               </div>
             </div>
             <Field label="Display name" value={form.name} onChange={(value) => setField('name', value)} />

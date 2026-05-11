@@ -18,7 +18,10 @@ export const messageSchema = Joi.object({
   media: Joi.object({
     url: Joi.string().uri().required(),
     type: Joi.string().valid('image', 'video', 'audio', 'file').required(),
-    publicId: Joi.string().optional()
+    publicId: Joi.string().optional(),
+    name: Joi.string().trim().max(180).optional(),
+    mimeType: Joi.string().trim().max(120).optional(),
+    size: Joi.number().integer().min(0).optional()
   }).optional()
 }).or('text', 'media');
 

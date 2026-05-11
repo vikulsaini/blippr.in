@@ -4,7 +4,10 @@ const mediaSchema = new mongoose.Schema(
   {
     url: String,
     type: { type: String, enum: ['image', 'video', 'audio', 'file'] },
-    publicId: String
+    publicId: String,
+    name: String,
+    mimeType: String,
+    size: Number
   },
   { _id: false }
 );

@@ -6,7 +6,7 @@ Varta is a mobile-first real-time chat PWA with friends, nearby/random matching,
 
 - Email/password signup and login with user-created unique usernames and email verification codes.
 - Guest login with same-IP reuse, limited guest access, throttled phone OTP flow, and Google login hook.
-- Editable profile with avatar URL, bio, gender, age, username, privacy toggles, and safety words.
+- Editable profile with gallery photo upload, bio, gender, age, username, privacy toggles, and safety words.
 - Friends chat list with unread counts, active status, last seen, nicknames, reactions, replies, typing animation, archived chats, favorites, pin, mute, and multi-select delete.
 - Real-time one-to-one messaging with Socket.IO and MongoDB persistence.
 - Offline message retry queue and local chat cache so old chats show quickly on app open.
@@ -14,6 +14,7 @@ Varta is a mobile-first real-time chat PWA with friends, nearby/random matching,
 - Match page with active nearby users and random-anywhere matching.
 - Block, unblock, report, unfriend, blocked-user list, account export, and account delete.
 - WebRTC voice/video calls with TURN support, synced remote video/audio playback, incoming call UI, mute, speaker/receiver route, camera toggle, switch camera, low-data mode, reconnect timeout, quality label, and call history with duration in chat.
+- Image, video, file, and voice-note sharing through authenticated media uploads.
 - Push notification subscription support plus message/call sound preferences.
 - Installable PWA from the browser, including Android "Install app / Add to home screen".
 

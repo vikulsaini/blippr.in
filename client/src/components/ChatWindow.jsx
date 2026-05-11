@@ -64,27 +64,31 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   async function startRecording() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return;
     setEmojiOpen(false);
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioChunksRef.current = [];
-    const recorder = new MediaRecorder(stream);
-    recorderRef.current = recorder;
-    recorder.ondataavailable = (event) => {
-      if (event.data.size) audioChunksRef.current.push(event.data);
-    };
-    recorder.onstop = async () => {
-      stream.getTracks().forEach((track) => track.stop());
-      const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-      if (blob.size && onSendMedia) {
-        setUploading(true);
-        try {
-          await onSendMedia(new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }));
-        } finally {
-          setUploading(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size) audioChunksRef.current.push(event.data);
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        if (blob.size && onSendMedia) {
+          setUploading(true);
+          try {
+            await onSendMedia(new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }));
+          } finally {
+            setUploading(false);
+          }
         }
-      }
-    };
-    recorder.start();
-    setRecording(true);
+      };
+      recorder.start();
+      setRecording(true);
+    } catch {
+      setRecording(false);
+    }
   }
 
   function stopRecording() {

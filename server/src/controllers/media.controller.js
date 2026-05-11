@@ -15,10 +15,14 @@ export const uploadMedia = asyncHandler(async (req, res) => {
   }
   const result = await uploadBuffer(req.file);
   res.status(201).json({
+    ok: true,
     media: {
       url: result.secure_url,
       publicId: result.public_id,
-      type: mediaTypeFor(req.file.mimetype, result.resource_type)
+      type: mediaTypeFor(req.file.mimetype, result.resource_type),
+      name: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size
     }
   });
 });
