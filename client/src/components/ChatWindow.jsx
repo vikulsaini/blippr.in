@@ -16,6 +16,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const [messageSearch, setMessageSearch] = useState('');
   const [recording, setRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [viewportHeight, setViewportHeight] = useState(0);
   const endRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -53,9 +54,12 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
     event.target.value = '';
     if (!file || !onSendMedia) return;
     setEmojiOpen(false);
+    setUploadError('');
     setUploading(true);
     try {
       await onSendMedia(file);
+    } catch (err) {
+      setUploadError(err.message || 'Could not send media');
     } finally {
       setUploading(false);
     }
@@ -76,18 +80,22 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         if (blob.size && onSendMedia) {
-          setUploading(true);
-          try {
-            await onSendMedia(new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }));
-          } finally {
-            setUploading(false);
-          }
+        setUploading(true);
+        setUploadError('');
+        try {
+          await onSendMedia(new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }));
+        } catch (err) {
+          setUploadError(err.message || 'Could not send voice note');
+        } finally {
+          setUploading(false);
+        }
         }
       };
       recorder.start();
       setRecording(true);
     } catch {
       setRecording(false);
+      setUploadError('Microphone permission is needed to record voice notes.');
     }
   }
 
@@ -151,6 +159,12 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             <Reply size={15} className="text-mint" />
             <p className="min-w-0 flex-1 truncate text-white/70">{replyTo.text || 'Replying to message'}</p>
             <button type="button" onClick={onCancelReply} className="rounded-full bg-white/10 p-1" aria-label="Cancel reply"><X size={14} /></button>
+          </div>
+        )}
+        {uploadError && (
+          <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-coral/25 bg-coral/10 px-3 py-2 text-xs text-coral">
+            <span>{uploadError}</span>
+            <button type="button" onClick={() => setUploadError('')} className="rounded-full bg-white/10 p-1" aria-label="Dismiss media error"><X size={13} /></button>
           </div>
         )}
         {emojiOpen && (

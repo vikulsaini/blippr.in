@@ -20,6 +20,7 @@ export default function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
   const isChats = location.pathname === '/app';
+  const isConversation = isChats && new URLSearchParams(location.search).has('chat');
   const [bottomNavHidden, setBottomNavHidden] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const navHidden = bottomNavHidden || keyboardOpen;
@@ -54,6 +55,7 @@ export default function Shell() {
   }
 
   function canSwipeTabs(target) {
+    if (isConversation) return false;
     if (isChats && target?.closest?.('[data-chat-feed]')) return false;
     return !navHidden && !target?.closest?.('button, a, input, textarea, select, [role="button"], [data-no-tab-swipe]');
   }

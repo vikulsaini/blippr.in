@@ -281,8 +281,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       });
       setMessages((current) => current.map((item) => (item._id === tempId ? message : item)));
       URL.revokeObjectURL(previewUrl);
-    } catch {
+    } catch (err) {
       setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
+      throw new Error(err.message || 'Could not send media. Check storage setup or try a smaller file.');
     }
   }
 

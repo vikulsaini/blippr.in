@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Ban, Bell, Camera, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Trash2, Unlock, UserRound, Volume2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import ConfirmSheet from '../components/ConfirmSheet.jsx';
@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [soundPrefs, setSoundPrefs] = useState(() => loadSoundPrefs());
   const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
     async function load() {
@@ -245,11 +246,11 @@ export default function SettingsPage() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Profile photo</p>
                 <p className="mt-0.5 text-xs text-white/45">Choose a photo from your gallery.</p>
-                <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-2 text-xs font-semibold text-white/78">
+                <button type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading} className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-2 text-xs font-semibold text-white/78 disabled:opacity-50">
                   <Camera size={15} />
                   {photoUploading ? 'Uploading...' : 'Choose photo'}
-                  <input type="file" accept="image/*" className="hidden" disabled={photoUploading} onChange={(event) => uploadProfilePhoto(event.target.files?.[0])} />
-                </label>
+                </button>
+                <input ref={photoInputRef} type="file" accept="image/*" className="hidden" disabled={photoUploading} onChange={(event) => uploadProfilePhoto(event.target.files?.[0])} />
               </div>
             </div>
             <Field label="Display name" value={form.name} onChange={(value) => setField('name', value)} />
