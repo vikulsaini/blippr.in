@@ -5,6 +5,7 @@ import Chats from './pages/Chats.jsx';
 import Stranger from './pages/Stranger.jsx';
 import Discover from './pages/Discover.jsx';
 import Profile from './pages/Profile.jsx';
+import SettingsPage from './pages/Settings.jsx';
 import Landing from './pages/Landing.jsx';
 import Privacy from './pages/Privacy.jsx';
 import Terms from './pages/Terms.jsx';
@@ -33,10 +34,12 @@ export default function App() {
         <Route path="stranger" element={<Stranger />} />
         <Route path="discover" element={<Discover />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="/stranger" element={<Navigate to="/app/stranger" replace />} />
       <Route path="/discover" element={<Navigate to="/app/discover" replace />} />
       <Route path="/profile" element={<Navigate to="/app/profile" replace />} />
+      <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
     </Routes>
   );
 }

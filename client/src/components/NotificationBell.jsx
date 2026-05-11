@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Check, LogIn, MessageCircle, Phone, UserCheck, UserPlus, X } from 'lucide-react';
+import { Bell, Check, LogIn, Phone, ShieldCheck, UserCheck, UserPlus, X } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 
@@ -7,10 +7,11 @@ const styles = {
   'friend-request': { label: 'Friend request', icon: UserPlus, tone: 'text-mint', bg: 'bg-mint/12' },
   'friend-request-accepted': { label: 'Request accepted', icon: UserCheck, tone: 'text-mint', bg: 'bg-mint/12' },
   login: { label: 'Security', icon: LogIn, tone: 'text-amber-200', bg: 'bg-amber-300/12' },
-  message: { label: 'Message', icon: MessageCircle, tone: 'text-sky-200', bg: 'bg-sky-300/12' },
   call: { label: 'Call', icon: Phone, tone: 'text-coral', bg: 'bg-coral/12' },
-  system: { label: 'Update', icon: Bell, tone: 'text-white/70', bg: 'bg-white/8' }
+  system: { label: 'Update', icon: ShieldCheck, tone: 'text-white/70', bg: 'bg-white/8' }
 };
+
+const importantTypes = new Set(['friend-request', 'friend-request-accepted', 'login', 'call', 'system']);
 
 export default function NotificationBell() {
   const rootRef = useRef(null);
@@ -28,8 +29,9 @@ export default function NotificationBell() {
         api('/api/notifications')
       ]);
       setRequests(requestData.requests || []);
-      setNotifications(notificationData.notifications || []);
-      setUnreadCount(notificationData.unreadCount || 0);
+      const importantNotifications = (notificationData.notifications || []).filter((notification) => importantTypes.has(notification.type));
+      setNotifications(importantNotifications);
+      setUnreadCount(notificationData.unreadCount || importantNotifications.filter((notification) => !notification.readAt).length);
     } catch {
       setRequests([]);
       setNotifications([]);
@@ -50,6 +52,7 @@ export default function NotificationBell() {
     };
     const handleNotification = ({ notification }) => {
       if (!notification) return;
+      if (!importantTypes.has(notification.type)) return;
       setNotifications((current) => {
         if (current.some((item) => item._id === notification._id)) return current;
         return [notification, ...current].slice(0, 60);
@@ -101,6 +104,7 @@ export default function NotificationBell() {
     }));
     const notificationItems = notifications
       .filter((notification) => !(notification.type === 'friend-request' && requestIds.has(String(notification.requestId))))
+      .filter((notification) => importantTypes.has(notification.type))
       .map((notification) => ({ ...notification, _id: `notification:${notification._id}` }));
     return [...requestItems, ...notificationItems]
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
@@ -133,18 +137,18 @@ export default function NotificationBell() {
         )}
       </button>
       {open && (
-        <section className="glass absolute right-0 top-14 z-30 w-[min(23rem,calc(100vw-2rem))] rounded-3xl p-4 shadow-glow">
-          <div className="flex items-center justify-between gap-3">
+        <section className="glass fixed inset-x-3 top-16 z-30 mx-auto flex max-h-[min(34rem,calc(100dvh-6rem))] max-w-md flex-col rounded-3xl p-4 shadow-glow">
+          <div className="flex items-start justify-between gap-3 border-b border-white/8 pb-3">
             <div>
-              <h2 className="font-semibold">Notifications</h2>
-              <p className="text-xs text-white/45">{requests.length} requests, {notifications.length} updates</p>
+              <h2 className="text-lg font-semibold">Notifications</h2>
+              <p className="mt-1 text-xs text-white/45">Requests, accepted requests, security alerts and calls</p>
             </div>
             <button onClick={() => setOpen(false)} className="btn-icon h-9 w-9 rounded-full" aria-label="Close notifications">
               <X size={17} />
             </button>
           </div>
           {message && <p className="mt-2 text-sm text-mint">{message}</p>}
-          <div className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
+          <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
             {loading && <NotificationSkeleton />}
             {!loading && feed.map((item) => (
               <NotificationItem key={item._id} item={item} onRespond={respond} />
@@ -152,7 +156,8 @@ export default function NotificationBell() {
             {!loading && !feed.length && (
               <div className="py-8 text-center">
                 <Bell className="mx-auto text-white/35" size={24} />
-                <p className="mt-2 text-sm text-white/45">No notifications yet.</p>
+                <p className="mt-2 text-sm text-white/45">No important notifications yet.</p>
+                <p className="mx-auto mt-1 max-w-56 text-xs leading-5 text-white/35">Regular message alerts stay in chats so this screen stays clean.</p>
                 <button onClick={loadFeed} className="btn-secondary mt-4 rounded-full px-4 py-2 text-xs font-semibold">Refresh</button>
               </div>
             )}

@@ -40,15 +40,18 @@ function dateCursor(value) {
 export const listNotifications = asyncHandler(async (req, res) => {
   const limit = pageLimit(req.query.limit, 40, 80);
   const cursor = dateCursor(req.query.cursor);
+  const includeMessages = req.query.includeMessages === 'true';
+  const typeFilter = includeMessages ? {} : { type: { $ne: 'message' } };
   const notifications = await Notification.find({
     user: req.user._id,
+    ...typeFilter,
     ...(cursor ? { createdAt: { $lt: cursor } } : {})
   })
     .sort({ createdAt: -1 })
     .limit(limit)
     .populate('actor', 'name username avatar gender age')
     .lean();
-  const unreadCount = await Notification.countDocuments({ user: req.user._id, readAt: null });
+  const unreadCount = await Notification.countDocuments({ user: req.user._id, readAt: null, ...typeFilter });
   res.json({
     notifications,
     unreadCount,

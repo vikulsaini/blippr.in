@@ -1,0 +1,542 @@
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Ban, Bell, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Trash2, Unlock, UserRound, Volume2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import ConfirmSheet from '../components/ConfirmSheet.jsx';
+import InstallAppButton from '../components/InstallAppButton.jsx';
+import { api } from '../lib/api.js';
+import { clearVartaCache } from '../lib/cache.js';
+import { enablePushNotifications } from '../lib/notifications.js';
+import { presenceText } from '../lib/presence.js';
+import { previewSound } from '../lib/sounds.js';
+import { loadSoundPrefs, mediaToSound, packSound, saveSoundPrefs, setSoundPreference, soundPack } from '../lib/soundPrefs.js';
+
+export default function SettingsPage() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [form, setForm] = useState({ name: '', username: '', age: '', gender: 'female', bio: '', avatar: '', showLastSeen: true, readReceipts: true, blockedWords: '' });
+  const [message, setMessage] = useState('');
+  const [activeSection, setActiveSection] = useState('home');
+  const [settingsOpen] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [soundPrefs, setSoundPrefs] = useState(() => loadSoundPrefs());
+
+  useEffect(() => {
+    async function load() {
+      const [{ user: currentUser }, { users: blocked }] = await Promise.all([
+        api('/api/users/me'),
+        api('/api/safety/blocked')
+      ]);
+      setUser(currentUser);
+      setBlockedUsers(blocked);
+      setForm({
+        name: currentUser.name || '',
+        username: currentUser.username || '',
+        age: currentUser.age || '',
+        gender: currentUser.gender || 'female',
+        bio: currentUser.bio || '',
+        avatar: currentUser.avatar || '',
+        showLastSeen: currentUser.privacy?.showLastSeen !== false,
+        readReceipts: currentUser.privacy?.readReceipts !== false,
+        blockedWords: currentUser.safety?.blockedWords?.join(', ') || ''
+      });
+    }
+    load().catch((err) => setMessage(err.message));
+  }, []);
+
+  useEffect(() => {
+    function handleSoundPrefs(event) {
+      setSoundPrefs(event.detail || loadSoundPrefs());
+    }
+    window.addEventListener('varta:sound-prefs', handleSoundPrefs);
+    return () => window.removeEventListener('varta:sound-prefs', handleSoundPrefs);
+  }, []);
+
+  function setField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function saveProfile(event) {
+    event.preventDefault();
+    try {
+      const payload = {
+        name: form.name,
+        username: form.username,
+        age: Number(form.age),
+        gender: form.gender,
+        bio: form.bio,
+        avatar: form.avatar,
+        privacy: {
+          showLastSeen: form.showLastSeen,
+          readReceipts: form.readReceipts
+        },
+        safety: {
+          blockedWords: form.blockedWords.split(',').map((word) => word.trim().toLowerCase()).filter(Boolean)
+        }
+      };
+      if (!payload.avatar.trim()) delete payload.avatar;
+      const { user: updated } = await api('/api/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+      setUser(updated);
+      setMessage('Profile saved');
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function refreshLocation() {
+    if (!navigator.geolocation) {
+      setMessage('Location is not supported in this browser');
+      return;
+    }
+
+    setMessage('Refreshing location...');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { user: updated } = await api('/api/users/me/location', {
+            method: 'PATCH',
+            body: JSON.stringify({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            })
+          });
+          setUser(updated);
+          setMessage('Location updated for matching');
+        } catch (err) {
+          setMessage(err.message);
+        }
+      },
+      () => setMessage('Location permission was denied')
+    );
+  }
+
+  async function turnOnNotifications() {
+    try {
+      await enablePushNotifications();
+      setMessage('Push notifications enabled');
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function unblockUser(userId) {
+    try {
+      await api('/api/safety/unblock', {
+        method: 'POST',
+        body: JSON.stringify({ userId })
+      });
+      setBlockedUsers((current) => current.filter((blockedUser) => blockedUser._id !== userId));
+      setMessage('User unblocked');
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function logout() {
+    await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    clearVartaCache();
+    localStorage.removeItem('varta_token');
+    navigate('/auth', { replace: true });
+  }
+
+  async function exportData() {
+    try {
+      const data = await api('/api/users/me/export');
+      const blob = new Blob([JSON.stringify(data.export, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'varta-account-export.json';
+      link.click();
+      URL.revokeObjectURL(url);
+      setMessage('Account export prepared');
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  async function deleteAccount() {
+    await api('/api/users/me', { method: 'DELETE' });
+    clearVartaCache();
+    localStorage.removeItem('varta_token');
+    navigate('/auth', { replace: true });
+  }
+
+  async function uploadSound(key, file) {
+    try {
+      const sound = await mediaToSound(file);
+      setSoundPrefs(setSoundPreference(key, sound));
+      setMessage(`${key === 'ringtone' ? 'Call ringtone' : 'Chat notification'} updated`);
+    } catch (err) {
+      setMessage(err.message);
+    }
+  }
+
+  function updateSound(key, sound) {
+    setSoundPrefs(setSoundPreference(key, sound));
+  }
+
+  function toggleDnd() {
+    const next = saveSoundPrefs({ dnd: !soundPrefs.dnd });
+    setSoundPrefs(next);
+  }
+
+  if (!user && !message) return <ProfileSkeleton />;
+
+  if (settingsOpen) {
+    return (
+      <div className="space-y-3">
+        <header className="flex items-center gap-3">
+          <button onClick={() => (activeSection === 'home' ? navigate('/app/profile') : setActiveSection('home'))} className="btn-icon h-10 w-10" aria-label="Back">
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h2 className="text-xl font-semibold">{settingsTitle(activeSection)}</h2>
+            <p className="text-xs text-white/45">{settingsSubtitle(activeSection)}</p>
+          </div>
+        </header>
+
+        {message && <p className="rounded-[16px] border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">{message}</p>}
+
+        {activeSection === 'home' && (
+          <section className="surface rounded-[22px] p-2">
+            <MenuRow icon={UserRound} title="Profile settings" subtitle="Photo, name, username, age, gender and bio" onClick={() => setActiveSection('profile')} />
+            <MenuRow icon={Shield} title="Privacy" subtitle="Last seen, read receipts and blocked users" onClick={() => setActiveSection('privacy')} />
+            <MenuRow icon={Ban} title="Safety filter" subtitle="Blocked words and chat protection" onClick={() => setActiveSection('safety')} />
+            <MenuRow icon={LockKeyhole} title="Security" subtitle="Sessions and account protection" onClick={() => setActiveSection('security')} />
+            <MenuRow icon={Bell} title="Notifications" subtitle="Push, ringtone, chat tone and quiet mode" onClick={() => setActiveSection('notifications')} />
+            <MenuRow icon={Database} title="Data and legal" subtitle="Export, privacy policy, terms and account removal" onClick={() => setActiveSection('data')} />
+          </section>
+        )}
+
+        {activeSection === 'profile' && (
+        <form onSubmit={saveProfile} className="space-y-3">
+          <SettingsSection icon={UserRound} title="Profile settings">
+            <div className="flex items-center gap-3">
+              {form.avatar ? <img src={form.avatar} alt="" className="h-14 w-14 rounded-full bg-white/8 object-cover" /> : <div className="h-14 w-14 rounded-full bg-white/8" />}
+              <div className="min-w-0 flex-1">
+                <Field label="Profile photo URL" value={form.avatar} onChange={(value) => setField('avatar', value)} />
+              </div>
+            </div>
+            <Field label="Display name" value={form.name} onChange={(value) => setField('name', value)} />
+            <Field label="Username" value={form.username} onChange={(value) => setField('username', value.toLowerCase().replace(/[^a-z0-9_]/g, ''))} prefix="@" />
+            <div className="grid grid-cols-[0.9fr_1.1fr] gap-3">
+              <Field label="Age" value={form.age} onChange={(value) => setField('age', value)} type="number" />
+              <GenderControl value={form.gender} onChange={(value) => setField('gender', value)} />
+            </div>
+            <label className="block">
+              <span className="text-xs text-white/45">Bio</span>
+              <textarea value={form.bio} onChange={(event) => setField('bio', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[14px] border border-white/8 bg-ink/35 px-3 py-2.5 text-sm outline-none" placeholder="A little about you" maxLength={160} />
+            </label>
+            <button className="btn-primary flex w-full items-center justify-center gap-2 rounded-[14px] py-3 font-semibold">
+              <Save size={18} />
+              Save changes
+            </button>
+          </SettingsSection>
+        </form>
+        )}
+
+        {activeSection === 'privacy' && (
+        <SettingsSection icon={Shield} title="Privacy">
+          <ActionRow icon={MapPin} title="Matching location" subtitle={user?.location?.updatedAt ? 'Location saved for nearby matches' : 'Not shared yet'} action="Refresh" onClick={refreshLocation} />
+          <ToggleRow title="Show last seen" subtitle="Let friends see when you were last active" checked={form.showLastSeen} onChange={() => setField('showLastSeen', !form.showLastSeen)} />
+          <ToggleRow title="Read receipts" subtitle="Send seen status when you read messages" checked={form.readReceipts} onChange={() => setField('readReceipts', !form.readReceipts)} />
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-3 px-1">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-coral/10 text-coral"><Ban size={17} /></span>
+              <div>
+                <p className="font-medium">Blocked users</p>
+                <p className="text-xs text-white/45">{blockedUsers.length ? `${blockedUsers.length} hidden from you` : 'No blocked users'}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {blockedUsers.map((blockedUser) => (
+                <div key={blockedUser._id} className="flex items-center gap-3 rounded-[16px] bg-ink/30 p-2">
+                  <img src={blockedUser.avatar} alt="" className="h-11 w-11 rounded-full bg-white/8 object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{blockedUser.name}</p>
+                    <p className="truncate text-xs text-white/45">@{blockedUser.username}</p>
+                  </div>
+                  <button onClick={() => unblockUser(blockedUser._id)} className="btn-primary grid h-10 w-10 place-items-center rounded-full" aria-label={`Unblock ${blockedUser.name}`}>
+                    <Unlock size={17} />
+                  </button>
+                </div>
+              ))}
+              {!blockedUsers.length && <p className="rounded-[14px] bg-white/4 px-3 py-3 text-center text-sm text-white/42">Blocked people will appear here.</p>}
+            </div>
+          </div>
+        </SettingsSection>
+        )}
+
+        {activeSection === 'safety' && (
+        <SettingsSection icon={Shield} title="Safety filter">
+          <label className="block">
+            <span className="text-xs text-white/45">Blocked words</span>
+            <textarea value={form.blockedWords} onChange={(event) => setField('blockedWords', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[14px] border border-white/8 bg-ink/35 px-3 py-2.5 text-sm outline-none" placeholder="Comma separated words" />
+          </label>
+          <p className="text-xs leading-5 text-white/45">Messages you send containing these words are masked before delivery.</p>
+          <button onClick={saveProfile} className="btn-primary w-full rounded-[14px] py-3 text-sm font-semibold">Save safety filter</button>
+        </SettingsSection>
+        )}
+
+        {activeSection === 'security' && (
+        <SettingsSection icon={LockKeyhole} title="Security">
+          <InfoRow icon={Smartphone} title="Active logins" subtitle="This browser is currently active" value="1 device" />
+          <InfoRow icon={LockKeyhole} title="Password and sessions" subtitle="Email login sessions use JWT security" value="Protected" />
+        </SettingsSection>
+        )}
+
+        {activeSection === 'notifications' && (
+        <SettingsSection icon={Bell} title="Notifications">
+          <ActionRow icon={Bell} title="Push notifications" subtitle="Messages, requests, and calls" action="Enable" onClick={turnOnNotifications} />
+          <SoundPicker
+            title="Call ringtone"
+            value={soundPrefs.ringtone}
+            onSelect={(sound) => updateSound('ringtone', sound)}
+            onUpload={(file) => uploadSound('ringtone', file)}
+            onPreview={() => previewSound(soundPrefs.ringtone, 'call')}
+          />
+          <SoundPicker
+            title="Chat notification"
+            value={soundPrefs.messageTone}
+            onSelect={(sound) => updateSound('messageTone', sound)}
+            onUpload={(file) => uploadSound('messageTone', file)}
+            onPreview={() => previewSound(soundPrefs.messageTone, 'message')}
+          />
+          <button type="button" onClick={toggleDnd} className="flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><Bell size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">Quiet mode</span>
+              <span className="block truncate text-xs text-white/45">Mute in-app tones and vibrations</span>
+            </span>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${soundPrefs.dnd ? 'bg-coral text-ink' : 'bg-white/8 text-white/70'}`}>{soundPrefs.dnd ? 'On' : 'Off'}</span>
+          </button>
+          <InstallAppButton />
+        </SettingsSection>
+        )}
+
+        {activeSection === 'data' && (
+          <>
+        <SettingsSection icon={Database} title="Data">
+          <ActionRow icon={Database} title="Export account data" subtitle="Download profile, chats, notifications and reports JSON" action="Export" onClick={exportData} />
+          <InfoRow icon={Shield} title="Safety data" subtitle="Reports help keep Match safer" value="Enabled" />
+          <Link to="/privacy" className="flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><FileText size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">Privacy policy</span>
+              <span className="block truncate text-xs text-white/45">How Varta handles account, chat, call and safety data</span>
+            </span>
+            <ChevronRight size={17} className="text-white/35" />
+          </Link>
+          <Link to="/terms" className="flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><FileText size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">Terms of use</span>
+              <span className="block truncate text-xs text-white/45">Rules for beta testers, safety and account use</span>
+            </span>
+            <ChevronRight size={17} className="text-white/35" />
+          </Link>
+        </SettingsSection>
+
+        <button onClick={() => setDeleteConfirmOpen(true)} className="surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
+          <span className="rounded-[14px] bg-coral/10 p-3"><Trash2 size={18} /></span>
+          <span className="font-medium">Delete account</span>
+        </button>
+
+        <ConfirmSheet
+          open={deleteConfirmOpen}
+          title="Delete account?"
+          description="This permanently removes your Varta account and cannot be undone."
+          confirmLabel="Delete"
+          tone="danger"
+          onCancel={() => setDeleteConfirmOpen(false)}
+          onConfirm={deleteAccount}
+        />
+
+        <button onClick={logout} className="surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
+          <span className="rounded-[14px] bg-coral/10 p-3"><LogOut size={18} /></span>
+          <span className="font-medium">Logout</span>
+        </button>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return <ProfileSkeleton />;
+}
+
+function settingsTitle(section) {
+  return {
+    home: 'Settings',
+    profile: 'Profile settings',
+    privacy: 'Privacy',
+    safety: 'Safety filter',
+    security: 'Security',
+    notifications: 'Notifications',
+    data: 'Data and legal'
+  }[section] || 'Settings';
+}
+
+function settingsSubtitle(section) {
+  return {
+    home: 'Choose one area to manage',
+    profile: 'Photo, identity and bio',
+    privacy: 'Visibility and blocked users',
+    safety: 'Filter words and protect chats',
+    security: 'Sessions and account protection',
+    notifications: 'Push, sounds and quiet mode',
+    data: 'Export, legal pages and account controls'
+  }[section] || 'Profile, privacy, security and app controls';
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="space-y-3">
+      <section className="rounded-[20px] border border-white/8 bg-white/5 p-4">
+        <div className="flex animate-pulse items-center gap-4">
+          <div className="h-20 w-20 rounded-full bg-white/10" />
+          <div className="flex-1 space-y-3">
+            <div className="h-6 w-40 rounded-full bg-white/10" />
+            <div className="h-3 w-28 rounded-full bg-white/8" />
+            <div className="h-3 w-20 rounded-full bg-white/8" />
+          </div>
+        </div>
+      </section>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="h-16 animate-pulse rounded-[18px] border border-white/8 bg-white/5" />
+      ))}
+    </div>
+  );
+}
+
+function SettingsSection({ icon: Icon, title, children }) {
+  return (
+    <section className="rounded-[18px] border border-white/8 bg-white/5 p-3">
+      <div className="mb-3 flex items-center gap-2 px-1">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-white/8 text-mint"><Icon size={16} /></span>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-white/62">{title}</h3>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function Field({ label, value, onChange, type = 'text', prefix }) {
+  return (
+    <label className="block">
+      <span className="text-xs text-white/42">{label}</span>
+      <div className="mt-1.5 flex items-center rounded-[14px] border border-white/8 bg-ink/35 px-3">
+        {prefix && <span className="text-white/35">{prefix}</span>}
+        <input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none" type={type} />
+      </div>
+    </label>
+  );
+}
+
+function GenderControl({ value, onChange }) {
+  return (
+    <div>
+      <span className="text-xs text-white/42">Gender</span>
+      <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-[14px] border border-white/8 bg-ink/35 p-1 text-sm">
+        {['female', 'male'].map((item) => (
+          <button key={item} type="button" onClick={() => onChange(item)} className={`rounded-[10px] px-3 py-2.5 font-medium capitalize ${value === item ? 'btn-primary' : 'text-white/62'}`}>
+            {item}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActionRow({ icon: Icon, title, subtitle, action, onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><Icon size={18} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium">{title}</span>
+        <span className="block truncate text-xs text-white/45">{subtitle}</span>
+      </span>
+      <span className="btn-primary flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold">
+        {action}
+        <ChevronRight size={13} />
+      </span>
+    </button>
+  );
+}
+
+function MenuRow({ icon: Icon, title, subtitle, onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] p-3 text-left transition hover:bg-white/5 active:scale-[0.99]">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/72"><Icon size={18} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium">{title}</span>
+        <span className="block truncate text-xs text-white/45">{subtitle}</span>
+      </span>
+      <ChevronRight size={17} className="text-white/35" />
+    </button>
+  );
+}
+
+function InfoRow({ icon: Icon, title, subtitle, value }) {
+  return (
+    <div className="flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><Icon size={18} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium">{title}</span>
+        <span className="block truncate text-xs text-white/45">{subtitle}</span>
+      </span>
+      <span className="rounded-full bg-white/8 px-3 py-1 text-xs font-semibold text-white/72">{value}</span>
+    </div>
+  );
+}
+
+function ToggleRow({ title, subtitle, checked, onChange }) {
+  return (
+    <button type="button" onClick={onChange} className="flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium">{title}</span>
+        <span className="block truncate text-xs text-white/45">{subtitle}</span>
+      </span>
+      <span className={`relative h-7 w-12 rounded-full transition ${checked ? 'bg-mint' : 'bg-white/14'}`}>
+        <span className={`absolute top-1 h-5 w-5 rounded-full bg-ink transition ${checked ? 'left-6' : 'left-1'}`} />
+      </span>
+    </button>
+  );
+}
+
+function SoundPicker({ title, value, onSelect, onUpload, onPreview }) {
+  return (
+    <div className="rounded-[14px] bg-ink/35 p-3">
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-mint"><Music size={18} /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{title}</span>
+          <span className="block truncate text-xs text-white/45">{value?.name || 'Default tone'}</span>
+        </span>
+        <button type="button" onClick={onPreview} className="grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label={`Preview ${title}`}>
+          <Volume2 size={17} />
+        </button>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {soundPack.map((sound) => (
+          <button
+            key={sound.id}
+            type="button"
+            onClick={() => onSelect(packSound(sound.id))}
+            className={`rounded-[13px] px-3 py-2 text-xs font-semibold ${value?.type === 'pack' && value.id === sound.id ? 'btn-primary' : 'bg-white/8 text-white/68'}`}
+          >
+            {sound.name}
+          </button>
+        ))}
+      </div>
+      <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-[13px] border border-white/8 bg-white/7 px-3 py-2 text-xs font-semibold text-white/75">
+        Upload from media
+        <input type="file" accept="audio/*" className="hidden" onChange={(event) => onUpload(event.target.files?.[0])} />
+      </label>
+    </div>
+  );
+}

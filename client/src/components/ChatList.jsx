@@ -31,6 +31,15 @@ export default function ChatList({
     });
     return filterChats(scoped, query, currentUserId);
   }, [chats, currentUserId, query, tab]);
+  const activeChats = useMemo(() => chats.filter((chat) => !chat.archived), [chats]);
+  const onlineFriendCount = useMemo(() => {
+    const onlineIds = new Set();
+    activeChats.forEach((chat) => {
+      const other = getOtherMember(chat, currentUserId);
+      if (other?.isOnline) onlineIds.add(other._id);
+    });
+    return onlineIds.size;
+  }, [activeChats, currentUserId]);
 
   return (
     <section className="flex min-h-0 flex-1 flex-col px-4 pt-3">
@@ -49,8 +58,14 @@ export default function ChatList({
           <div className="mb-3 flex shrink-0 items-center justify-between">
             <div>
               <h2 className="bg-gradient-to-r from-white via-mint to-sky bg-clip-text text-2xl font-semibold text-transparent">Chats</h2>
-              <p className="text-sm text-white/45">{chats.filter((chat) => !chat.archived).length} active, {chats.filter((chat) => chat.archived).length} archived</p>
+              <p className="text-sm text-white/45">
+                {activeChats.length} friends, {onlineFriendCount} online now
+                {chats.some((chat) => chat.archived) ? `, ${chats.filter((chat) => chat.archived).length} archived` : ''}
+              </p>
             </div>
+            <span className="rounded-full border border-mint/20 bg-mint/10 px-3 py-1 text-xs font-semibold text-mint">
+              {onlineFriendCount} online
+            </span>
           </div>
         )}
 
