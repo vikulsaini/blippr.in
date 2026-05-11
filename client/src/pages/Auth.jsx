@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Phone, UserRound } from 'lucide-react';
+import { Mail, Phone, ShieldCheck, UserRound } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { api, setToken } from '../lib/api.js';
 
@@ -16,6 +16,9 @@ export default function Auth() {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpHint, setOtpHint] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [emailHint, setEmailHint] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(initialProfile);
   const [error, setError] = useState('');
@@ -29,7 +32,15 @@ export default function Auth() {
     setMode(nextMode);
     setError('');
     setOtpHint('');
+    setEmailHint('');
     setOtpSent(false);
+  }
+
+  function showEmailVerification(result, fallbackEmail = email) {
+    setPendingEmail(result.email || fallbackEmail);
+    setEmailHint(result.verificationCode ? `Testing code: ${result.verificationCode}` : result.message || 'Check your email for the verification code.');
+    setEmailCode('');
+    setMode('verifyEmail');
   }
 
   function profilePayload() {
@@ -48,8 +59,48 @@ export default function Auth() {
     try {
       const path = mode === 'signup' ? '/api/auth/email/signup' : '/api/auth/email/login';
       const body = mode === 'signup' ? { ...profilePayload(), email, password, name: profile.name, username: profile.username } : { email, password };
-      const { token } = await api(path, { method: 'POST', body: JSON.stringify(body) });
+      const result = await api(path, { method: 'POST', body: JSON.stringify(body) });
+      if (result.verificationRequired) {
+        showEmailVerification(result);
+        return;
+      }
+      const { token } = result;
       finishAuth(token);
+    } catch (err) {
+      if (err.code === 'EMAIL_NOT_VERIFIED') showEmailVerification(err.body || {}, email);
+      else setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verifyEmail(event) {
+    event.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { token } = await api('/api/auth/email/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email: pendingEmail || email, code: emailCode })
+      });
+      finishAuth(token);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resendEmailCode() {
+    setError('');
+    setEmailHint('');
+    setLoading(true);
+    try {
+      const result = await api('/api/auth/email/resend', {
+        method: 'POST',
+        body: JSON.stringify({ email: pendingEmail || email })
+      });
+      showEmailVerification(result, pendingEmail || email);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -158,6 +209,19 @@ export default function Auth() {
               </>
             )}
             {otpHint && <p className="rounded-[14px] border border-mint/25 bg-mint/10 px-3 py-2 text-xs text-mint">{otpHint}</p>}
+          </AuthForm>
+        )}
+
+        {mode === 'verifyEmail' && (
+          <AuthForm title="Verify email" icon={ShieldCheck} onSubmit={verifyEmail} action="Verify and continue" loading={loading}>
+            <p className="rounded-[16px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/62">
+              Enter the 6-digit code sent to <span className="font-semibold text-white">{pendingEmail || email}</span>.
+            </p>
+            <TextInput value={emailCode} onChange={setEmailCode} placeholder="6-digit code" inputMode="numeric" />
+            {emailHint && <p className="rounded-[14px] border border-mint/25 bg-mint/10 px-3 py-2 text-xs text-mint">{emailHint}</p>}
+            <button type="button" onClick={resendEmailCode} disabled={loading} className="w-full rounded-[16px] border border-white/10 bg-white/5 py-3 text-sm font-semibold text-white/76 transition hover:bg-white/10 disabled:opacity-55">
+              Resend code
+            </button>
           </AuthForm>
         )}
 

@@ -5,14 +5,18 @@ process.env.JWT_SECRET = 'test-secret';
 process.env.NODE_ENV = 'test';
 process.env.GUEST_LIMIT_MINUTES = '10';
 process.env.GUEST_REUSE_HOURS = '24';
+process.env.DISABLE_EMAIL_VERIFICATION = 'true';
 
 const User = (await import('../src/models/User.js')).default;
-const { signupWithEmail, continueAsGuest } = await import('../src/controllers/auth.controller.js');
+const { signupWithEmail, loginWithEmail, continueAsGuest } = await import('../src/controllers/auth.controller.js');
 const { requireAuth } = await import('../src/middleware/auth.js');
 const { callHandler, chainable, expectError, makeReq, makeRes, userA } = await import('./helpers.js');
 
 beforeEach(() => {
   mock.restoreAll();
+  process.env.NODE_ENV = 'test';
+  process.env.DISABLE_EMAIL_VERIFICATION = 'true';
+  process.env.EXPOSE_EMAIL_CODE_IN_RESPONSE = 'false';
 });
 
 test('email signup rejects duplicate usernames', async () => {
@@ -69,6 +73,36 @@ test('email signup creates a user, token, and httpOnly auth cookie', async () =>
   assert.ok(res.body.token);
   assert.equal(res.cookies[0].name, 'varta_token');
   assert.equal(res.cookies[0].options.httpOnly, true);
+});
+
+test('email login blocks unverified users when verification is enabled and email provider is missing', async () => {
+  process.env.NODE_ENV = 'production';
+  process.env.DISABLE_EMAIL_VERIFICATION = 'false';
+  const bcrypt = (await import('bcryptjs')).default;
+  const passwordHash = await bcrypt.hash('password123', 4);
+  const unverifiedUser = {
+    _id: userA,
+    email: 'asha@example.com',
+    passwordHash,
+    emailVerifiedAt: undefined
+  };
+  mock.method(User, 'findOne', () => chainable(unverifiedUser, ['select']));
+
+  const res = makeRes();
+  const { error } = await callHandler(
+    loginWithEmail,
+    makeReq({
+      body: {
+        email: 'asha@example.com',
+        password: 'password123'
+      }
+    }),
+    res
+  );
+
+  assert.equal(error, null);
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.body.code, 'EMAIL_NOT_VERIFIED');
 });
 
 test('guest login reuses recent guest from the same IP', async () => {

@@ -4,8 +4,8 @@ Varta is a mobile-first real-time chat PWA with friends, nearby/random matching,
 
 ## Features
 
-- Email/password signup and login with user-created unique usernames.
-- Guest login with same-IP reuse, limited guest access, phone OTP flow, and Google login hook.
+- Email/password signup and login with user-created unique usernames and email verification codes.
+- Guest login with same-IP reuse, limited guest access, throttled phone OTP flow, and Google login hook.
 - Editable profile with avatar URL, bio, gender, age, username, privacy toggles, and safety words.
 - Friends chat list with unread counts, active status, last seen, nicknames, reactions, replies, typing animation, archived chats, favorites, pin, mute, and multi-select delete.
 - Real-time one-to-one messaging with Socket.IO and MongoDB persistence.
@@ -65,11 +65,20 @@ Important values:
 - `JWT_SECRET`
 - `CLIENT_URL`
 - `OTP_TTL_SECONDS`
+- `OTP_COOLDOWN_SECONDS`
+- `OTP_MAX_ATTEMPTS`
 - `GUEST_REUSE_HOURS` - same-IP guest sessions reuse a recent guest account within this window.
 - `EXPOSE_OTP_IN_RESPONSE` - set to `true` only while testing if SMS is not configured.
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_FROM_NUMBER`
+- `EMAIL_CODE_TTL_SECONDS`
+- `EMAIL_CODE_COOLDOWN_SECONDS`
+- `EMAIL_CODE_MAX_ATTEMPTS`
+- `EXPOSE_EMAIL_CODE_IN_RESPONSE` - set to `true` only while testing if email delivery is not configured.
+- `DISABLE_EMAIL_VERIFICATION` - local escape hatch only; keep `false` in production.
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
@@ -96,6 +105,8 @@ Important values:
 For WebRTC calls, STUN is enough only on some networks. Use a TURN provider for production so audio/video can connect through strict NATs, carrier networks, and office Wi-Fi.
 
 The API also sets an httpOnly `varta_token` cookie on login/signup/guest auth. The frontend still keeps the JWT for compatibility with Socket.IO auth, but REST requests include credentials and the backend can authenticate from the cookie when no bearer token is sent.
+
+OTP and email verification require real providers in production. Configure Twilio for phone OTP and Resend for email verification, or temporarily set `EXPOSE_OTP_IN_RESPONSE=true` / `EXPOSE_EMAIL_CODE_IN_RESPONSE=true` only for private testing.
 
 ## Quality Checks
 

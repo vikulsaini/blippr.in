@@ -6,7 +6,9 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { signJwt } from '../utils/tokens.js';
 import { avatarForGender, createUniqueUsername, guestIdentity } from '../utils/identity.js';
 import { getClientIp } from '../utils/clientIp.js';
-import { issueOtp, verifyOtp } from '../services/otp.service.js';
+import { canExposeOtp, issueOtp, verifyOtp } from '../services/otp.service.js';
+import { canSendEmail } from '../services/email.service.js';
+import { canExposeEmailCode, issueEmailVerification, verifyEmailCode } from '../services/emailVerification.service.js';
 import { notifyUser } from '../services/notification.service.js';
 import { clearAuthCookie, setAuthCookie } from '../utils/authCookie.js';
 
@@ -66,7 +68,30 @@ async function recordLogin(req, user) {
 
 function sendAuth(res, token, user, status = 200, extra = {}) {
   setAuthCookie(res, token);
-  return res.status(status).json({ token, user, ...extra });
+  return res.status(status).json({ ok: true, token, user, ...extra });
+}
+
+function emailVerificationEnabled() {
+  return process.env.DISABLE_EMAIL_VERIFICATION !== 'true';
+}
+
+function providerMissingError(kind) {
+  const error = new Error(`${kind.toUpperCase()} provider is not configured on the server`);
+  error.status = 503;
+  error.code = `${kind.toUpperCase()}_PROVIDER_MISSING`;
+  return error;
+}
+
+async function sendEmailVerificationResponse(res, user, status = 200) {
+  const { code, delivery } = await issueEmailVerification(user.email);
+  return res.status(status).json({
+    ok: true,
+    verificationRequired: true,
+    email: user.email,
+    emailSent: delivery.sent,
+    message: delivery.sent ? 'Verification code sent to your email.' : 'Verification code generated. Email provider is not configured.',
+    ...(canExposeEmailCode() ? { verificationCode: code } : {})
+  });
 }
 
 export const emailSignupSchema = Joi.object({
@@ -85,6 +110,15 @@ export const emailSignupSchema = Joi.object({
 export const emailLoginSchema = Joi.object({
   email: Joi.string().email().lowercase().required(),
   password: Joi.string().min(8).max(72).required()
+});
+
+export const emailVerifySchema = Joi.object({
+  email: Joi.string().email().lowercase().required(),
+  code: Joi.string().length(6).required()
+});
+
+export const emailResendSchema = Joi.object({
+  email: Joi.string().email().lowercase().required()
 });
 
 export const guestUpgradeSchema = Joi.object({
@@ -107,12 +141,12 @@ export const guestSchema = Joi.object({
 
 export const requestOtp = asyncHandler(async (req, res) => {
   const { otp, delivery } = await issueOtp(req.body.phone);
-  const exposeOtp = process.env.NODE_ENV !== 'production' || process.env.EXPOSE_OTP_IN_RESPONSE === 'true';
+  if (!delivery.sent && !canExposeOtp()) throw providerMissingError('sms');
   res.json({
     ok: true,
     message: delivery.sent ? 'OTP sent' : 'OTP generated. SMS provider is not configured.',
     smsSent: delivery.sent,
-    ...(exposeOtp ? { otp } : {})
+    ...(canExposeOtp() ? { otp } : {})
   });
 });
 
@@ -175,6 +209,8 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
     throw error;
   }
 
+  if (emailVerificationEnabled() && !canSendEmail() && !canExposeEmailCode()) throw providerMissingError('email');
+
   const passwordHash = await bcrypt.hash(req.body.password, 12);
   const user = await User.create({
     name: req.body.name,
@@ -188,8 +224,11 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
     avatar: avatarForGender(req.body.gender, req.body.username),
     bio: req.body.bio || '',
     interests: req.body.interests || [],
+    emailVerifiedAt: emailVerificationEnabled() ? undefined : new Date(),
     isGuest: false
   });
+
+  if (emailVerificationEnabled()) return sendEmailVerificationResponse(res, user, 201);
 
   return sendAuth(res, signJwt(user), user, 201);
 });
@@ -204,9 +243,64 @@ export const loginWithEmail = asyncHandler(async (req, res) => {
     throw error;
   }
 
+  if (emailVerificationEnabled() && !user.emailVerifiedAt) {
+    if (!canSendEmail() && !canExposeEmailCode()) {
+      return res.status(403).json({
+        ok: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email before logging in. Email delivery is not configured on the server.'
+      });
+    }
+    const { code, delivery } = await issueEmailVerification(user.email);
+    return res.status(403).json({
+      ok: false,
+      code: 'EMAIL_NOT_VERIFIED',
+      message: delivery.sent ? 'Please verify your email. We sent a fresh code.' : 'Please verify your email. Use the generated code below.',
+      email: user.email,
+      emailSent: delivery.sent,
+      ...(canExposeEmailCode() ? { verificationCode: code } : {})
+    });
+  }
+
   user.isGuest = false;
   await recordLogin(req, user);
   return sendAuth(res, signJwt(user), user);
+});
+
+export const verifyEmail = asyncHandler(async (req, res) => {
+  const valid = await verifyEmailCode(req.body.email, req.body.code);
+  if (!valid) {
+    const error = new Error('Invalid or expired verification code');
+    error.status = 401;
+    error.code = 'EMAIL_CODE_INVALID';
+    throw error;
+  }
+
+  const user = await User.findOne({ email: req.body.email }).select('+lastIp +ipHistory');
+  if (!user) {
+    const error = new Error('Account not found');
+    error.status = 404;
+    throw error;
+  }
+
+  user.emailVerifiedAt = new Date();
+  user.isGuest = false;
+  await recordLogin(req, user);
+  return sendAuth(res, signJwt(user), user);
+});
+
+export const resendEmailVerification = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    const error = new Error('Account not found');
+    error.status = 404;
+    throw error;
+  }
+  if (!emailVerificationEnabled() || user.emailVerifiedAt) {
+    return res.json({ ok: true, verificationRequired: false, message: 'Email is already verified.' });
+  }
+  if (!canSendEmail() && !canExposeEmailCode()) throw providerMissingError('email');
+  return sendEmailVerificationResponse(res, user);
 });
 
 export const continueAsGuest = asyncHandler(async (req, res) => {
@@ -260,10 +354,13 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
     throw error;
   }
 
+  if (emailVerificationEnabled() && !canSendEmail() && !canExposeEmailCode()) throw providerMissingError('email');
+
   req.user.name = req.body.name;
   req.user.email = req.body.email;
   req.user.username = req.user.username || (await createUniqueUsername(req.body.name));
   req.user.passwordHash = await bcrypt.hash(req.body.password, 12);
+  req.user.emailVerifiedAt = emailVerificationEnabled() ? undefined : new Date();
   req.user.age = req.body.age;
   req.user.dob = req.body.dob;
   req.user.contact = req.body.contact || '';
@@ -274,6 +371,15 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
   req.user.isGuest = false;
   req.user.guestExpiresAt = undefined;
   await req.user.save();
+
+  if (emailVerificationEnabled()) {
+    const { code, delivery } = await issueEmailVerification(req.user.email);
+    return sendAuth(res, signJwt(req.user), req.user, 200, {
+      verificationRequired: true,
+      emailSent: delivery.sent,
+      ...(canExposeEmailCode() ? { verificationCode: code } : {})
+    });
+  }
 
   return sendAuth(res, signJwt(req.user), req.user);
 });
