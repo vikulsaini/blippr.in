@@ -159,8 +159,13 @@ export default function SettingsPage() {
         method: 'POST',
         body: formData
       });
+      const { user: updated } = await api('/api/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ avatar: media.url })
+      });
       setField('avatar', media.url);
-      setMessage('Photo uploaded. Tap Save changes to update your profile.');
+      setUser(updated);
+      setMessage('Profile photo updated');
     } catch (err) {
       setMessage(err.message);
     } finally {

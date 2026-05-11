@@ -1,6 +1,6 @@
 import multer from 'multer';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { uploadBuffer } from '../services/media.service.js';
+import { findMediaFile, openMediaDownloadStream, uploadBuffer } from '../services/media.service.js';
 
 export const upload = multer({
   storage: multer.memoryStorage(),
@@ -13,7 +13,7 @@ export const uploadMedia = asyncHandler(async (req, res) => {
     error.status = 422;
     throw error;
   }
-  const result = await uploadBuffer(req.file);
+  const result = await uploadBuffer(req.file, `${req.protocol}://${req.get('host')}`);
   res.status(201).json({
     ok: true,
     media: {
@@ -25,6 +25,20 @@ export const uploadMedia = asyncHandler(async (req, res) => {
       size: req.file.size
     }
   });
+});
+
+export const getMediaFile = asyncHandler(async (req, res) => {
+  const file = await findMediaFile(req.params.id);
+  if (!file) {
+    const error = new Error('Media not found');
+    error.status = 404;
+    throw error;
+  }
+
+  res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename || 'varta-media')}"`);
+  openMediaDownloadStream(req.params.id).pipe(res);
 });
 
 function mediaTypeFor(mimeType = '', resourceType = '') {
