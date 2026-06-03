@@ -7,20 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext js,jsx",
-    "cap:sync": "npm run build && corepack pnpm exec cap sync",
-    "android:add": "npm run build && corepack pnpm exec cap add android",
-    "android:open": "corepack pnpm exec cap open android"
+    "lint": "eslint src --ext js,jsx"
   },
   "dependencies": {
-    "@capacitor/app": "^7.1.2",
-    "@capacitor/core": "^7.6.4",
-    "@capacitor/haptics": "^7.0.5",
-    "@capacitor/local-notifications": "^7.0.6",
-    "@capacitor/network": "^7.0.4",
-    "@capacitor/preferences": "^7.0.4",
-    "@capacitor/splash-screen": "^7.0.5",
-    "@capacitor/status-bar": "^7.0.6",
     "@vitejs/plugin-react": "^4.3.4",
     "framer-motion": "^12.0.6",
     "lucide-react": "^0.468.0",
@@ -32,8 +21,6 @@
     "vite-plugin-pwa": "^0.21.1"
   },
   "devDependencies": {
-    "@capacitor/android": "^7.6.4",
-    "@capacitor/cli": "^7.6.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-plugin-react": "^7.37.2",

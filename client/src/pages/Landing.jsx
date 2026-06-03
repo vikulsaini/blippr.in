@@ -100,7 +100,7 @@ export default function Landing() {
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-mint">Installable PWA</p>
             <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Share it now, package it later.</h2>
             <p className="mt-4 max-w-2xl text-white/58">
-              Varta can be opened from the browser, installed on Android from Chrome, and later wrapped as an APK with TWA or Capacitor.
+              Varta opens from the browser and installs on Android from Chrome with the PWA install prompt.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">

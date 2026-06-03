@@ -40,8 +40,4 @@ Required variables:
 
 ## Local Services
 
-MongoDB and Redis can be started with:
-
-```bash
-docker compose up -d
-```
+Use hosted MongoDB Atlas and Upstash/Redis URLs in `server/.env`, or run your own MongoDB/Redis services outside this repo and point `MONGO_URI` / `REDIS_URL` at them.

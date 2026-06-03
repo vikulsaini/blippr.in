@@ -1,8 +1,0 @@
-{
-  "appId": "app.varta.chat",
-  "appName": "Varta",
-  "webDir": "dist",
-  "server": {
-    "androidScheme": "https"
-  }
-}

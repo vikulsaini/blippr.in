@@ -31,13 +31,11 @@ Varta is a mobile-first real-time chat PWA with friends, nearby/random matching,
 ## Quick Start
 
 ```bash
-corepack enable
-pnpm install
+npm install
 Copy-Item server/.env.example server/.env
 Copy-Item client/.env.example client/.env
-docker compose up -d
-pnpm --filter @varta/server dev
-pnpm --filter @varta/client dev
+npm run dev:server
+npm run dev:client
 ```
 
 Backend defaults to `http://localhost:8080`.
@@ -46,7 +44,7 @@ Frontend defaults to `http://localhost:5173`.
 For production frontend build:
 
 ```bash
-pnpm --filter @varta/client build
+npm run build --workspace client
 ```
 
 Run backend tests:
@@ -136,35 +134,7 @@ Varta is configured as an installable PWA. Open the app in a supported browser, 
 
 On Android Chrome/Edge this opens the native browser install prompt. If the prompt is not available, use the browser menu and choose `Install app` or `Add to home screen`.
 
-This is browser-based installation, not a generated APK file. For a store/APK build later, wrap the deployed PWA with TWA or Capacitor.
-
-## Android With Capacitor
-
-Varta can also run as an independent Android app while keeping the same web app live.
-
-One-time setup after installing dependencies:
-
-```bash
-npm run android:add --workspace client
-```
-
-After frontend changes:
-
-```bash
-npm run cap:sync --workspace client
-```
-
-Open the Android project:
-
-```bash
-npm run android:open --workspace client
-```
-
-Then build an APK/AAB from Android Studio. The Android app uses the same backend API and Socket.IO server as the web app.
-
-Local APK builds require Android Studio plus a JDK with `JAVA_HOME` set. If `gradlew assembleDebug` says Java is missing, install Android Studio/JDK first, then reopen the terminal.
-
-For best Android calling and push behavior later, add native Capacitor plugins for push notifications, local notifications, media permissions, and audio routing.
+This is browser-based installation, not a generated APK file. Android wrapper files were removed from this web-focused repo; add a fresh native wrapper later only if you decide to ship a store APK/AAB.
 
 ## Main App Areas
 
