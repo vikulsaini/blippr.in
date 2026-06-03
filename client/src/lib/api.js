@@ -1,13 +1,29 @@
 import { API_URL } from './config.js';
 
+const GUEST_EXPIRED_KEY = 'varta_guest_expired';
+
 function isAuthEndpoint(path) {
   return path.startsWith('/api/auth/');
+}
+
+function isGuestRecoveryEndpoint(path) {
+  return path === '/api/users/me' || path === '/api/auth/guest/upgrade';
 }
 
 function handleUnauthorized(path) {
   if (isAuthEndpoint(path)) return;
   localStorage.removeItem('varta_token');
+  sessionStorage.removeItem(GUEST_EXPIRED_KEY);
   window.dispatchEvent(new CustomEvent('varta:auth-invalid'));
+}
+
+function markGuestExpired() {
+  sessionStorage.setItem(GUEST_EXPIRED_KEY, 'true');
+  window.dispatchEvent(new CustomEvent('varta:guest-expired'));
+}
+
+function isGuestExpired() {
+  return sessionStorage.getItem(GUEST_EXPIRED_KEY) === 'true';
 }
 
 export function getToken() {
@@ -16,6 +32,7 @@ export function getToken() {
 
 export function setToken(token) {
   localStorage.setItem('varta_token', token);
+  sessionStorage.removeItem(GUEST_EXPIRED_KEY);
 }
 
 export function getTokenSubject() {
@@ -30,6 +47,14 @@ export function getTokenSubject() {
 }
 
 export async function api(path, options = {}) {
+  if (isGuestExpired() && !isGuestRecoveryEndpoint(path) && !isAuthEndpoint(path)) {
+    const error = new Error('Guest session expired. Create an account to continue.');
+    error.code = 'GUEST_EXPIRED';
+    error.body = { ok: false, code: 'GUEST_EXPIRED' };
+    markGuestExpired();
+    throw error;
+  }
+
   const isFormData = options.body instanceof FormData;
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -46,7 +71,7 @@ export async function api(path, options = {}) {
     error.code = body.code;
     error.body = body;
     if (res.status === 401) handleUnauthorized(path);
-    if (error.code === 'GUEST_EXPIRED') window.dispatchEvent(new CustomEvent('varta:guest-expired'));
+    if (error.code === 'GUEST_EXPIRED') markGuestExpired();
     throw error;
   }
   return body;

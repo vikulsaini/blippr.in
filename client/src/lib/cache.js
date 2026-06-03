@@ -38,4 +38,5 @@ export function clearVartaCache() {
   Object.keys(localStorage)
     .filter((itemKey) => itemKey.startsWith(`${PREFIX}:`))
     .forEach((itemKey) => localStorage.removeItem(itemKey));
+  sessionStorage.removeItem('varta_guest_expired');
 }
