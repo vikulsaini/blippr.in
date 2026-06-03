@@ -20,6 +20,48 @@ async function findDirectChatBetween(userId, peerId) {
   return Chat.findOne({ type: 'direct', temporary: { $ne: true }, members: { $all: [userId, peerId] } });
 }
 
+async function findStrangerChatBetween(chatId, userId, peerId) {
+  if (!chatId || !peerId || peerId === userId) return null;
+  return Chat.findOne({ _id: chatId, type: 'stranger', temporary: true, members: { $all: [userId, peerId] } });
+}
+
+async function populateChat(chatId) {
+  return Chat.findById(chatId)
+    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('lastMessage');
+}
+
+function peerFromChat(chat, userId) {
+  return chat?.members?.find((member) => (member._id || member).toString() !== userId) || null;
+}
+
+async function joinUserSocketsToRoom(io, userId, roomId) {
+  const sockets = await io.in(`user:${userId}`).fetchSockets();
+  sockets.forEach((userSocket) => userSocket.join(roomId));
+}
+
+async function leaveUserSocketsFromRoom(io, userId, roomId) {
+  const sockets = await io.in(`user:${userId}`).fetchSockets();
+  sockets.forEach((userSocket) => userSocket.leave(roomId));
+}
+
+async function emitStrangerMatch(io, chat, initiatorId) {
+  const populatedChat = await populateChat(chat._id);
+  const roomId = `stranger:${chat._id}`;
+  await Promise.all(populatedChat.members.map((member) => joinUserSocketsToRoom(io, member._id.toString(), roomId)));
+
+  populatedChat.members.forEach((member) => {
+    const memberId = member._id.toString();
+    io.to(`user:${memberId}`).emit('stranger:matched', {
+      chat: populatedChat,
+      peer: peerFromChat(populatedChat, memberId),
+      initiator: initiatorId
+    });
+  });
+
+  return { chat: populatedChat, peer: peerFromChat(populatedChat, initiatorId), roomId };
+}
+
 async function emitCallChatUpdate(io, call) {
   if (!call?.chat) return;
   const chatId = call.chat._id || call.chat;
@@ -213,20 +255,60 @@ export function registerSockets(io) {
     });
 
     socket.on('stranger:find', async ({ interests = [] }, ack) => {
-      const result = await findOrQueueUser(socket.user, interests);
-      if (result.matched) {
-        socket.join(result.roomId);
-        io.to(`user:${result.chat.members.find((id) => id.toString() !== userId)}`).emit('stranger:matched', {
-          chat: result.chat
-        });
+      try {
+        const result = await findOrQueueUser(socket.user, interests);
+        if (result.matched) {
+          const session = await emitStrangerMatch(io, result.chat, userId);
+          ack?.({ ok: true, matched: true, ...session });
+          return;
+        }
+        ack?.({ ok: true, ...result });
+      } catch (error) {
+        ack?.({ ok: false, message: error.message });
       }
-      ack?.(result);
     });
 
     socket.on('stranger:next', async (payload, ack) => {
+      try {
+        await leaveQueues(userId);
+        if (payload?.chatId) {
+          const chat = await Chat.findOne({ _id: payload.chatId, type: 'stranger', temporary: true, members: socket.user._id });
+          if (chat) {
+            const roomId = `stranger:${chat._id}`;
+            socket.to(roomId).emit('stranger:left', { chatId: chat._id, userId });
+            await leaveUserSocketsFromRoom(io, userId, roomId);
+          }
+        }
+        const result = await findOrQueueUser(socket.user, payload?.interests || []);
+        if (result.matched) {
+          const session = await emitStrangerMatch(io, result.chat, userId);
+          ack?.({ ok: true, matched: true, ...session });
+          return;
+        }
+        ack?.({ ok: true, ...result });
+      } catch (error) {
+        ack?.({ ok: false, message: error.message });
+      }
+    });
+
+    socket.on('stranger:leave', async ({ chatId } = {}) => {
       await leaveQueues(userId);
-      const result = await findOrQueueUser(socket.user, payload?.interests || []);
-      ack?.(result);
+      if (!chatId) return;
+      const chat = await Chat.findOne({ _id: chatId, type: 'stranger', temporary: true, members: socket.user._id });
+      if (!chat) return;
+      const roomId = `stranger:${chat._id}`;
+      socket.to(roomId).emit('stranger:left', { chatId: chat._id, userId });
+      await leaveUserSocketsFromRoom(io, userId, roomId);
+    });
+
+    socket.on('stranger:signal', async ({ chatId, to, type, payload }, ack) => {
+      const chat = await findStrangerChatBetween(chatId, userId, to);
+      if (!chat) {
+        ack?.({ ok: false, message: 'Stranger session is no longer available' });
+        return;
+      }
+      io.to(`user:${to}`).emit('stranger:signal', { chatId, from: userId, type, payload });
+      ack?.({ ok: true });
     });
 
     socket.on('call:offer', async ({ to, offer, callType }, ack) => {

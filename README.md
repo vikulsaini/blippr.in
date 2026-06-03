@@ -1,6 +1,6 @@
 # Varta
 
-Varta is a mobile-first real-time chat PWA with friends, nearby/random matching, profile safety tools, push notifications, and WebRTC audio/video calling.
+Varta is a mobile-first real-time chat PWA with friends, Omegle-style random rooms, profile safety tools, push notifications, and WebRTC audio/video calling.
 
 ## Features
 
@@ -11,7 +11,7 @@ Varta is a mobile-first real-time chat PWA with friends, nearby/random matching,
 - Real-time one-to-one messaging with Socket.IO and MongoDB persistence.
 - Offline message retry queue and local chat cache so old chats show quickly on app open.
 - Friend requests and system notifications in the notification bell with accept/reject/cancel flows.
-- Match page with active nearby users and random-anywhere matching.
+- Random live page with temporary stranger text/video rooms, skip/next, report, and friend request handoff.
 - Block, unblock, report, unfriend, blocked-user list, account export, and account delete.
 - WebRTC voice/video calls with TURN support, synced remote video/audio playback, incoming call UI, mute, speaker/receiver route, camera toggle, switch camera, low-data mode, reconnect timeout, quality label, and call history with duration in chat.
 - Image, video, file, and voice-note sharing through authenticated media uploads.
@@ -139,7 +139,7 @@ This is browser-based installation, not a generated APK file. Android wrapper fi
 ## Main App Areas
 
 - `Chats`: friends list, search, unread counts, conversations, call history.
-- `Match`: active nearby matches and random-anywhere matches.
+- `Random`: Omegle-style stranger rooms with realtime text/video and optional friend request.
 - `Find`: username/name search only.
 - `Profile`: account edits, privacy, safety, blocked users, push notifications, sounds, install app.
 - `Privacy` and `Terms`: public pages linked from the landing page and profile settings.
@@ -151,7 +151,7 @@ Share the live app link with testers and ask them to verify:
 - Signup/login, guest upgrade, and logout.
 - Sending friend requests, accepting requests, and opening the created chat.
 - Messaging, image upload, voice notes, reactions, edit/delete, and unread counts.
-- Matching on nearby mode and random mode.
+- Random live rooms: connect, text/video chat, skip, report, and send a friend request.
 - Audio/video calls on two different mobile networks after TURN credentials are configured.
 - Push notifications after installing the PWA and allowing notifications.
 

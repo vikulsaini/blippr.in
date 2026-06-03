@@ -11,7 +11,7 @@ import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
 
 const tabs = [
   { to: '/app', label: 'Chats', icon: MessageCircle },
-  { to: '/app/stranger', label: 'Match', icon: Shuffle },
+  { to: '/app/stranger', label: 'Random', icon: Shuffle },
   { to: '/app/discover', label: 'Find', icon: Search },
   { to: '/app/profile', label: 'Me', icon: UserRound }
 ];
@@ -162,7 +162,7 @@ function DesktopNav({ locationPath, socketState, clock }) {
     <aside className="premium-nav hidden min-h-0 rounded-[28px] border border-white/8 p-2 md:flex md:flex-col xl:p-3">
       <div className="hidden px-3 py-3 xl:block">
         <BrandLogo />
-        <p className="mt-2 text-xs leading-5 text-white/42">Realtime chats, matches, calls, and safety controls.</p>
+        <p className="mt-2 text-xs leading-5 text-white/42">Realtime chats, random rooms, calls, and safety controls.</p>
       </div>
       <nav className="mt-2 grid gap-2">
         {tabs.map(({ to, label, icon: Icon }, index) => {

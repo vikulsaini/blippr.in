@@ -27,7 +27,7 @@ export default function Privacy() {
             Varta stores account profile details such as name, username, age confirmation, gender, bio, profile photo, login method, friend requests, chats, messages, call history, reports, blocks, and notification subscriptions. Guest accounts may reuse the same device/network identity to reduce spam.
           </PolicyBlock>
           <PolicyBlock icon={MapPin} title="Location">
-            Location is used only for nearby matching. The browser asks permission before sharing location. Varta stores approximate coordinates for matching and updates them only when permission is granted.
+            Location is used only for nearby random-room discovery. The browser asks permission before sharing location. Varta stores approximate coordinates for discovery and updates them only when permission is granted.
           </PolicyBlock>
           <PolicyBlock icon={Mic} title="Calls, Camera, And Voice">
             Microphone and camera access are used for WebRTC calls and voice messages. Call media is transferred peer-to-peer when possible and is not intentionally recorded by Varta. Call metadata such as time, type, status, and duration may be stored for chat history.

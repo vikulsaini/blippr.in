@@ -164,7 +164,7 @@ export default function Auth() {
       <section className="hidden lg:block">
         <BrandLogo />
         <h1 className="mt-6 max-w-xl text-6xl font-semibold leading-tight">Start real conversations without the clutter.</h1>
-        <p className="mt-5 max-w-lg text-lg leading-8 text-white/58">Varta brings friends, nearby matching, calls, and safety into one responsive chat app for phones and desktops.</p>
+        <p className="mt-5 max-w-lg text-lg leading-8 text-white/58">Varta brings friends, random live rooms, calls, and safety into one responsive chat app for phones and desktops.</p>
       </section>
       <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="accent-card rounded-[22px] p-5">
         <div className="lg:hidden">

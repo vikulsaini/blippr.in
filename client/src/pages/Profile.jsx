@@ -74,7 +74,7 @@ export default function Profile() {
 
       <section className="depth-panel rounded-[22px] p-3 lg:col-start-2">
         <InfoTile icon={Heart} title="Interests" value={user?.interests?.length ? user.interests.join(', ') : 'No interests added'} />
-        <InfoTile icon={MapPin} title="Nearby matching" value={user?.location?.updatedAt ? 'Location ready' : 'Location not added'} />
+        <InfoTile icon={MapPin} title="Random rooms" value={user?.location?.updatedAt ? 'Location ready' : 'Location not added'} />
         <InfoTile icon={Shield} title="Privacy" value={user?.privacy?.showLastSeen === false ? 'Last seen hidden' : 'Last seen visible'} />
         <InfoTile icon={Calendar} title="Member type" value={user?.isGuest ? 'Guest account' : 'Registered account'} />
       </section>

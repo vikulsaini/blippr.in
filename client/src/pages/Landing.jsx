@@ -39,13 +39,13 @@ export default function Landing() {
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="max-w-3xl">
             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-sm text-white/70 backdrop-blur">
               <Sparkles size={15} className="text-mint" />
-              Real-time friends, nearby matches, and calls
+              Real-time friends, random rooms, and calls
             </p>
             <h1 className="max-w-4xl text-5xl font-semibold leading-[1.02] sm:text-6xl lg:text-7xl">
               Meet nearby people. Keep the good conversations.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-white/68 sm:text-lg">
-              Varta brings stranger matching, friend requests, fast chats, calls, and safety controls into one installable mobile-first web app.
+              Varta brings random live chat, friend requests, fast chats, calls, and safety controls into one installable mobile-first web app.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to={appLink} className="btn-primary rounded-full px-6 py-3 text-center font-semibold">
@@ -72,8 +72,8 @@ export default function Landing() {
           </div>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Feature icon={Radar} title="Nearby match" text="Find online users near you or switch to random matches from anywhere." />
-            <Feature icon={UserPlus} title="Friend flow" text="Send requests, accept from notifications, and move matches into chats." />
+            <Feature icon={Radar} title="Random live" text="Meet online strangers in temporary text and video rooms." />
+            <Feature icon={UserPlus} title="Friend flow" text="Send requests, accept from notifications, and move good random chats into friends." />
             <Feature icon={Phone} title="Voice calls" text="Realtime calling with mute, speaker, ringing, and call history." />
             <Feature icon={Video} title="Video calls" text="Camera controls, switch camera, and a focused full-screen call UI." />
           </div>

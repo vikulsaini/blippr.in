@@ -106,7 +106,7 @@ export default function SettingsPage() {
             })
           });
           setUser(updated);
-          setMessage('Location updated for matching');
+          setMessage('Location updated for random rooms');
         } catch (err) {
           setMessage(err.message);
         }
@@ -278,7 +278,7 @@ export default function SettingsPage() {
 
         {activeSection === 'privacy' && (
         <SettingsSection icon={Shield} title="Privacy">
-          <ActionRow icon={MapPin} title="Matching location" subtitle={user?.location?.updatedAt ? 'Location saved for nearby matches' : 'Not shared yet'} action="Refresh" onClick={refreshLocation} />
+          <ActionRow icon={MapPin} title="Random room location" subtitle={user?.location?.updatedAt ? 'Location saved for nearby rooms' : 'Not shared yet'} action="Refresh" onClick={refreshLocation} />
           <ToggleRow title="Show last seen" subtitle="Let friends see when you were last active" checked={form.showLastSeen} onChange={() => setField('showLastSeen', !form.showLastSeen)} />
           <ToggleRow title="Read receipts" subtitle="Send seen status when you read messages" checked={form.readReceipts} onChange={() => setField('readReceipts', !form.readReceipts)} />
           <div className="space-y-2 pt-1">
@@ -359,7 +359,7 @@ export default function SettingsPage() {
           <>
         <SettingsSection icon={Database} title="Data">
           <ActionRow icon={Database} title="Export account data" subtitle="Download profile, chats, notifications and reports JSON" action="Export" onClick={exportData} />
-          <InfoRow icon={Shield} title="Safety data" subtitle="Reports help keep Match safer" value="Enabled" />
+          <InfoRow icon={Shield} title="Safety data" subtitle="Reports help keep Random safer" value="Enabled" />
           <Link to="/privacy" className="flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><FileText size={18} /></span>
             <span className="min-w-0 flex-1">

@@ -27,10 +27,10 @@ export default function Terms() {
             Varta is for users who are 18 or older. Do not create an account or continue as guest if you are under 18.
           </TermsBlock>
           <TermsBlock icon={ShieldCheck} title="Respectful Use">
-            Do not harass, threaten, impersonate, spam, or share illegal, hateful, sexual, or unsafe content. Stranger matching and chat features are for real conversations only.
+            Do not harass, threaten, impersonate, spam, or share illegal, hateful, sexual, or unsafe content. Random rooms and chat features are for real conversations only.
           </TermsBlock>
           <TermsBlock icon={Ban} title="Moderation">
-            Varta may limit, block, or remove accounts that abuse matching, messaging, calls, reports, or notifications. Reports may include profile and message references for review.
+            Varta may limit, block, or remove accounts that abuse random rooms, messaging, calls, reports, or notifications. Reports may include profile and message references for review.
           </TermsBlock>
           <TermsBlock icon={Bell} title="Notifications And Calls">
             Calls, ringing, vibration, and push notifications depend on browser, device, network, and permission support. Some features may not work on every phone or browser.
