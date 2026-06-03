@@ -7,7 +7,6 @@ import { signJwt } from '../utils/tokens.js';
 import { avatarForGender, createUniqueUsername, guestIdentity } from '../utils/identity.js';
 import { getClientIp } from '../utils/clientIp.js';
 import { canExposeOtp, issueOtp, verifyOtp } from '../services/otp.service.js';
-import { canSendEmail } from '../services/email.service.js';
 import { canExposeEmailCode, issueEmailVerification, verifyEmailCode } from '../services/emailVerification.service.js';
 import { notifyUser } from '../services/notification.service.js';
 import { clearAuthCookie, setAuthCookie } from '../utils/authCookie.js';
@@ -82,6 +81,10 @@ function providerMissingError(kind) {
   return error;
 }
 
+function shouldReturnEmailCode(delivery) {
+  return canExposeEmailCode() || !delivery.sent;
+}
+
 async function sendEmailVerificationResponse(res, user, status = 200) {
   const { code, delivery } = await issueEmailVerification(user.email);
   return res.status(status).json({
@@ -89,8 +92,8 @@ async function sendEmailVerificationResponse(res, user, status = 200) {
     verificationRequired: true,
     email: user.email,
     emailSent: delivery.sent,
-    message: delivery.sent ? 'Verification code sent to your email.' : 'Verification code generated. Email provider is not configured.',
-    ...(canExposeEmailCode() ? { verificationCode: code } : {})
+    message: delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Use this testing code to verify your account.',
+    ...(shouldReturnEmailCode(delivery) ? { verificationCode: code } : {})
   });
 }
 
@@ -209,8 +212,6 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  if (emailVerificationEnabled() && !canSendEmail() && !canExposeEmailCode()) throw providerMissingError('email');
-
   const passwordHash = await bcrypt.hash(req.body.password, 12);
   const user = await User.create({
     name: req.body.name,
@@ -244,21 +245,14 @@ export const loginWithEmail = asyncHandler(async (req, res) => {
   }
 
   if (emailVerificationEnabled() && !user.emailVerifiedAt) {
-    if (!canSendEmail() && !canExposeEmailCode()) {
-      return res.status(403).json({
-        ok: false,
-        code: 'EMAIL_NOT_VERIFIED',
-        message: 'Please verify your email before logging in. Email delivery is not configured on the server.'
-      });
-    }
     const { code, delivery } = await issueEmailVerification(user.email);
     return res.status(403).json({
       ok: false,
       code: 'EMAIL_NOT_VERIFIED',
-      message: delivery.sent ? 'Please verify your email. We sent a fresh code.' : 'Please verify your email. Use the generated code below.',
+      message: delivery.sent ? 'Please verify your email. We sent a fresh code.' : 'Email provider is not configured. Use this testing code to verify your account.',
       email: user.email,
       emailSent: delivery.sent,
-      ...(canExposeEmailCode() ? { verificationCode: code } : {})
+      ...(shouldReturnEmailCode(delivery) ? { verificationCode: code } : {})
     });
   }
 
@@ -299,7 +293,6 @@ export const resendEmailVerification = asyncHandler(async (req, res) => {
   if (!emailVerificationEnabled() || user.emailVerifiedAt) {
     return res.json({ ok: true, verificationRequired: false, message: 'Email is already verified.' });
   }
-  if (!canSendEmail() && !canExposeEmailCode()) throw providerMissingError('email');
   return sendEmailVerificationResponse(res, user);
 });
 
@@ -354,8 +347,6 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  if (emailVerificationEnabled() && !canSendEmail() && !canExposeEmailCode()) throw providerMissingError('email');
-
   req.user.name = req.body.name;
   req.user.email = req.body.email;
   req.user.username = req.user.username || (await createUniqueUsername(req.body.name));
@@ -377,7 +368,8 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
     return sendAuth(res, signJwt(req.user), req.user, 200, {
       verificationRequired: true,
       emailSent: delivery.sent,
-      ...(canExposeEmailCode() ? { verificationCode: code } : {})
+      message: delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Use this testing code to verify your account.',
+      ...(shouldReturnEmailCode(delivery) ? { verificationCode: code } : {})
     });
   }
 
