@@ -12,6 +12,8 @@ services:
         value: production
       - key: CLIENT_URL
         sync: false
+      - key: PUBLIC_API_URL
+        value: https://varta-api-2k6p.onrender.com
       - key: MONGO_URI
         sync: false
       - key: REDIS_URL
@@ -22,6 +24,32 @@ services:
         value: 7d
       - key: OTP_TTL_SECONDS
         value: 300
+      - key: OTP_COOLDOWN_SECONDS
+        value: 60
+      - key: OTP_MAX_ATTEMPTS
+        value: 6
+      - key: EXPOSE_OTP_IN_RESPONSE
+        value: false
+      - key: EMAIL_CODE_TTL_SECONDS
+        value: 600
+      - key: EMAIL_CODE_COOLDOWN_SECONDS
+        value: 60
+      - key: EMAIL_CODE_MAX_ATTEMPTS
+        value: 6
+      - key: EXPOSE_EMAIL_CODE_IN_RESPONSE
+        value: false
+      - key: DISABLE_EMAIL_VERIFICATION
+        value: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: VAPID_PUBLIC_KEY

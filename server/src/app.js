@@ -30,6 +30,7 @@ app.use(mongoSanitize());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use('/api', apiLimiter);
 
+app.get('/', (_req, res) => res.json({ ok: true, name: 'varta', message: 'Varta API is running' }));
 app.get('/health', (_req, res) => res.json({ ok: true, name: 'varta' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
