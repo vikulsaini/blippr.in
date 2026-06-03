@@ -25,12 +25,10 @@ export default function Stranger() {
   const [callState, setCallState] = useState('idle');
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
-  const [incomingVideoInvite, setIncomingVideoInvite] = useState(false);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteIceQueueRef = useRef([]);
   const sessionRef = useRef(null);
-  const callStateRef = useRef('idle');
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
 
@@ -40,10 +38,6 @@ export default function Stranger() {
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
-
-  useEffect(() => {
-    callStateRef.current = callState;
-  }, [callState]);
 
   useEffect(() => {
     if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
@@ -100,12 +94,12 @@ export default function Stranger() {
   }
 
   async function findStranger(next = false) {
-    if (finding) return;
+    if (finding && !next) return;
     setFinding(true);
     setStatus(waitingText);
     cleanupCall(false);
     const currentChatId = sessionRef.current?.chat?._id;
-    if (next && currentChatId) {
+    if (next) {
       getRealtimeSocket().emit('stranger:next', { chatId: currentChatId }, handleFindAck);
       setSession(null);
       setMessages([]);
@@ -198,44 +192,15 @@ export default function Stranger() {
 
   async function startVideoChat() {
     if (!session?.chat?._id || !peer?._id) return;
-    if (incomingVideoInvite) {
-      await acceptVideoChat();
-      return;
-    }
     if (callState !== 'idle') return;
     try {
-      setCallState('inviting');
-      setStatus(`Inviting @${peer.username || 'stranger'} to video chat...`);
-      sendSignal('video-invite', {});
+      setCallState('connecting');
+      setStatus(`Connecting video with @${peer.username || 'stranger'}...`);
+      await createAndSendOffer();
     } catch (error) {
       cleanupCall();
       setStatus(error.message || 'Camera or microphone permission failed');
     }
-  }
-
-  async function acceptVideoChat() {
-    if (!sessionRef.current?.chat?._id || !sessionRef.current?.peer?._id) return;
-    try {
-      setIncomingVideoInvite(false);
-      setCallState('connecting');
-      setStatus('Starting video chat...');
-      await ensureLocalStream();
-      sendSignal('video-accept', {});
-    } catch (error) {
-      sendSignal('video-reject', { reason: error.message });
-      cleanupCall(false);
-      setStatus(error.message || 'Camera or microphone permission failed');
-    }
-  }
-
-  function rejectVideoChat() {
-    if (incomingVideoInvite) {
-      sendSignal('video-reject', { reason: 'Video request declined' });
-      setIncomingVideoInvite(false);
-      setStatus('Video request declined');
-      return;
-    }
-    cleanupCall();
   }
 
   async function createAndSendOffer() {
@@ -254,30 +219,6 @@ export default function Stranger() {
       return;
     }
 
-    if (type === 'video-invite') {
-      if (callStateRef.current !== 'idle') {
-        sendSignal('video-reject', { reason: 'Already in a video chat' });
-        return;
-      }
-      setIncomingVideoInvite(true);
-      setStatus(`${sessionRef.current.peer?.name || 'Stranger'} wants to start video chat.`);
-      return;
-    }
-
-    if (type === 'video-accept') {
-      if (callStateRef.current !== 'inviting') return;
-      setCallState('connecting');
-      setStatus('Connecting video chat...');
-      await createAndSendOffer();
-      return;
-    }
-
-    if (type === 'video-reject') {
-      cleanupCall(false);
-      setStatus(payload?.reason || 'Video request was declined');
-      return;
-    }
-
     if (type === 'end') {
       cleanupCall(false);
       setStatus('Video chat ended');
@@ -290,6 +231,10 @@ export default function Stranger() {
 
     if (type === 'offer') {
       setCallState('connecting');
+      setStatus('Connecting video chat...');
+      if (nextPeer.signalingState === 'have-local-offer') {
+        await nextPeer.setLocalDescription({ type: 'rollback' }).catch(() => {});
+      }
       await nextPeer.setRemoteDescription(new RTCSessionDescription(payload));
       await flushRemoteIceQueue();
       const answer = await nextPeer.createAnswer();
@@ -300,6 +245,7 @@ export default function Stranger() {
     if (type === 'answer') {
       await nextPeer.setRemoteDescription(new RTCSessionDescription(payload));
       await flushRemoteIceQueue();
+      setStatus('Video chat connected');
     }
   }
 
@@ -343,7 +289,6 @@ export default function Stranger() {
     setCallState('idle');
     setMuted(false);
     setCameraOff(false);
-    setIncomingVideoInvite(false);
   }
 
   function toggleMute() {
@@ -361,9 +306,9 @@ export default function Stranger() {
   }
 
   return (
-    <div className="mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-3 pb-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)] lg:gap-4">
-      <section className="depth-panel flex min-h-[28rem] flex-col overflow-hidden rounded-[28px]">
-        <div className="flex items-center justify-between gap-3 border-b border-white/8 p-4">
+    <div className="mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-2 pb-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)] lg:gap-4 lg:pb-4">
+      <section className="depth-panel flex min-h-[22rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]">
+        <div className="flex items-center justify-between gap-3 border-b border-white/8 p-3 lg:p-4">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random live</p>
             <h2 className="truncate text-xl font-semibold">{peer ? peer.name : finding ? 'Searching...' : 'Meet someone new'}</h2>
@@ -375,7 +320,7 @@ export default function Stranger() {
           </button>
         </div>
 
-        <div className="relative flex-1 p-3">
+        <div className="relative flex-1 p-2 lg:p-3">
           <MainVideoStage
             peer={peer}
             finding={finding}
@@ -386,17 +331,17 @@ export default function Stranger() {
           <LocalPreview stream={localStream} videoRef={localVideoRef} cameraOff={cameraOff} />
         </div>
 
-        <div className="grid gap-2 border-t border-white/8 p-3 sm:grid-cols-5">
-          <ControlButton onClick={startVideoChat} disabled={!session || (!incomingVideoInvite && callState !== 'idle')} icon={Video} label={incomingVideoInvite ? 'Accept' : callState === 'idle' ? 'Video' : callState} primary />
+        <div className="grid grid-cols-5 gap-1.5 border-t border-white/8 p-2 lg:gap-2 lg:p-3">
+          <ControlButton onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Video' : callState} primary />
           <ControlButton onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
           <ControlButton onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
-          <ControlButton onClick={rejectVideoChat} disabled={callState === 'idle' && !incomingVideoInvite} icon={PhoneOff} label={incomingVideoInvite ? 'Decline' : 'End'} danger />
+          <ControlButton onClick={cleanupCall} disabled={callState === 'idle'} icon={PhoneOff} label="End" danger />
           <ControlButton onClick={reportPeer} disabled={!peer} icon={Flag} label="Report" danger />
         </div>
       </section>
 
-      <aside className="depth-panel flex min-h-[24rem] flex-col overflow-hidden rounded-[28px] lg:min-h-[28rem]">
-        <div className="border-b border-white/8 p-4">
+      <aside className="depth-panel flex min-h-[18rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]">
+        <div className="border-b border-white/8 p-3 lg:p-4">
           {peer ? (
             <div className="flex items-center gap-3">
               <button onClick={() => setProfileUser(peer)} className="relative">
@@ -438,7 +383,7 @@ export default function Stranger() {
           })}
         </div>
 
-        <form onSubmit={sendMessage} className="flex gap-2 border-t border-white/8 p-3">
+        <form onSubmit={sendMessage} className="flex gap-2 border-t border-white/8 p-2 lg:p-3">
           <input
             value={text}
             onChange={(event) => setText(event.target.value)}
@@ -459,11 +404,11 @@ export default function Stranger() {
 
 function MainVideoStage({ peer, finding, stream, videoRef, emptyText }) {
   return (
-    <div className="relative min-h-[22rem] overflow-hidden rounded-[24px] border border-white/8 bg-black/45 md:min-h-[30rem] lg:min-h-[34rem]">
+    <div className="relative min-h-[16rem] overflow-hidden rounded-[20px] border border-white/8 bg-black/45 sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem] lg:rounded-[24px]">
       {stream ? (
-        <video ref={videoRef} autoPlay playsInline className="h-full min-h-[22rem] w-full object-cover md:min-h-[30rem] lg:min-h-[34rem]" />
+        <video ref={videoRef} autoPlay playsInline className="h-full min-h-[16rem] w-full object-cover sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem]" />
       ) : (
-        <div className="grid h-full min-h-[22rem] place-items-center p-6 text-center md:min-h-[30rem] lg:min-h-[34rem]">
+        <div className="grid h-full min-h-[16rem] place-items-center p-4 text-center sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem] lg:p-6">
           <div>
             {peer?.avatar ? (
               <img src={peer.avatar} alt="" className="mx-auto h-20 w-20 rounded-[28px] border border-white/10 object-cover shadow-glow" />
@@ -477,7 +422,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, emptyText }) {
           </div>
         </div>
       )}
-      <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-3">
+      <div className="absolute inset-x-2 top-2 flex items-center justify-between gap-2 lg:inset-x-3 lg:top-3 lg:gap-3">
         <span className="rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold backdrop-blur">{peer?.name || 'Stranger'}</span>
         <span className="rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold text-white/65 backdrop-blur">Remote</span>
       </div>
@@ -491,7 +436,7 @@ function LocalPreview({ stream, videoRef, cameraOff }) {
   }, [stream, videoRef, cameraOff]);
 
   return (
-    <div className="absolute bottom-6 right-6 h-28 w-24 overflow-hidden rounded-[20px] border border-white/12 bg-ink shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:h-36 sm:w-28">
+    <div className="absolute bottom-4 right-4 h-24 w-20 overflow-hidden rounded-[18px] border border-white/12 bg-ink shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:h-32 sm:w-24 lg:bottom-6 lg:right-6 lg:h-36 lg:w-28 lg:rounded-[20px]">
       {stream && !cameraOff ? (
         <video ref={videoRef} autoPlay playsInline muted className="h-full w-full scale-x-[-1] object-cover" />
       ) : (
@@ -510,7 +455,7 @@ function ControlButton({ icon: Icon, label, onClick, disabled, primary, danger }
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-semibold capitalize disabled:opacity-35 ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'btn-secondary'}`}
+      className={`flex min-h-11 items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-[10px] font-semibold capitalize disabled:opacity-35 sm:gap-2 sm:px-3 sm:py-3 sm:text-xs ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'btn-secondary'}`}
     >
       <Icon size={17} />
       {label}
