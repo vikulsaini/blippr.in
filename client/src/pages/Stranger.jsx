@@ -26,6 +26,7 @@ export default function Stranger() {
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [viewMode, setViewMode] = useState('both');
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteIceQueueRef = useRef([]);
@@ -37,6 +38,8 @@ export default function Stranger() {
   const peer = session?.peer;
   const waitingText = useMemo(() => waitingLines[Math.floor(Math.random() * waitingLines.length)], [finding]);
   const randomActionLabel = !session && !finding ? 'Start' : finding ? 'Searching' : 'Skip';
+  const showVideo = viewMode !== 'chat';
+  const showChat = viewMode !== 'video';
 
   useEffect(() => {
     sessionRef.current = session;
@@ -321,126 +324,144 @@ export default function Stranger() {
     setCameraOff((value) => !value);
   }
 
+  const shellClass = focused
+    ? `fixed inset-0 z-[90] grid h-[100dvh] w-screen gap-2 overflow-hidden bg-ink p-2 sm:p-3 ${showVideo && showChat ? 'lg:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.55fr)]' : ''}`
+    : `mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-2 pb-3 lg:gap-4 lg:pb-4 ${showVideo && showChat ? 'lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)]' : ''}`;
+
   return (
-    <div className={focused ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen gap-2 overflow-hidden bg-ink p-2 sm:p-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.55fr)]' : 'mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-2 pb-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)] lg:gap-4 lg:pb-4'}>
-      <section className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-[22rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]'}`}>
-        <div className="flex items-center justify-between gap-3 border-b border-white/8 p-3 lg:p-4">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random live</p>
-            <h2 className="truncate text-xl font-semibold">{peer ? peer.name : finding ? 'Searching...' : 'Meet someone new'}</h2>
-            <p className="truncate text-xs text-white/48">{status}</p>
-          </div>
-          <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
-            {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
-            {randomActionLabel}
-          </button>
-        </div>
-
-        <div className="relative flex-1 p-2 lg:p-3">
-          <MainVideoStage
-            peer={peer}
-            finding={finding}
-            stream={remoteStream}
-            videoRef={remoteVideoRef}
-            focused={focused}
-            onToggleFocus={() => setFocused((value) => !value)}
-            emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
-          />
-          <LocalPreview stream={localStream} videoRef={localVideoRef} cameraOff={cameraOff} />
-        </div>
-
-        <div className="grid grid-cols-5 gap-1.5 border-t border-white/8 p-2 lg:gap-2 lg:p-3">
-          <ControlButton onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Video' : callState} primary />
-          <ControlButton onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
-          <ControlButton onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
-          <ControlButton onClick={cleanupCall} disabled={callState === 'idle'} icon={PhoneOff} label="End" danger />
-          <ControlButton onClick={reportPeer} disabled={!peer} icon={Flag} label="Report" danger />
-        </div>
-      </section>
-
-      <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] max-lg:max-h-[42dvh]' : 'depth-panel flex min-h-[18rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]'}`}>
-        <div className="border-b border-white/8 p-3 lg:p-4">
-          {peer ? (
-            <div className="flex items-center gap-3">
-              <button onClick={() => setProfileUser(peer)} className="relative">
-                <img src={peer.avatar} alt="" className="h-12 w-12 rounded-2xl object-cover" />
-                <span className="live-dot absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-mint text-mint" />
+    <div className={shellClass}>
+      {showVideo && (
+        <section className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-[22rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]'}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 p-3 lg:p-4">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random live</p>
+              <h2 className="truncate text-xl font-semibold">{peer ? peer.name : finding ? 'Searching...' : 'Meet someone new'}</h2>
+              <p className="truncate text-xs text-white/48">{status}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <ModeTabs value={viewMode} onChange={setViewMode} />
+              <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
+                {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
+                {randomActionLabel}
               </button>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{peer.name}</p>
-                <p className="truncate text-xs text-white/48">@{peer.username} - {peer.gender} - {peer.age}</p>
-              </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/8 text-rose"><MessageCircle size={21} /></span>
-              <div>
-                <p className="font-semibold">Random chat</p>
-                <p className="text-xs text-white/48">Text first, start video when both sides are ready.</p>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
 
-        <div className="flex-1 space-y-2 overflow-y-auto p-3">
-          {!session && (
-            <EmptyRandom finding={finding} onStart={() => findStranger(false)} />
-          )}
-          {messages.map((message) => {
-            const mine = (message.sender?._id || message.sender) !== peer?._id;
-            return (
-              <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-mint text-ink' : 'bg-white/8 text-white'}`}>
-                  {message.text}
+          <div className="relative flex-1 p-2 lg:p-3">
+            <MainVideoStage
+              peer={peer}
+              finding={finding}
+              stream={remoteStream}
+              videoRef={remoteVideoRef}
+              focused={focused}
+              expanded={viewMode === 'video'}
+              onToggleFocus={() => setFocused((value) => !value)}
+              emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
+            />
+            <LocalPreview stream={localStream} videoRef={localVideoRef} cameraOff={cameraOff} />
+          </div>
+
+          <div className="grid grid-cols-5 gap-1.5 border-t border-white/8 p-2 lg:gap-2 lg:p-3">
+            <ControlButton onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Video' : callState} primary />
+            <ControlButton onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
+            <ControlButton onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
+            <ControlButton onClick={cleanupCall} disabled={callState === 'idle'} icon={PhoneOff} label="End" danger />
+            <ControlButton onClick={reportPeer} disabled={!peer} icon={Flag} label="Report" danger />
+          </div>
+        </section>
+      )}
+
+      {showChat && (
+        <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] max-lg:max-h-[42dvh]' : !showVideo ? 'depth-panel flex min-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-[22px]' : 'depth-panel flex min-h-[18rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]'}`}>
+          <div className="space-y-3 border-b border-white/8 p-3 lg:p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random chat</p>
+              <ModeTabs value={viewMode} onChange={setViewMode} />
+            </div>
+            {peer ? (
+              <div className="flex items-center gap-3">
+                <button onClick={() => setProfileUser(peer)} className="relative">
+                  <img src={peer.avatar} alt="" className="h-12 w-12 rounded-2xl object-cover" />
+                  <span className="live-dot absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-mint text-mint" />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{peer.name}</p>
+                  <p className="truncate text-xs text-white/48">@{peer.username} - {peer.gender} - {peer.age}</p>
                 </div>
               </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/8 text-rose"><MessageCircle size={21} /></span>
+                <div>
+                  <p className="font-semibold">Start with text or video</p>
+                  <p className="text-xs text-white/48">Switch priority anytime from the mode control.</p>
+                </div>
+              </div>
+            )}
+          </div>
 
-        <div className="grid grid-cols-2 gap-2 border-t border-white/8 p-2 lg:p-3">
-          <button
-            type="button"
-            onClick={handleRandomAction}
-            className="btn-secondary flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold"
-          >
-            {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
-            {randomActionLabel}
-          </button>
-          <button
-            type="button"
-            onClick={sendFriendRequest}
-            disabled={!peer || friendSent}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold disabled:opacity-45 ${friendSent ? 'bg-mint text-ink' : 'btn-primary'}`}
-          >
-            {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
-            {friendSent ? 'Sent' : 'Add friend'}
-          </button>
-        </div>
+          <div className="flex-1 space-y-2 overflow-y-auto p-3">
+            {!session && (
+              <EmptyRandom finding={finding} onStart={() => findStranger(false)} />
+            )}
+            {messages.map((message) => {
+              const mine = (message.sender?._id || message.sender) !== peer?._id;
+              return (
+                <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-mint text-ink' : 'bg-white/8 text-white'}`}>
+                    {message.text}
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
 
-        <form onSubmit={sendMessage} className="flex gap-2 border-t border-white/8 p-2 lg:p-3">
-          <input
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            disabled={!session}
-            className="min-w-0 flex-1 rounded-2xl border border-white/8 bg-white/6 px-4 py-3 text-sm outline-none disabled:opacity-45"
-            placeholder={session ? 'Say something...' : 'Start a random chat first'}
-          />
-          <button disabled={!session || !text.trim()} className="btn-primary grid h-12 w-12 place-items-center rounded-2xl disabled:opacity-40" aria-label="Send">
-            <Send size={18} />
-          </button>
-        </form>
-      </aside>
+          <div className="grid grid-cols-2 gap-2 border-t border-white/8 p-2 lg:p-3">
+            <button
+              type="button"
+              onClick={handleRandomAction}
+              className="btn-secondary flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold"
+            >
+              {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
+              {randomActionLabel}
+            </button>
+            <button
+              type="button"
+              onClick={sendFriendRequest}
+              disabled={!peer || friendSent}
+              className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold disabled:opacity-45 ${friendSent ? 'bg-mint text-ink' : 'btn-primary'}`}
+            >
+              {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
+              {friendSent ? 'Sent' : 'Add friend'}
+            </button>
+          </div>
+
+          <form onSubmit={sendMessage} className="flex gap-2 border-t border-white/8 p-2 lg:p-3">
+            <input
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              disabled={!session}
+              className="min-w-0 flex-1 rounded-2xl border border-white/8 bg-white/6 px-4 py-3 text-sm outline-none disabled:opacity-45"
+              placeholder={session ? 'Say something...' : 'Start a random chat first'}
+            />
+            <button disabled={!session || !text.trim()} className="btn-primary grid h-12 w-12 place-items-center rounded-2xl disabled:opacity-40" aria-label="Send">
+              <Send size={18} />
+            </button>
+          </form>
+        </aside>
+      )}
 
       <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
     </div>
   );
 }
 
-function MainVideoStage({ peer, finding, stream, videoRef, focused, onToggleFocus, emptyText }) {
+function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, onToggleFocus, emptyText }) {
   const stageHeight = focused
     ? 'h-full min-h-[44dvh] lg:min-h-[calc(100dvh-8.5rem)]'
+    : expanded
+      ? 'min-h-[calc(100dvh-16rem)] sm:min-h-[calc(100dvh-15rem)] lg:min-h-[calc(100dvh-13.5rem)]'
     : 'min-h-[16rem] sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem]';
 
   return (
@@ -476,6 +497,29 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, onToggleFocu
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ModeTabs({ value, onChange }) {
+  const modes = [
+    { value: 'both', label: 'Both' },
+    { value: 'video', label: 'VC' },
+    { value: 'chat', label: 'Chat' }
+  ];
+
+  return (
+    <div className="flex shrink-0 rounded-full border border-white/10 bg-white/6 p-1">
+      {modes.map((mode) => (
+        <button
+          key={mode.value}
+          type="button"
+          onClick={() => onChange(mode.value)}
+          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${value === mode.value ? 'bg-white text-ink shadow-[0_10px_24px_rgba(255,255,255,0.12)]' : 'text-white/58 hover:text-white'}`}
+        >
+          {mode.label}
+        </button>
+      ))}
     </div>
   );
 }
