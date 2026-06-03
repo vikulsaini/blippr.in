@@ -76,7 +76,7 @@ export default function ChatList({
               <TabButton active={tab === 'favorites'} onClick={() => setTab('favorites')} label="Favorites" />
               <TabButton active={tab === 'archived'} onClick={() => setTab('archived')} label="Archived" />
             </div>
-            <label className="flex shrink-0 items-center gap-3 rounded-[16px] border border-sky/15 bg-sky/5 px-4 py-3">
+            <label className="flex shrink-0 items-center gap-3 rounded-[16px] border border-sky/15 bg-sky/5 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
               <Search size={18} className="text-sky/75" />
               <input
                 value={query}
@@ -199,9 +199,10 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
           event.stopPropagation();
           onSelect();
         }}
-        className={`relative flex w-full items-center gap-3 bg-ink px-1 py-2.5 text-left ${chat.unreadCount ? 'bg-sky/7' : ''} ${selected ? 'bg-mint/10' : ''}`}
+        className={`interactive-card relative flex w-full items-center gap-3 bg-ink px-1 py-2.5 text-left md:rounded-[18px] md:px-2 ${chat.unreadCount ? 'bg-sky/7' : ''} ${selected ? 'bg-mint/10' : ''}`}
       >
         <button
+          className="relative"
           onClick={(event) => {
             event.stopPropagation();
             onProfile();
@@ -209,6 +210,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
           aria-label={`View ${displayName || 'friend'} profile`}
         >
           {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full border border-white/10 object-cover shadow-[0_8px_22px_rgba(0,0,0,0.24)]" /> : <div className="h-10 w-10 rounded-full border border-white/10 bg-white/8" />}
+          {other?.isOnline && <span className="live-dot absolute ml-7 mt-7 h-2.5 w-2.5 rounded-full bg-mint text-mint" />}
         </button>
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center justify-between gap-3">
@@ -256,7 +258,7 @@ function ChatSkeleton() {
 function EmptyState({ icon: Icon, title, text, action, onAction }) {
   return (
     <div className="surface mt-4 rounded-[20px] p-6 text-center">
-      <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white/8 text-mint"><Icon size={22} /></span>
+      <span className="tone-ring mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white/8 text-mint"><Icon size={22} /></span>
       <p className="mt-3 font-medium">{title}</p>
       <p className="mt-1 text-sm text-white/55">{text}</p>
       <button onClick={onAction} className="btn-primary mt-4 rounded-full px-4 py-2 text-sm font-semibold">{action}</button>

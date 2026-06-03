@@ -233,7 +233,7 @@ export default function SettingsPage() {
         {message && <p className="rounded-[16px] border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">{message}</p>}
 
         {activeSection === 'home' && (
-          <section className="surface grid gap-1 rounded-[22px] p-2 md:grid-cols-2">
+          <section className="depth-panel grid gap-1 rounded-[22px] p-2 md:grid-cols-2">
             <MenuRow icon={UserRound} title="Profile settings" subtitle="Photo, name, username, age, gender and bio" onClick={() => setActiveSection('profile')} />
             <MenuRow icon={Shield} title="Privacy" subtitle="Last seen, read receipts and blocked users" onClick={() => setActiveSection('privacy')} />
             <MenuRow icon={Ban} title="Safety filter" subtitle="Blocked words and chat protection" onClick={() => setActiveSection('safety')} />
@@ -246,7 +246,7 @@ export default function SettingsPage() {
         {activeSection === 'profile' && (
         <form onSubmit={saveProfile} className="space-y-3">
           <SettingsSection icon={UserRound} title="Profile settings">
-            <div className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-ink/35 p-3">
+            <div className="interactive-card flex items-center gap-3 rounded-[16px] border border-white/8 bg-ink/35 p-3">
               {form.avatar ? <img src={form.avatar} alt="" className="h-16 w-16 rounded-full bg-white/8 object-cover" /> : <div className="grid h-16 w-16 place-items-center rounded-full bg-white/8 text-white/45"><UserRound size={22} /></div>}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">Profile photo</p>
@@ -378,7 +378,7 @@ export default function SettingsPage() {
           </Link>
         </SettingsSection>
 
-        <button onClick={() => setDeleteConfirmOpen(true)} className="surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
+        <button onClick={() => setDeleteConfirmOpen(true)} className="interactive-card surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
           <span className="rounded-[14px] bg-coral/10 p-3"><Trash2 size={18} /></span>
           <span className="font-medium">Delete account</span>
         </button>
@@ -393,7 +393,7 @@ export default function SettingsPage() {
           onConfirm={deleteAccount}
         />
 
-        <button onClick={logout} className="surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
+        <button onClick={logout} className="interactive-card surface flex w-full items-center gap-3 rounded-[18px] p-4 text-left text-coral">
           <span className="rounded-[14px] bg-coral/10 p-3"><LogOut size={18} /></span>
           <span className="font-medium">Logout</span>
         </button>
@@ -452,7 +452,7 @@ function ProfileSkeleton() {
 
 function SettingsSection({ icon: Icon, title, children }) {
   return (
-    <section className="rounded-[18px] border border-white/8 bg-white/5 p-3">
+    <section className="depth-panel rounded-[18px] p-3">
       <div className="mb-3 flex items-center gap-2 px-1">
         <span className="grid h-8 w-8 place-items-center rounded-full bg-white/8 text-mint"><Icon size={16} /></span>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-white/62">{title}</h3>
@@ -491,7 +491,7 @@ function GenderControl({ value, onChange }) {
 
 function ActionRow({ icon: Icon, title, subtitle, action, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
+    <button type="button" onClick={onClick} className="interactive-card flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
       <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><Icon size={18} /></span>
       <span className="min-w-0 flex-1">
         <span className="block font-medium">{title}</span>
@@ -507,7 +507,7 @@ function ActionRow({ icon: Icon, title, subtitle, action, onClick }) {
 
 function MenuRow({ icon: Icon, title, subtitle, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-[14px] p-3 text-left transition hover:bg-white/5 active:scale-[0.99]">
+    <button type="button" onClick={onClick} className="interactive-card flex w-full items-center gap-3 rounded-[14px] p-3 text-left transition hover:bg-white/5 active:scale-[0.99]">
       <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/72"><Icon size={18} /></span>
       <span className="min-w-0 flex-1">
         <span className="block font-medium">{title}</span>
@@ -520,7 +520,7 @@ function MenuRow({ icon: Icon, title, subtitle, onClick }) {
 
 function InfoRow({ icon: Icon, title, subtitle, value }) {
   return (
-    <div className="flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
+    <div className="interactive-card flex items-center gap-3 rounded-[14px] bg-ink/35 p-3">
       <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-white/70"><Icon size={18} /></span>
       <span className="min-w-0 flex-1">
         <span className="block font-medium">{title}</span>
@@ -533,7 +533,7 @@ function InfoRow({ icon: Icon, title, subtitle, value }) {
 
 function ToggleRow({ title, subtitle, checked, onChange }) {
   return (
-    <button type="button" onClick={onChange} className="flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
+    <button type="button" onClick={onChange} className="interactive-card flex w-full items-center gap-3 rounded-[14px] bg-ink/35 p-3 text-left">
       <span className="min-w-0 flex-1">
         <span className="block font-medium">{title}</span>
         <span className="block truncate text-xs text-white/45">{subtitle}</span>
@@ -547,7 +547,7 @@ function ToggleRow({ title, subtitle, checked, onChange }) {
 
 function SoundPicker({ title, value, onSelect, onUpload, onPreview }) {
   return (
-    <div className="rounded-[14px] bg-ink/35 p-3">
+    <div className="interactive-card rounded-[14px] bg-ink/35 p-3">
       <div className="flex items-center gap-3">
         <span className="grid h-10 w-10 place-items-center rounded-full bg-white/8 text-mint"><Music size={18} /></span>
         <span className="min-w-0 flex-1">

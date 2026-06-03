@@ -26,7 +26,9 @@ export default function Profile() {
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-4 pb-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-      <section className="accent-card relative overflow-hidden rounded-[28px] p-4 lg:min-h-[28rem] lg:p-6">
+      <section className="accent-card interactive-card relative overflow-hidden rounded-[28px] p-4 lg:min-h-[28rem] lg:p-6">
+        <div className="pointer-events-none absolute -left-10 top-10 h-32 w-32 rounded-full bg-mint/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-8 bottom-8 h-32 w-32 rounded-full bg-rose/10 blur-3xl" />
         <div className="absolute right-4 top-4 z-10">
           <button onClick={() => navigate('/app/settings')} className="btn-icon h-11 w-11" aria-label="Open settings">
             <Settings size={19} />
@@ -45,7 +47,7 @@ export default function Profile() {
                 <UserRound size={34} />
               </div>
             )}
-            <span className={`absolute bottom-2 right-2 h-4 w-4 rounded-full border-2 border-ink ${user?.isOnline ? 'bg-mint shadow-[0_0_18px_rgba(61,214,198,0.7)]' : 'bg-white/35'}`} />
+            <span className={`absolute bottom-2 right-2 h-4 w-4 rounded-full border-2 border-ink ${user?.isOnline ? 'live-dot bg-mint text-mint shadow-[0_0_18px_rgba(61,214,198,0.7)]' : 'bg-white/35'}`} />
           </div>
 
           <h1 className="mt-4 truncate text-3xl font-semibold">{user?.name || 'Your profile'}</h1>
@@ -70,7 +72,7 @@ export default function Profile() {
         <ProfileStat label="Blocked" value={blockedCount} tone="rose" />
       </section>
 
-      <section className="surface rounded-[22px] p-3 lg:col-start-2">
+      <section className="depth-panel rounded-[22px] p-3 lg:col-start-2">
         <InfoTile icon={Heart} title="Interests" value={user?.interests?.length ? user.interests.join(', ') : 'No interests added'} />
         <InfoTile icon={MapPin} title="Nearby matching" value={user?.location?.updatedAt ? 'Location ready' : 'Location not added'} />
         <InfoTile icon={Shield} title="Privacy" value={user?.privacy?.showLastSeen === false ? 'Last seen hidden' : 'Last seen visible'} />
@@ -92,7 +94,7 @@ function ProfileStat({ label, value, tone }) {
     rose: 'from-rose/18 to-rose/5 text-rose'
   };
   return (
-    <div className={`rounded-[18px] border border-white/8 bg-gradient-to-b ${tones[tone]} p-3 text-center`}>
+    <div className={`interactive-card rounded-[18px] border border-white/8 bg-gradient-to-b ${tones[tone]} p-3 text-center`}>
       <p className="text-xl font-semibold capitalize text-white">{value}</p>
       <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-white/45">{label}</p>
     </div>
@@ -101,7 +103,7 @@ function ProfileStat({ label, value, tone }) {
 
 function InfoTile({ icon: Icon, title, value }) {
   return (
-    <div className="flex items-center gap-3 rounded-[16px] p-3">
+    <div className="interactive-card flex items-center gap-3 rounded-[16px] p-3">
       <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/8 text-mint">
         <Icon size={18} />
       </span>

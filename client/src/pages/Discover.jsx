@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Search, UserPlus } from 'lucide-react';
+import { Check, Search, Sparkles, UserPlus } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
 import { presenceText } from '../lib/presence.js';
@@ -49,8 +49,8 @@ export default function Discover() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4">
-      <section className="surface rounded-[20px] p-2 md:p-3">
-        <label className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
+      <section className="depth-panel rounded-[20px] p-2 md:p-3">
+        <label className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
           <Search size={18} className="text-white/45" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search @username or name" />
         </label>
@@ -65,15 +65,21 @@ export default function Discover() {
       </section>
 
       {!query.trim() && (
-        <div className="rounded-[20px] border border-white/8 bg-white/5 p-8 text-center">
-          <p className="font-medium">Search people</p>
+        <div className="depth-panel rounded-[24px] p-8 text-center">
+          <span className="tone-ring mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky/10 text-sky">
+            <Sparkles size={21} />
+          </span>
+          <p className="mt-3 font-medium">Search people</p>
           <p className="mt-1 text-sm text-white/52">Type a name or username to find someone.</p>
         </div>
       )}
 
       {query.trim() && !users.length && !message && (
-        <div className="rounded-[20px] border border-white/8 bg-white/5 p-8 text-center">
-          <p className="font-medium">No users found</p>
+        <div className="depth-panel rounded-[24px] p-8 text-center">
+          <span className="tone-ring mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-mint/10 text-mint">
+            <Search size={21} />
+          </span>
+          <p className="mt-3 font-medium">No users found</p>
           <p className="mt-1 text-sm text-white/52">Try another username or name.</p>
         </div>
       )}
@@ -89,11 +95,12 @@ function UserRow({ user, sent, onProfile, onAdd, index }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.035, duration: 0.22 }}
-      className="surface flex items-center justify-between gap-3 rounded-[18px] p-3"
+      className="interactive-card depth-panel flex items-center justify-between gap-3 rounded-[18px] p-3"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <button onClick={() => onProfile(user)} aria-label={`View ${user.name} profile`}>
+        <button onClick={() => onProfile(user)} className="relative" aria-label={`View ${user.name} profile`}>
           <img src={user.avatar} alt="" className="h-12 w-12 rounded-full bg-white/12 object-cover" />
+          {user.isOnline && <span className="live-dot absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-mint text-mint" />}
         </button>
         <div className="min-w-0">
           <p className="truncate font-medium">{user.name}</p>

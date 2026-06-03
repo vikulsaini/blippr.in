@@ -23,12 +23,28 @@ export default function Shell() {
   const isConversation = isChats && new URLSearchParams(location.search).has('chat');
   const [bottomNavHidden, setBottomNavHidden] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [socketState, setSocketState] = useState('connected');
+  const [clock, setClock] = useState(() => new Date());
   const navHidden = bottomNavHidden || keyboardOpen;
   const showHeader = !bottomNavHidden;
   const touchStartRef = useRef(null);
 
   useEffect(() => {
     refreshPushSubscriptionIfAllowed().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(new Date()), 30 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    function handleSocketState(event) {
+      setSocketState(event.detail?.state || 'connected');
+    }
+
+    window.addEventListener('varta:socket-state', handleSocketState);
+    return () => window.removeEventListener('varta:socket-state', handleSocketState);
   }, []);
 
   useEffect(() => {
@@ -88,7 +104,7 @@ export default function Shell() {
 
   return (
     <main className="app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden px-3 pt-3 text-white md:grid-cols-[5rem_minmax(0,1fr)] md:gap-4 md:px-5 md:py-5 xl:grid-cols-[16rem_minmax(0,1fr)]">
-      <DesktopNav locationPath={location.pathname} />
+      <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
       <div className="flex min-h-0 flex-col overflow-hidden">
         <header className={`${showHeader ? 'mb-3 flex' : 'sr-only md:not-sr-only md:mb-3 md:flex'} items-center justify-between rounded-[24px] md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3`}>
           <BrandLogo />
@@ -140,7 +156,8 @@ export default function Shell() {
   );
 }
 
-function DesktopNav({ locationPath }) {
+function DesktopNav({ locationPath, socketState, clock }) {
+  const connected = socketState === 'connected' || socketState === 'reconnected';
   return (
     <aside className="premium-nav hidden min-h-0 rounded-[28px] border border-white/8 p-2 md:flex md:flex-col xl:p-3">
       <div className="hidden px-3 py-3 xl:block">
@@ -167,6 +184,21 @@ function DesktopNav({ locationPath }) {
           );
         })}
       </nav>
+      <div className="mt-auto hidden space-y-3 rounded-[22px] border border-white/8 bg-white/5 p-3 xl:block">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/38">System</span>
+          <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-mint text-mint' : 'bg-gold text-gold'}`} />
+        </div>
+        <div>
+          <p className="text-sm font-semibold">{connected ? 'Realtime online' : 'Reconnecting'}</p>
+          <p className="mt-1 text-xs text-white/45">{clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {['chat', 'match', 'call'].map((item, index) => (
+            <span key={item} className={`h-1.5 rounded-full ${connected ? navAccent(index) : 'bg-white/14'}`} />
+          ))}
+        </div>
+      </div>
     </aside>
   );
 }
