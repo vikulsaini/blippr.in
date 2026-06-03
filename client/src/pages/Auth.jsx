@@ -160,9 +160,14 @@ export default function Auth() {
   }
 
   return (
-    <main className="app-shell mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-8 text-white">
+    <main className="app-shell mx-auto grid min-h-screen w-full max-w-6xl items-center gap-6 px-5 py-8 text-white lg:grid-cols-[1fr_minmax(26rem,30rem)]">
+      <section className="hidden lg:block">
+        <BrandLogo />
+        <h1 className="mt-6 max-w-xl text-6xl font-semibold leading-tight">Start real conversations without the clutter.</h1>
+        <p className="mt-5 max-w-lg text-lg leading-8 text-white/58">Varta brings friends, nearby matching, calls, and safety into one responsive chat app for phones and desktops.</p>
+      </section>
       <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="accent-card rounded-[22px] p-5">
-        <div>
+        <div className="lg:hidden">
           <BrandLogo />
           <p className="mt-2 text-sm text-white/58">Meet people, become friends, and keep conversations close.</p>
         </div>

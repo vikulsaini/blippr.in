@@ -219,7 +219,7 @@ export default function SettingsPage() {
 
   if (settingsOpen) {
     return (
-      <div className="space-y-3">
+      <div className="mx-auto w-full max-w-5xl space-y-3">
         <header className="flex items-center gap-3">
           <button onClick={() => (activeSection === 'home' ? navigate('/app/profile') : setActiveSection('home'))} className="btn-icon h-10 w-10" aria-label="Back">
             <ArrowLeft size={18} />
@@ -233,7 +233,7 @@ export default function SettingsPage() {
         {message && <p className="rounded-[16px] border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">{message}</p>}
 
         {activeSection === 'home' && (
-          <section className="surface rounded-[22px] p-2">
+          <section className="surface grid gap-1 rounded-[22px] p-2 md:grid-cols-2">
             <MenuRow icon={UserRound} title="Profile settings" subtitle="Photo, name, username, age, gender and bio" onClick={() => setActiveSection('profile')} />
             <MenuRow icon={Shield} title="Privacy" subtitle="Last seen, read receipts and blocked users" onClick={() => setActiveSection('privacy')} />
             <MenuRow icon={Ban} title="Safety filter" subtitle="Blocked words and chat protection" onClick={() => setActiveSection('safety')} />

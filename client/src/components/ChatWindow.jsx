@@ -32,7 +32,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
     if (!viewport) return undefined;
 
     function updateHeight() {
-      setViewportHeight(viewport.height);
+      setViewportHeight(window.innerWidth < 768 ? viewport.height : 0);
     }
 
     updateHeight();

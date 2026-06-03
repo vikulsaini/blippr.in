@@ -25,8 +25,8 @@ export default function Profile() {
   if (!user && !message) return <ProfileSkeleton />;
 
   return (
-    <div className="space-y-4 pb-6">
-      <section className="accent-card relative overflow-hidden rounded-[28px] p-4">
+    <div className="mx-auto grid w-full max-w-6xl gap-4 pb-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+      <section className="accent-card relative overflow-hidden rounded-[28px] p-4 lg:min-h-[28rem] lg:p-6">
         <div className="absolute right-4 top-4 z-10">
           <button onClick={() => navigate('/app/settings')} className="btn-icon h-11 w-11" aria-label="Open settings">
             <Settings size={19} />
@@ -62,22 +62,22 @@ export default function Profile() {
         )}
       </section>
 
-      {message && <p className="rounded-[16px] border border-coral/25 bg-coral/10 px-4 py-3 text-sm text-coral">{message}</p>}
+      {message && <p className="rounded-[16px] border border-coral/25 bg-coral/10 px-4 py-3 text-sm text-coral lg:col-span-2">{message}</p>}
 
-      <section className="grid grid-cols-3 gap-2">
+      <section className="grid grid-cols-3 gap-2 lg:col-start-2 lg:row-start-1">
         <ProfileStat label="Age" value={user?.age || '-'} tone="mint" />
         <ProfileStat label="Gender" value={user?.gender || '-'} tone="sky" />
         <ProfileStat label="Blocked" value={blockedCount} tone="rose" />
       </section>
 
-      <section className="surface rounded-[22px] p-3">
+      <section className="surface rounded-[22px] p-3 lg:col-start-2">
         <InfoTile icon={Heart} title="Interests" value={user?.interests?.length ? user.interests.join(', ') : 'No interests added'} />
         <InfoTile icon={MapPin} title="Nearby matching" value={user?.location?.updatedAt ? 'Location ready' : 'Location not added'} />
         <InfoTile icon={Shield} title="Privacy" value={user?.privacy?.showLastSeen === false ? 'Last seen hidden' : 'Last seen visible'} />
         <InfoTile icon={Calendar} title="Member type" value={user?.isGuest ? 'Guest account' : 'Registered account'} />
       </section>
 
-      <button onClick={() => navigate('/app/settings')} className="btn-primary flex w-full items-center justify-center gap-2 rounded-[18px] py-3 font-semibold">
+      <button onClick={() => navigate('/app/settings')} className="btn-primary flex w-full items-center justify-center gap-2 rounded-[18px] py-3 font-semibold lg:col-start-2">
         <Settings size={18} />
         Open settings
       </button>

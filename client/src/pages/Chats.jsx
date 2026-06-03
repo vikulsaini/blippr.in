@@ -241,30 +241,8 @@ export default function Chats() {
   }
 
   return (
-    <div className={activeChat ? 'h-full min-h-0' : 'flex h-full min-h-0 flex-col'}>
-      {activeChat ? (
-        <ChatWindow
-          chat={activeChat}
-          messages={messages}
-          calls={calls}
-          currentUserId={currentUserId}
-          text={text}
-          setText={setText}
-          onSend={sendMessage}
-          onSendMedia={sendMedia}
-          onBack={closeConversation}
-          onProfile={(user) => openProfile(user, activeChat)}
-          replyTo={replyTo}
-          onReply={setReplyTo}
-          onCancelReply={() => setReplyTo(null)}
-          onReact={reactToMessage}
-          onEditMessage={editMessage}
-          onDeleteMessage={deleteMessage}
-          onReportMessage={reportMessage}
-          onStartCall={callSession.startCall}
-          isTyping={typingChatId === activeChat._id}
-        />
-      ) : (
+    <div className="h-full min-h-0 md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:gap-3 xl:grid-cols-[26rem_minmax(0,1fr)]">
+      <div className={`${activeChat ? 'hidden md:flex' : 'flex'} min-h-0 flex-col overflow-hidden md:rounded-[26px] md:border md:border-white/8 md:bg-ink/70`}>
         <ChatList
           chats={chats}
           currentUserId={currentUserId}
@@ -282,6 +260,38 @@ export default function Chats() {
           onOpenProfile={openProfile}
           onFindPeople={() => navigate('/app/discover')}
         />
+      </div>
+      {activeChat ? (
+        <div className="min-h-0 overflow-hidden md:rounded-[26px] md:border md:border-white/8">
+          <ChatWindow
+            chat={activeChat}
+            messages={messages}
+            calls={calls}
+            currentUserId={currentUserId}
+            text={text}
+            setText={setText}
+            onSend={sendMessage}
+            onSendMedia={sendMedia}
+            onBack={closeConversation}
+            onProfile={(user) => openProfile(user, activeChat)}
+            replyTo={replyTo}
+            onReply={setReplyTo}
+            onCancelReply={() => setReplyTo(null)}
+            onReact={reactToMessage}
+            onEditMessage={editMessage}
+            onDeleteMessage={deleteMessage}
+            onReportMessage={reportMessage}
+            onStartCall={callSession.startCall}
+            isTyping={typingChatId === activeChat._id}
+          />
+        </div>
+      ) : (
+        <div className="hidden min-h-0 place-items-center rounded-[26px] border border-white/8 bg-white/5 p-8 text-center md:grid">
+          <div>
+            <p className="text-2xl font-semibold">Open a conversation</p>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-white/50">Select a friend from the list to chat, send media, or start a call.</p>
+          </div>
+        </div>
       )}
 
       <ConfirmSheet

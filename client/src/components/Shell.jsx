@@ -87,24 +87,29 @@ export default function Shell() {
   }
 
   return (
-    <main className="app-shell mx-auto flex h-dvh max-w-md flex-col overflow-hidden px-4 pt-4 text-white">
-      <header className={`${showHeader ? 'mb-3 flex' : 'sr-only'} items-center justify-between`}>
-        <BrandLogo />
-        <NotificationBell />
-      </header>
-      <section
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        className={`min-h-0 flex-1 ${navHidden || isChats ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24'} ${isChats ? '-mx-4' : ''}`}
-      >
-        {!bottomNavHidden && <SocketStateBanner />}
-        {!bottomNavHidden && <GuestLimitBanner />}
-        <Outlet context={{ setBottomNavHidden }} />
-      </section>
+    <main className="app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden px-3 pt-3 text-white md:grid-cols-[5rem_minmax(0,1fr)] md:gap-4 md:px-5 md:py-5 xl:grid-cols-[16rem_minmax(0,1fr)]">
+      <DesktopNav locationPath={location.pathname} />
+      <div className="flex min-h-0 flex-col overflow-hidden">
+        <header className={`${showHeader ? 'mb-3 flex' : 'sr-only md:not-sr-only md:mb-3 md:flex'} items-center justify-between rounded-[24px] md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3`}>
+          <BrandLogo />
+          <NotificationBell />
+        </header>
+        <section
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className={`min-h-0 flex-1 ${navHidden || isChats ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24 md:pb-0'} ${isChats ? '-mx-3 md:mx-0' : ''}`}
+        >
+          {!bottomNavHidden && <SocketStateBanner />}
+          {!bottomNavHidden && <GuestLimitBanner />}
+          <div className={!isChats ? 'mx-auto w-full max-w-6xl' : 'h-full'}>
+            <Outlet context={{ setBottomNavHidden }} />
+          </div>
+        </section>
+      </div>
       {!isChats && <GlobalIncomingCall />}
       <GuestUpgradeModal />
       {!navHidden && (
-        <nav className="safe-bottom premium-nav fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-white/8 px-5 pt-1.5 backdrop-blur">
+        <nav className="safe-bottom premium-nav fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-white/8 px-5 pt-1.5 backdrop-blur md:hidden">
           <div className="grid grid-cols-4">
             {tabs.map(({ to, label, icon: Icon }, index) => (
               <NavLink
@@ -132,6 +137,37 @@ export default function Shell() {
         </nav>
       )}
     </main>
+  );
+}
+
+function DesktopNav({ locationPath }) {
+  return (
+    <aside className="premium-nav hidden min-h-0 rounded-[28px] border border-white/8 p-2 md:flex md:flex-col xl:p-3">
+      <div className="hidden px-3 py-3 xl:block">
+        <BrandLogo />
+        <p className="mt-2 text-xs leading-5 text-white/42">Realtime chats, matches, calls, and safety controls.</p>
+      </div>
+      <nav className="mt-2 grid gap-2">
+        {tabs.map(({ to, label, icon: Icon }, index) => {
+          const active = to === '/app' ? locationPath === '/app' : locationPath === to;
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/app'}
+              className={`group flex items-center justify-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition xl:justify-start ${
+                active ? 'bg-white text-ink' : 'text-white/52 hover:bg-white/8 hover:text-white'
+              }`}
+            >
+              <span className={`grid h-9 w-9 place-items-center rounded-2xl ${active ? navGlow(index) : 'bg-white/7'}`}>
+                <Icon size={20} />
+              </span>
+              <span className="hidden xl:inline">{label}</span>
+            </NavLink>
+          );
+        })}
+      </nav>
+    </aside>
   );
 }
 

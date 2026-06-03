@@ -264,8 +264,8 @@ export default function Stranger() {
   const requestSent = activeUser && sentIds.has(activeUser._id);
 
   return (
-    <div className="space-y-4 pb-2">
-      <section className="accent-card rounded-[24px] p-3 backdrop-blur">
+    <div className="mx-auto grid w-full max-w-6xl gap-4 pb-2 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+      <section className="accent-card rounded-[24px] p-3 backdrop-blur lg:sticky lg:top-0 lg:p-5">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold/85">Match</p>
@@ -357,7 +357,7 @@ export default function Stranger() {
       </motion.section>
       </div>
 
-      <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/7 p-1.5 shadow-glow backdrop-blur">
+      <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/7 p-1.5 shadow-glow backdrop-blur lg:col-start-2">
         <ActionButton label="Prev" onClick={() => completeSwipe('previous')} icon={ChevronLeft} disabled={!activeUser || loading} />
         <ActionButton label="Report" icon={Flag} onClick={reportActiveUser} disabled={!activeUser || loading || actionBusy} />
         <ActionButton label={requestSent ? 'Cancel' : 'Add'} onClick={() => activeUser && addFriend(activeUser._id)} icon={requestSent ? Check : UserPlus} active={requestSent} disabled={!activeUser || loading || actionBusy} />

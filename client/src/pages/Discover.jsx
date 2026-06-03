@@ -48,8 +48,8 @@ export default function Discover() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="surface rounded-[20px] p-2">
+    <div className="mx-auto w-full max-w-5xl space-y-4">
+      <section className="surface rounded-[20px] p-2 md:p-3">
         <label className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-white/5 px-4 py-3">
           <Search size={18} className="text-white/45" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search @username or name" />
@@ -58,7 +58,7 @@ export default function Discover() {
 
       {message && <p className="rounded-[16px] border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">{message}</p>}
 
-      <section className="space-y-3">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {users.map((user, index) => (
           <UserRow key={user._id} user={user} index={index} sent={sentIds.has(user._id)} onProfile={setProfileUser} onAdd={sendRequest} />
         ))}

@@ -42,7 +42,7 @@ export default function ChatList({
   }, [activeChats, currentUserId]);
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col px-4 pt-3">
+    <section className="flex min-h-0 flex-1 flex-col px-3 pt-3 md:px-4">
       <div className="sticky top-0 z-10 -mx-4 bg-ink/95 px-4 pb-3 backdrop-blur">
         {selectedChats.size ? (
           <SelectionToolbar
@@ -89,7 +89,7 @@ export default function ChatList({
         )}
       </div>
 
-      <div data-chat-feed className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24">
+      <div data-chat-feed className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3">
         {loading ? (
           <ChatSkeleton />
         ) : (
