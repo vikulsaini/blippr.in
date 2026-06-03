@@ -1,5 +1,15 @@
 import { API_URL } from './config.js';
 
+function isAuthEndpoint(path) {
+  return path.startsWith('/api/auth/');
+}
+
+function handleUnauthorized(path) {
+  if (isAuthEndpoint(path)) return;
+  localStorage.removeItem('varta_token');
+  window.dispatchEvent(new CustomEvent('varta:auth-invalid'));
+}
+
 export function getToken() {
   return localStorage.getItem('varta_token');
 }
@@ -35,6 +45,7 @@ export async function api(path, options = {}) {
     const error = new Error(body.message || 'Request failed');
     error.code = body.code;
     error.body = body;
+    if (res.status === 401) handleUnauthorized(path);
     if (error.code === 'GUEST_EXPIRED') window.dispatchEvent(new CustomEvent('varta:guest-expired'));
     throw error;
   }
