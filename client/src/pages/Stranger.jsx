@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Flag, Loader2, MessageCircle, Mic, MicOff, PhoneOff, Send, Shuffle, UserPlus, Video, VideoOff } from 'lucide-react';
+import { Check, Flag, Loader2, Maximize2, MessageCircle, Mic, MicOff, Minimize2, PhoneOff, Send, Shuffle, UserPlus, Video, VideoOff } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
@@ -25,12 +25,14 @@ export default function Stranger() {
   const [callState, setCallState] = useState('idle');
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
+  const [focused, setFocused] = useState(false);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteIceQueueRef = useRef([]);
   const sessionRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const peer = session?.peer;
   const waitingText = useMemo(() => waitingLines[Math.floor(Math.random() * waitingLines.length)], [finding]);
@@ -47,6 +49,10 @@ export default function Stranger() {
   useEffect(() => {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
   }, [remoteStream]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     const socket = getRealtimeSocket();
@@ -298,6 +304,7 @@ export default function Stranger() {
     setCallState('idle');
     setMuted(false);
     setCameraOff(false);
+    setFocused(false);
   }
 
   function toggleMute() {
@@ -315,8 +322,8 @@ export default function Stranger() {
   }
 
   return (
-    <div className="mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-2 pb-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)] lg:gap-4 lg:pb-4">
-      <section className="depth-panel flex min-h-[22rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]">
+    <div className={focused ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen gap-2 overflow-hidden bg-ink p-2 sm:p-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.55fr)]' : 'mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-2 pb-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)] lg:gap-4 lg:pb-4'}>
+      <section className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-[22rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]'}`}>
         <div className="flex items-center justify-between gap-3 border-b border-white/8 p-3 lg:p-4">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random live</p>
@@ -335,6 +342,8 @@ export default function Stranger() {
             finding={finding}
             stream={remoteStream}
             videoRef={remoteVideoRef}
+            focused={focused}
+            onToggleFocus={() => setFocused((value) => !value)}
             emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
           />
           <LocalPreview stream={localStream} videoRef={localVideoRef} cameraOff={cameraOff} />
@@ -349,7 +358,7 @@ export default function Stranger() {
         </div>
       </section>
 
-      <aside className="depth-panel flex min-h-[18rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]">
+      <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] max-lg:max-h-[42dvh]' : 'depth-panel flex min-h-[18rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]'}`}>
         <div className="border-b border-white/8 p-3 lg:p-4">
           {peer ? (
             <div className="flex items-center gap-3">
@@ -387,6 +396,7 @@ export default function Stranger() {
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
 
         <div className="grid grid-cols-2 gap-2 border-t border-white/8 p-2 lg:p-3">
@@ -428,13 +438,17 @@ export default function Stranger() {
   );
 }
 
-function MainVideoStage({ peer, finding, stream, videoRef, emptyText }) {
+function MainVideoStage({ peer, finding, stream, videoRef, focused, onToggleFocus, emptyText }) {
+  const stageHeight = focused
+    ? 'h-full min-h-[44dvh] lg:min-h-[calc(100dvh-8.5rem)]'
+    : 'min-h-[16rem] sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem]';
+
   return (
-    <div className="relative min-h-[16rem] overflow-hidden rounded-[20px] border border-white/8 bg-black/45 sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem] lg:rounded-[24px]">
+    <div className={`relative overflow-hidden rounded-[20px] border border-white/8 bg-black/45 lg:rounded-[24px] ${stageHeight}`}>
       {stream ? (
-        <video ref={videoRef} autoPlay playsInline className="h-full min-h-[16rem] w-full object-cover sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem]" />
+        <video ref={videoRef} autoPlay playsInline className={`h-full w-full object-cover ${stageHeight}`} />
       ) : (
-        <div className="grid h-full min-h-[16rem] place-items-center p-4 text-center sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem] lg:p-6">
+        <div className={`grid h-full place-items-center p-4 text-center lg:p-6 ${stageHeight}`}>
           <div>
             {peer?.avatar ? (
               <img src={peer.avatar} alt="" className="mx-auto h-20 w-20 rounded-[28px] border border-white/10 object-cover shadow-glow" />
@@ -450,7 +464,17 @@ function MainVideoStage({ peer, finding, stream, videoRef, emptyText }) {
       )}
       <div className="absolute inset-x-2 top-2 flex items-center justify-between gap-2 lg:inset-x-3 lg:top-3 lg:gap-3">
         <span className="rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold backdrop-blur">{peer?.name || 'Stranger'}</span>
-        <span className="rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold text-white/65 backdrop-blur">Remote</span>
+        <div className="flex items-center gap-2">
+          <span className="hidden rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold text-white/65 backdrop-blur sm:inline-flex">Remote</span>
+          <button
+            type="button"
+            onClick={onToggleFocus}
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-ink/75 text-white/78 backdrop-blur transition hover:bg-white/12"
+            aria-label={focused ? 'Exit full screen random chat' : 'Open full screen random chat'}
+          >
+            {focused ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+          </button>
+        </div>
       </div>
     </div>
   );
