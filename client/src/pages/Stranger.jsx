@@ -25,10 +25,12 @@ export default function Stranger() {
   const [callState, setCallState] = useState('idle');
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
+  const [incomingVideoInvite, setIncomingVideoInvite] = useState(false);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteIceQueueRef = useRef([]);
   const sessionRef = useRef(null);
+  const callStateRef = useRef('idle');
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
 
@@ -38,6 +40,10 @@ export default function Stranger() {
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
 
   useEffect(() => {
     if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
@@ -191,25 +197,84 @@ export default function Stranger() {
   }
 
   async function startVideoChat() {
-    if (!session?.chat?._id || !peer?._id || callState !== 'idle') return;
+    if (!session?.chat?._id || !peer?._id) return;
+    if (incomingVideoInvite) {
+      await acceptVideoChat();
+      return;
+    }
+    if (callState !== 'idle') return;
     try {
-      setCallState('connecting');
-      const stream = await ensureLocalStream();
-      const nextPeer = await createStrangerPeer();
-      stream.getTracks().forEach((track) => nextPeer.addTrack(track, stream));
-      const offer = await nextPeer.createOffer();
-      await nextPeer.setLocalDescription(offer);
-      sendSignal('offer', offer);
+      setCallState('inviting');
+      setStatus(`Inviting @${peer.username || 'stranger'} to video chat...`);
+      sendSignal('video-invite', {});
     } catch (error) {
       cleanupCall();
       setStatus(error.message || 'Camera or microphone permission failed');
     }
   }
 
+  async function acceptVideoChat() {
+    if (!sessionRef.current?.chat?._id || !sessionRef.current?.peer?._id) return;
+    try {
+      setIncomingVideoInvite(false);
+      setCallState('connecting');
+      setStatus('Starting video chat...');
+      await ensureLocalStream();
+      sendSignal('video-accept', {});
+    } catch (error) {
+      sendSignal('video-reject', { reason: error.message });
+      cleanupCall(false);
+      setStatus(error.message || 'Camera or microphone permission failed');
+    }
+  }
+
+  function rejectVideoChat() {
+    if (incomingVideoInvite) {
+      sendSignal('video-reject', { reason: 'Video request declined' });
+      setIncomingVideoInvite(false);
+      setStatus('Video request declined');
+      return;
+    }
+    cleanupCall();
+  }
+
+  async function createAndSendOffer() {
+    const stream = await ensureLocalStream();
+    const nextPeer = peerRef.current || (await createStrangerPeer());
+    if (!nextPeer.getSenders().length) stream.getTracks().forEach((track) => nextPeer.addTrack(track, stream));
+    const offer = await nextPeer.createOffer();
+    await nextPeer.setLocalDescription(offer);
+    sendSignal('offer', offer);
+  }
+
   async function handleStrangerSignal({ chatId, from, type, payload }) {
     if (chatId !== sessionRef.current?.chat?._id || from !== sessionRef.current?.peer?._id) return;
     if (type === 'ice') {
       await addRemoteIceCandidate(payload);
+      return;
+    }
+
+    if (type === 'video-invite') {
+      if (callStateRef.current !== 'idle') {
+        sendSignal('video-reject', { reason: 'Already in a video chat' });
+        return;
+      }
+      setIncomingVideoInvite(true);
+      setStatus(`${sessionRef.current.peer?.name || 'Stranger'} wants to start video chat.`);
+      return;
+    }
+
+    if (type === 'video-accept') {
+      if (callStateRef.current !== 'inviting') return;
+      setCallState('connecting');
+      setStatus('Connecting video chat...');
+      await createAndSendOffer();
+      return;
+    }
+
+    if (type === 'video-reject') {
+      cleanupCall(false);
+      setStatus(payload?.reason || 'Video request was declined');
       return;
     }
 
@@ -245,6 +310,8 @@ export default function Stranger() {
       to: sessionRef.current.peer._id,
       type,
       payload
+    }, (result) => {
+      if (result && !result.ok) setStatus(result.message || 'Video signal failed');
     });
   }
 
@@ -276,6 +343,7 @@ export default function Stranger() {
     setCallState('idle');
     setMuted(false);
     setCameraOff(false);
+    setIncomingVideoInvite(false);
   }
 
   function toggleMute() {
@@ -313,10 +381,10 @@ export default function Stranger() {
         </div>
 
         <div className="grid gap-2 border-t border-white/8 p-3 sm:grid-cols-5">
-          <ControlButton onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Video' : callState} primary />
+          <ControlButton onClick={startVideoChat} disabled={!session || (!incomingVideoInvite && callState !== 'idle')} icon={Video} label={incomingVideoInvite ? 'Accept' : callState === 'idle' ? 'Video' : callState} primary />
           <ControlButton onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
           <ControlButton onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
-          <ControlButton onClick={cleanupCall} disabled={callState === 'idle'} icon={PhoneOff} label="End" danger />
+          <ControlButton onClick={rejectVideoChat} disabled={callState === 'idle' && !incomingVideoInvite} icon={PhoneOff} label={incomingVideoInvite ? 'Decline' : 'End'} danger />
           <ControlButton onClick={reportPeer} disabled={!peer} icon={Flag} label="Report" danger />
         </div>
       </section>
