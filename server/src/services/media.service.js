@@ -7,7 +7,8 @@ function cloudinaryReady() {
 }
 
 export function uploadBuffer(file, baseUrl = '') {
-  if (!cloudinaryReady()) return uploadToGridFs(file, baseUrl);
+  const urlBase = (process.env.PUBLIC_API_URL || process.env.API_URL || baseUrl).replace(/\/$/, '');
+  if (!cloudinaryReady()) return uploadToGridFs(file, urlBase);
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       { folder: 'varta', resource_type: 'auto' },

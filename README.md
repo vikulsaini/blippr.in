@@ -65,6 +65,7 @@ Important values:
 - `REDIS_URL`
 - `JWT_SECRET`
 - `CLIENT_URL`
+- `PUBLIC_API_URL` - your backend URL, for example `https://varta-api-2k6p.onrender.com`, used for Mongo-stored media URLs.
 - `OTP_TTL_SECONDS`
 - `OTP_COOLDOWN_SECONDS`
 - `OTP_MAX_ATTEMPTS`
