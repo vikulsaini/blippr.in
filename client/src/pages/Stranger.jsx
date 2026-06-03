@@ -361,8 +361,8 @@ export default function Stranger() {
   }
 
   return (
-    <div className="mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-4 pb-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
-      <section className="depth-panel flex min-h-[30rem] flex-col overflow-hidden rounded-[28px]">
+    <div className="mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-3 pb-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)] lg:gap-4">
+      <section className="depth-panel flex min-h-[28rem] flex-col overflow-hidden rounded-[28px]">
         <div className="flex items-center justify-between gap-3 border-b border-white/8 p-4">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random live</p>
@@ -375,9 +375,15 @@ export default function Stranger() {
           </button>
         </div>
 
-        <div className="grid flex-1 gap-3 p-3 md:grid-cols-2">
-          <VideoPanel label="You" stream={localStream} videoRef={localVideoRef} muted local emptyText="Start video when you are ready" />
-          <VideoPanel label={peer?.name || 'Stranger'} stream={remoteStream} videoRef={remoteVideoRef} emptyText={finding ? 'Waiting for a person...' : 'Remote video appears here'} />
+        <div className="relative flex-1 p-3">
+          <MainVideoStage
+            peer={peer}
+            finding={finding}
+            stream={remoteStream}
+            videoRef={remoteVideoRef}
+            emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
+          />
+          <LocalPreview stream={localStream} videoRef={localVideoRef} cameraOff={cameraOff} />
         </div>
 
         <div className="grid gap-2 border-t border-white/8 p-3 sm:grid-cols-5">
@@ -389,7 +395,7 @@ export default function Stranger() {
         </div>
       </section>
 
-      <aside className="depth-panel flex min-h-[30rem] flex-col overflow-hidden rounded-[28px]">
+      <aside className="depth-panel flex min-h-[24rem] flex-col overflow-hidden rounded-[28px] lg:min-h-[28rem]">
         <div className="border-b border-white/8 p-4">
           {peer ? (
             <div className="flex items-center gap-3">
@@ -451,20 +457,49 @@ export default function Stranger() {
   );
 }
 
-function VideoPanel({ label, stream, videoRef, muted = false, local = false, emptyText }) {
+function MainVideoStage({ peer, finding, stream, videoRef, emptyText }) {
   return (
-    <div className="relative min-h-[16rem] overflow-hidden rounded-[24px] border border-white/8 bg-black/35">
+    <div className="relative min-h-[22rem] overflow-hidden rounded-[24px] border border-white/8 bg-black/45 md:min-h-[30rem] lg:min-h-[34rem]">
       {stream ? (
-        <video ref={videoRef} autoPlay playsInline muted={muted} className={`h-full min-h-[16rem] w-full object-cover ${local ? 'scale-x-[-1]' : ''}`} />
+        <video ref={videoRef} autoPlay playsInline className="h-full min-h-[22rem] w-full object-cover md:min-h-[30rem] lg:min-h-[34rem]" />
       ) : (
-        <div className="grid h-full min-h-[16rem] place-items-center p-6 text-center">
+        <div className="grid h-full min-h-[22rem] place-items-center p-6 text-center md:min-h-[30rem] lg:min-h-[34rem]">
           <div>
-            <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/8 text-white/50"><Video size={24} /></span>
+            {peer?.avatar ? (
+              <img src={peer.avatar} alt="" className="mx-auto h-20 w-20 rounded-[28px] border border-white/10 object-cover shadow-glow" />
+            ) : (
+              <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/8 text-white/50">
+                {finding ? <Loader2 className="animate-spin" size={25} /> : <Video size={25} />}
+              </span>
+            )}
+            <p className="mt-4 text-base font-semibold">{peer?.name || 'Random live'}</p>
             <p className="mt-3 text-sm text-white/48">{emptyText}</p>
           </div>
         </div>
       )}
-      <span className="absolute left-3 top-3 rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold backdrop-blur">{label}</span>
+      <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-3">
+        <span className="rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold backdrop-blur">{peer?.name || 'Stranger'}</span>
+        <span className="rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold text-white/65 backdrop-blur">Remote</span>
+      </div>
+    </div>
+  );
+}
+
+function LocalPreview({ stream, videoRef, cameraOff }) {
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.srcObject = stream;
+  }, [stream, videoRef, cameraOff]);
+
+  return (
+    <div className="absolute bottom-6 right-6 h-28 w-24 overflow-hidden rounded-[20px] border border-white/12 bg-ink shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:h-36 sm:w-28">
+      {stream && !cameraOff ? (
+        <video ref={videoRef} autoPlay playsInline muted className="h-full w-full scale-x-[-1] object-cover" />
+      ) : (
+        <div className="grid h-full w-full place-items-center bg-white/7 text-white/45">
+          <VideoOff size={22} />
+        </div>
+      )}
+      <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">You</span>
     </div>
   );
 }
