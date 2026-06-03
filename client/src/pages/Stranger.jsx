@@ -34,6 +34,7 @@ export default function Stranger() {
 
   const peer = session?.peer;
   const waitingText = useMemo(() => waitingLines[Math.floor(Math.random() * waitingLines.length)], [finding]);
+  const randomActionLabel = !session && !finding ? 'Start' : finding ? 'Searching' : 'Skip';
 
   useEffect(() => {
     sessionRef.current = session;
@@ -108,6 +109,14 @@ export default function Stranger() {
     getRealtimeSocket().emit('stranger:find', { interests: [] }, handleFindAck);
   }
 
+  function handleRandomAction() {
+    if (!session && !finding) {
+      findStranger(false);
+      return;
+    }
+    findStranger(true);
+  }
+
   function handleFindAck(result = {}) {
     if (!result.ok) {
       setFinding(false);
@@ -147,7 +156,7 @@ export default function Stranger() {
     try {
       await api('/api/friends/requests', { method: 'POST', body: JSON.stringify({ userId: peer._id }) });
       setFriendSent(true);
-      setStatus('Friend request sent. If they accept, this moves to Chats.');
+      setStatus('Friend request sent. Chat appears only after they accept.');
     } catch (error) {
       setStatus(error.message);
     }
@@ -314,9 +323,9 @@ export default function Stranger() {
             <h2 className="truncate text-xl font-semibold">{peer ? peer.name : finding ? 'Searching...' : 'Meet someone new'}</h2>
             <p className="truncate text-xs text-white/48">{status}</p>
           </div>
-          <button onClick={() => findStranger(true)} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
+          <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
             {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
-            Next
+            {randomActionLabel}
           </button>
         </div>
 
@@ -352,9 +361,6 @@ export default function Stranger() {
                 <p className="truncate font-semibold">{peer.name}</p>
                 <p className="truncate text-xs text-white/48">@{peer.username} - {peer.gender} - {peer.age}</p>
               </div>
-              <button onClick={sendFriendRequest} disabled={friendSent} className={`grid h-11 w-11 place-items-center rounded-full ${friendSent ? 'bg-mint text-ink' : 'btn-primary'}`} aria-label="Send friend request">
-                {friendSent ? <Check size={18} /> : <UserPlus size={18} />}
-              </button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -381,6 +387,26 @@ export default function Stranger() {
               </div>
             );
           })}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 border-t border-white/8 p-2 lg:p-3">
+          <button
+            type="button"
+            onClick={handleRandomAction}
+            className="btn-secondary flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold"
+          >
+            {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
+            {randomActionLabel}
+          </button>
+          <button
+            type="button"
+            onClick={sendFriendRequest}
+            disabled={!peer || friendSent}
+            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold disabled:opacity-45 ${friendSent ? 'bg-mint text-ink' : 'btn-primary'}`}
+          >
+            {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
+            {friendSent ? 'Sent' : 'Add friend'}
+          </button>
         </div>
 
         <form onSubmit={sendMessage} className="flex gap-2 border-t border-white/8 p-2 lg:p-3">
@@ -476,7 +502,7 @@ function EmptyRandom({ finding, onStart }) {
         </p>
         {!finding && (
           <button onClick={onStart} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold">
-            Find stranger
+            Start random
           </button>
         )}
       </div>
