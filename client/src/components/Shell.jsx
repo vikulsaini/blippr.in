@@ -20,6 +20,7 @@ export default function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
   const isChats = location.pathname === '/app';
+  const isRandom = location.pathname === '/app/stranger';
   const isConversation = isChats && new URLSearchParams(location.search).has('chat');
   const [bottomNavHidden, setBottomNavHidden] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -113,11 +114,11 @@ export default function Shell() {
         <section
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className={`min-h-0 flex-1 ${navHidden || isChats ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24 md:pb-0'} ${isChats ? '-mx-3 md:mx-0' : ''}`}
+          className={`flex min-h-0 flex-1 flex-col ${navHidden || isChats || isRandom ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24 md:pb-0'} ${isChats ? '-mx-3 md:mx-0' : ''}`}
         >
           {!bottomNavHidden && <SocketStateBanner />}
           {!bottomNavHidden && <GuestLimitBanner />}
-          <div className={!isChats ? 'mx-auto w-full max-w-6xl' : 'h-full'}>
+          <div className={isChats || isRandom ? 'min-h-0 flex-1' : 'mx-auto w-full max-w-6xl'}>
             <Outlet context={{ setBottomNavHidden }} />
           </div>
         </section>

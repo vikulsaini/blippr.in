@@ -40,6 +40,7 @@ export default function Stranger() {
   const randomActionLabel = !session && !finding ? 'Start' : finding ? 'Searching' : 'Skip';
   const showVideo = viewMode !== 'chat';
   const showChat = viewMode !== 'video';
+  const splitRows = showVideo && showChat ? 'grid-rows-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:grid-rows-none' : 'grid-rows-[minmax(0,1fr)]';
 
   useEffect(() => {
     sessionRef.current = session;
@@ -325,13 +326,13 @@ export default function Stranger() {
   }
 
   const shellClass = focused
-    ? `fixed inset-0 z-[90] grid h-[100dvh] w-screen gap-2 overflow-hidden bg-ink p-2 sm:p-3 ${showVideo && showChat ? 'lg:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.55fr)]' : ''}`
-    : `mx-auto grid h-full min-h-[calc(100dvh-7rem)] w-full max-w-6xl gap-2 pb-3 lg:gap-4 lg:pb-4 ${showVideo && showChat ? 'lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)]' : ''}`;
+    ? `fixed inset-0 z-[90] grid h-[100dvh] w-screen ${splitRows} gap-2 overflow-hidden bg-ink p-2 sm:p-3 ${showVideo && showChat ? 'lg:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.55fr)]' : ''}`
+    : `mx-auto grid h-full min-h-0 w-full max-w-6xl ${splitRows} gap-2 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] md:pb-0 lg:gap-4 ${showVideo && showChat ? 'lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)]' : ''}`;
 
   return (
     <div className={shellClass}>
       {showVideo && (
-        <section className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-[22rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]'}`}>
+        <section className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] lg:rounded-[28px]'}`}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 p-3 lg:p-4">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random live</p>
@@ -372,7 +373,7 @@ export default function Stranger() {
       )}
 
       {showChat && (
-        <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] max-lg:max-h-[42dvh]' : !showVideo ? 'depth-panel flex min-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-[22px]' : 'depth-panel flex min-h-[18rem] flex-col overflow-hidden rounded-[22px] lg:min-h-[28rem] lg:rounded-[28px]'}`}>
+        <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px]' : !showVideo ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] lg:rounded-[28px]'}`}>
           <div className="space-y-3 border-b border-white/8 p-3 lg:p-4">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random chat</p>
@@ -458,11 +459,7 @@ export default function Stranger() {
 }
 
 function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, onToggleFocus, emptyText }) {
-  const stageHeight = focused
-    ? 'h-full min-h-[44dvh] lg:min-h-[calc(100dvh-8.5rem)]'
-    : expanded
-      ? 'min-h-[calc(100dvh-16rem)] sm:min-h-[calc(100dvh-15rem)] lg:min-h-[calc(100dvh-13.5rem)]'
-    : 'min-h-[16rem] sm:min-h-[20rem] md:min-h-[26rem] lg:min-h-[34rem]';
+  const stageHeight = focused || expanded ? 'h-full min-h-0' : 'h-full min-h-0';
 
   return (
     <div className={`relative overflow-hidden rounded-[20px] border border-white/8 bg-black/45 lg:rounded-[24px] ${stageHeight}`}>
@@ -559,7 +556,7 @@ function ControlButton({ icon: Icon, label, onClick, disabled, primary, danger }
 
 function EmptyRandom({ finding, onStart }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid h-full min-h-[18rem] place-items-center text-center">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid h-full min-h-0 place-items-center text-center">
       <div>
         <span className="tone-ring mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-rose/10 text-rose">
           {finding ? <Loader2 className="animate-spin" size={24} /> : <Shuffle size={24} />}
