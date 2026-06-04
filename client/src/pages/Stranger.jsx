@@ -327,26 +327,27 @@ export default function Stranger() {
   }
 
   const shellClass = focused
-    ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen grid-rows-[minmax(0,1fr)] gap-2 overflow-hidden bg-ink p-2 sm:p-3'
-    : 'mx-auto grid h-full min-h-0 w-full max-w-6xl grid-rows-[minmax(0,1fr)] gap-2 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] md:pb-0 lg:gap-4';
+    ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen grid-rows-[auto_minmax(0,1fr)] gap-2 overflow-hidden bg-ink p-2 sm:p-3'
+    : 'mx-auto grid h-full min-h-0 w-full max-w-6xl grid-rows-[auto_minmax(0,1fr)] gap-2 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] md:pb-0 lg:gap-4';
 
   return (
     <div className={shellClass}>
+      <div title={status} className="flex shrink-0 items-center justify-between gap-2 rounded-[22px] border border-white/8 bg-ink/88 p-2 backdrop-blur">
+        <ModeTabs value={viewMode} onChange={setViewMode} />
+        <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
+          {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
+          {randomActionLabel}
+        </button>
+      </div>
+
       {showVideo && (
         <section className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] lg:rounded-[28px]'}`}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 p-3 lg:p-4">
+          <div className="flex items-center justify-between gap-3 border-b border-white/8 p-3 lg:p-4">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random live</p>
               <h2 className="truncate text-xl font-semibold">{peer ? peer.name : finding ? 'Searching...' : 'Meet someone new'}</h2>
-              <p className="truncate text-xs text-white/48">{status}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <ModeTabs value={viewMode} onChange={setViewMode} />
-              <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
-                {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
-                {randomActionLabel}
-              </button>
-            </div>
+            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs font-semibold text-white/55">{callState}</span>
           </div>
 
           <div className="relative flex-1 p-2 lg:p-3">
@@ -376,10 +377,6 @@ export default function Stranger() {
       {showChat && (
         <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px]' : !showVideo ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] lg:rounded-[28px]'}`}>
           <div className="space-y-3 border-b border-white/8 p-3 lg:p-4">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random chat</p>
-              <ModeTabs value={viewMode} onChange={setViewMode} />
-            </div>
             {peer ? (
               <div className="flex items-center gap-3">
                 <button onClick={() => setProfileUser(peer)} className="relative">
@@ -395,8 +392,7 @@ export default function Stranger() {
               <div className="flex items-center gap-3">
                 <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/8 text-rose"><MessageCircle size={21} /></span>
                 <div>
-                  <p className="font-semibold">Start with text or video</p>
-                  <p className="text-xs text-white/48">Switch priority anytime from the mode control.</p>
+                  <p className="font-semibold">Random chat</p>
                 </div>
               </div>
             )}
@@ -562,9 +558,6 @@ function EmptyRandom({ finding, onStart }) {
           {finding ? <Loader2 className="animate-spin" size={24} /> : <Shuffle size={24} />}
         </span>
         <p className="mt-4 font-semibold">{finding ? 'Waiting for someone' : 'Start random chat'}</p>
-        <p className="mx-auto mt-1 max-w-64 text-sm leading-6 text-white/50">
-          {finding ? 'You will connect automatically when another online user joins.' : 'Meet a random online user, talk live, and send a friend request if it clicks.'}
-        </p>
         {!finding && (
           <button onClick={onStart} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold">
             Start random
