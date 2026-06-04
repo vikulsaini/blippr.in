@@ -52,7 +52,7 @@ export default function ConversationTimeline({
 
   return (
     <>
-      <div className="space-y-3">
+    <div className="space-y-2.5">
         {visibleTimeline.map((item, index) => {
           const showDate = shouldShowDate(visibleTimeline[index - 1], item);
           if (item.kind === 'call') {
@@ -156,16 +156,16 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         onPointerUp={stopPress}
         onPointerCancel={stopPress}
         onPointerLeave={stopPress}
-        className={`max-w-[78%] touch-pan-y rounded-[18px] px-3 py-1.5 text-sm shadow-sm ${mine ? 'rounded-br-md bg-white text-ink' : 'rounded-bl-md bg-[#1a1d25] text-white'}`}
+        className={`max-w-[78%] touch-pan-y rounded-[20px] border px-3 py-2 text-sm shadow-[0_10px_26px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur ${mine ? 'rounded-br-md border-cyan-100/12 bg-[linear-gradient(135deg,#06b6d4,#14b8a6)] text-[#031014]' : 'rounded-bl-md border-white/8 bg-white/[0.055] text-slate-100'}`}
       >
         {message.replyTo && (
-          <div className={`mb-1.5 rounded-lg border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-ink/30 bg-ink/10 text-ink/65' : 'border-mint/50 bg-white/8 text-white/55'}`}>
+          <div className={`mb-1.5 rounded-xl border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-ink/30 bg-ink/10 text-ink/70' : 'border-mint/50 bg-white/8 text-slate-300'}`}>
             <p className="line-clamp-2">{message.replyTo.text || 'Replied message'}</p>
           </div>
         )}
         {message.media && <MediaPreview media={message.media} />}
         {message.text && <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>}
-        <div className={`mt-0.5 flex items-center justify-end gap-2 text-[10px] ${mine ? 'text-ink/55' : 'text-white/40'}`}>
+        <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-ink/62' : 'text-slate-400'}`}>
           {message.editedAt && <span>edited</span>}
           <span>{formatTime(message.createdAt)}</span>
           {mine && <StatusIcon status={message.status} />}
@@ -173,7 +173,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         {!!message.reactions?.length && (
           <div className="mt-1 flex flex-wrap gap-1">
             {reactionSummary(message.reactions).map((reaction) => (
-              <span key={reaction.emoji} className={`rounded-full px-2 py-0.5 text-xs ${mine ? 'bg-ink/10' : 'bg-white/8'}`}>
+              <span key={reaction.emoji} className={`rounded-full px-2 py-0.5 text-xs ${mine ? 'bg-ink/12' : 'bg-white/8'}`}>
                 {reaction.emoji} {reaction.count}
               </span>
             ))}
@@ -258,8 +258,8 @@ function ActionButton({ icon: Icon, label, onClick, tone = 'neutral', disabled =
 
 function StatusIcon({ status }) {
   if (status === 'failed') return <span className="text-coral">!</span>;
-  if (status === 'queued') return <span className="text-[9px] text-ink/45">queued</span>;
-  if (status === 'sending') return <span className="h-2 w-2 animate-pulse rounded-full bg-ink/45" title="Sending" />;
+  if (status === 'queued') return <span className="text-[9px] text-current/70">queued</span>;
+  if (status === 'sending') return <span className="h-2 w-2 animate-pulse rounded-full bg-current/60" title="Sending" />;
   if (status === 'seen') return <CheckCheck size={13} className="text-mint" aria-label="Seen" />;
   if (status === 'delivered') return <CheckCheck size={13} aria-label="Delivered" />;
   return <Check size={13} aria-label="Sent" />;
@@ -274,10 +274,10 @@ function CallHistoryItem({ call, currentUserId }) {
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
-      <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${isMissed ? 'border-coral/20 bg-coral/10 text-coral' : 'border-white/8 bg-white/5 text-white/58'}`}>
-        <Icon size={15} />
+      <div className={`flex max-w-[82%] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-[0_8px_20px_rgba(0,0,0,0.16)] backdrop-blur ${isMissed ? 'border-coral/18 bg-coral/10 text-coral' : 'border-white/8 bg-white/[0.045] text-slate-300'}`}>
+        <Icon size={13} />
         <span>{direction} {call.type} call</span>
-        <span className="text-white/35">-</span>
+        <span className="text-slate-500">-</span>
         <span>{statusText}</span>
       </div>
     </motion.div>
@@ -287,11 +287,11 @@ function CallHistoryItem({ call, currentUserId }) {
 function TypingBubble() {
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-      <div className="flex items-center gap-1 rounded-[18px] rounded-bl-md bg-[#1a1d25] px-3 py-2">
+      <div className="flex items-center gap-1 rounded-[20px] rounded-bl-md border border-white/8 bg-white/[0.055] px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.18)] backdrop-blur">
         {[0, 1, 2].map((dot) => (
           <motion.span
             key={dot}
-            className="h-1.5 w-1.5 rounded-full bg-white/55"
+            className="h-1.5 w-1.5 rounded-full bg-slate-300"
             animate={{ y: [0, -4, 0], opacity: [0.45, 1, 0.45] }}
             transition={{ duration: 0.85, repeat: Infinity, delay: dot * 0.14, ease: 'easeInOut' }}
           />
@@ -316,7 +316,7 @@ function EmptyState({ name }) {
 function DateDivider({ value }) {
   return (
     <div className="my-4 flex justify-center">
-      <span className="rounded-full border border-white/8 bg-white/5 px-3 py-1 text-[11px] text-white/42">{formatDate(value)}</span>
+      <span className="rounded-full border border-white/8 bg-white/[0.045] px-3 py-1 text-[11px] font-medium text-slate-400 backdrop-blur">{formatDate(value)}</span>
     </div>
   );
 }

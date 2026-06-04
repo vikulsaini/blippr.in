@@ -106,7 +106,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
 
   return (
     <div data-no-tab-swipe className="flex h-full min-h-0 flex-col overflow-hidden bg-ink" style={viewportHeight ? { height: `${viewportHeight}px` } : undefined}>
-      <header className="shrink-0 border-b border-white/8 bg-panel px-3 py-2.5">
+      <header className="shrink-0 border-b border-white/8 bg-slate-950/45 px-3 py-2.5 shadow-[0_12px_34px_rgba(0,0,0,0.18)] backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
@@ -117,8 +117,8 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
               </button>
             )}
             <button onClick={() => otherMember && onProfile?.(otherMember)} className="min-w-0 text-left">
-              <p className="truncate font-semibold">{displayName || 'Select a chat'}</p>
-              <p className={`truncate text-xs ${isTyping || otherMember?.isOnline ? 'text-mint' : 'text-white/45'}`}>{isTyping ? 'typing...' : otherMember ? presenceText(otherMember) : 'No active conversation'}</p>
+              <p className="truncate font-semibold text-white">{displayName || 'Select a chat'}</p>
+              <p className={`truncate text-xs font-medium ${isTyping || otherMember?.isOnline ? 'text-mint' : 'text-slate-400'}`}>{isTyping ? 'typing...' : otherMember ? presenceText(otherMember) : 'No active conversation'}</p>
             </button>
           </div>
           <div className="flex gap-2">
@@ -128,8 +128,8 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </div>
         </div>
         {searchOpen && (
-          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-3">
-            <Search size={16} className="text-white/35" />
+          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-white/8 bg-black/24 px-3 shadow-[inset_0_2px_8px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <Search size={16} className="text-slate-400" />
             <input value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" placeholder="Search in conversation" />
             {messageSearch && <button onClick={() => setMessageSearch('')} type="button" className="rounded-full bg-white/10 p-1" aria-label="Clear search"><X size={13} /></button>}
           </label>
@@ -153,7 +153,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         />
       </section>
 
-      <form onSubmit={onSend} className="shrink-0 border-t border-white/8 bg-panel px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3">
+      <form onSubmit={onSend} className="shrink-0 border-t border-white/8 bg-slate-950/50 px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 backdrop-blur-xl">
         {replyTo && (
           <div className="mb-2 flex items-center gap-2 rounded-xl border border-mint/20 bg-mint/10 px-3 py-2 text-sm">
             <Reply size={15} className="text-mint" />
@@ -190,7 +190,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             ))}
           </motion.div>
         )}
-        <div className="flex items-end gap-2 rounded-2xl border border-white/8 bg-white/5 p-1.5">
+        <div className="flex items-end gap-2 rounded-[20px] border border-white/8 bg-black/24 p-1.5 shadow-[inset_0_2px_10px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.06)]">
           <input ref={fileInputRef} type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={handleFilePick} />
           <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-icon h-10 w-10 shrink-0" aria-label="Share media">
             <Plus size={19} />
@@ -200,7 +200,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             value={text}
             onChange={(event) => handleTextInput(event.target.value)}
             onFocus={() => setEmojiOpen(false)}
-            className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2.5 text-sm outline-none"
+            className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2.5 text-sm font-medium text-slate-100 outline-none"
             placeholder={uploading ? 'Uploading...' : recording ? 'Recording voice...' : chat ? 'Message' : 'Start from Discover'}
             disabled={!chat || uploading || recording}
             rows={1}

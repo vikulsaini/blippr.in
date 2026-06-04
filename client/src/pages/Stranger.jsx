@@ -515,7 +515,7 @@ export default function Stranger() {
               const mine = (message.sender?._id || message.sender) !== peer?._id;
               return (
                 <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-mint text-ink' : 'bg-white/8 text-white'} ${message.pending ? 'opacity-70' : ''}`}>
+                <div className={`max-w-[82%] rounded-2xl border px-3 py-2 text-sm shadow-[0_10px_24px_rgba(0,0,0,0.18)] ${mine ? 'border-cyan-100/12 bg-[linear-gradient(135deg,#06b6d4,#14b8a6)] text-[#031014]' : 'border-white/8 bg-white/[0.055] text-slate-100'} ${message.pending ? 'opacity-70' : ''}`}>
                   {message.text}
                 </div>
                 </div>
