@@ -29,6 +29,8 @@ const userSchema = new mongoose.Schema(
     safety: {
       blockedWords: [{ type: String, trim: true, lowercase: true }]
     },
+    safetyViolationCount: { type: Number, default: 0 },
+    bannedUntil: Date,
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     pushTokens: [String],
     lastSeenAt: Date,

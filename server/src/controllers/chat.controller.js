@@ -6,7 +6,7 @@ import Message from '../models/Message.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { notifyUser } from '../services/notification.service.js';
-import { applyBlockedWords } from '../services/safety.service.js';
+import { applyBlockedWords, recordSafetyViolation } from '../services/safety.service.js';
 
 export const createDirectChatSchema = Joi.object({
   userId: Joi.string().hex().length(24).required()
@@ -248,7 +248,13 @@ export const sendMessage = asyncHandler(async (req, res) => {
     throw error;
   }
   const io = req.app.get('io');
-  const safeText = applyBlockedWords(req.body.text || '', req.user.safety?.blockedWords || []);
+  let safeText;
+  try {
+    safeText = applyBlockedWords(req.body.text || '', req.user.safety?.blockedWords || []);
+  } catch (error) {
+    if (error.code === 'SAFETY_VIOLATION') await recordSafetyViolation(req.user._id);
+    throw error;
+  }
   const createdMessage = await Message.create({
     chat: chat._id,
     sender: req.user._id,

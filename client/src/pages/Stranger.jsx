@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Flag, Loader2, Maximize2, MessageCircle, Mic, MicOff, Minimize2, Send, ShieldCheck, Shuffle, UserPlus, Video, VideoOff } from 'lucide-react';
+import { Check, FlipHorizontal2, Loader2, Maximize2, MessageCircle, Mic, MicOff, Minimize2, Send, ShieldCheck, Shuffle, UserPlus, Video, VideoOff } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
@@ -27,6 +27,7 @@ export default function Stranger() {
   const [callState, setCallState] = useState('idle');
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
+  const [facingMode, setFacingMode] = useState('user');
   const [focused, setFocused] = useState(false);
   const [viewMode, setViewMode] = useState('chat');
   const [now, setNow] = useState(() => Date.now());
@@ -115,7 +116,7 @@ export default function Stranger() {
     setMessages([]);
     setFriendSent(false);
     setFinding(false);
-    setStatus(`Connected with @${matchedPeer?.username || 'stranger'}`);
+    setStatus(`Connected with ${matchedPeer?.name || 'stranger'}`);
   }
 
   function requestFindStranger(next = false) {
@@ -192,10 +193,29 @@ export default function Stranger() {
     event.preventDefault();
     const value = text.trim();
     if (!value || !session?.chat?._id) return;
+    const tempId = `temp-${Date.now()}`;
     setText('');
+    setMessages((current) => [
+      ...current,
+      {
+        _id: tempId,
+        chat: session.chat._id,
+        sender: 'local',
+        text: value,
+        pending: true,
+        createdAt: new Date().toISOString()
+      }
+    ]);
     getRealtimeSocket().emit('message:send', { chatId: session.chat._id, text: value }, (result) => {
-      if (!result?.ok) setStatus(result?.message || 'Message failed');
-      else setMessages((current) => (current.some((item) => item._id === result.message._id) ? current : [...current, result.message]));
+      if (!result?.ok) {
+        setMessages((current) => current.filter((item) => item._id !== tempId));
+        setStatus(result?.message || 'Message failed');
+        return;
+      }
+      setMessages((current) => {
+        const withoutTemp = current.filter((item) => item._id !== tempId);
+        return withoutTemp.some((item) => item._id === result.message._id) ? withoutTemp : [...withoutTemp, result.message];
+      });
     });
   }
 
@@ -260,7 +280,7 @@ export default function Stranger() {
     try {
       setViewMode('video');
       setCallState('connecting');
-      setStatus(`Connecting video with @${peer.username || 'stranger'}...`);
+      setStatus(`Connecting video with ${peer.name || 'stranger'}...`);
       await createAndSendOffer();
     } catch (error) {
       cleanupCall();
@@ -372,6 +392,27 @@ export default function Stranger() {
     setCameraOff((value) => !value);
   }
 
+  async function switchCamera() {
+    if (!localStreamRef.current || callState === 'idle') return;
+    const nextFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    try {
+      const nextStream = await getCallMediaStream('video', { lowData: true, facingMode: nextFacingMode });
+      const nextVideoTrack = nextStream.getVideoTracks()[0];
+      const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+      const audioTracks = localStreamRef.current.getAudioTracks();
+      const composedStream = new MediaStream([...audioTracks, nextVideoTrack]);
+      const sender = peerRef.current?.getSenders().find((item) => item.track?.kind === 'video');
+      await sender?.replaceTrack(nextVideoTrack);
+      oldVideoTrack?.stop();
+      localStreamRef.current = composedStream;
+      setLocalStream(composedStream);
+      setFacingMode(nextFacingMode);
+      setCameraOff(false);
+    } catch (error) {
+      setStatus(error.message || 'Could not switch camera');
+    }
+  }
+
   useEffect(() => {
     if (!session?.chat?._id || viewMode !== 'video' || callState !== 'idle') return;
     if (session.initiator && session.initiator !== session.peer?._id) {
@@ -389,7 +430,7 @@ export default function Stranger() {
         <div className="justify-self-start">
           <ModeTabs value={viewMode} onChange={switchMode} />
         </div>
-        <p className="truncate text-center text-xs font-semibold text-white/48">{peer ? `@${peer.username}` : status}</p>
+        <p className="truncate text-center text-xs font-semibold text-white/48">{peer ? peer.name : status}</p>
         <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
           {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
           {randomActionLabel}
@@ -421,12 +462,13 @@ export default function Stranger() {
             <LocalPreview stream={localStream} videoRef={localVideoRef} cameraOff={cameraOff} />
           </div>
 
-          <div className="grid grid-cols-5 gap-1.5 border-t border-white/8 p-2 lg:gap-2 lg:p-3">
+          <div className="grid grid-cols-3 gap-1.5 border-t border-white/8 p-2 sm:grid-cols-6 lg:gap-2 lg:p-3">
             <ControlButton onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Start' : callState} primary />
             <ControlButton onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
             <ControlButton onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
+            <ControlButton onClick={switchCamera} disabled={!localStream || callState === 'idle'} icon={FlipHorizontal2} label="Flip" />
             <ControlButton onClick={sendFriendRequest} disabled={!peer || friendSent || !friendUnlocked} icon={friendSent ? Check : UserPlus} label={friendGateLabel} primary />
-            <ControlButton onClick={reportPeer} disabled={!peer} icon={Flag} label="Report" danger />
+            <ControlButton onClick={handleRandomAction} disabled={finding} icon={Shuffle} label="Skip" />
           </div>
         </section>
       )}
@@ -442,7 +484,7 @@ export default function Stranger() {
                 </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{peer.name}</p>
-                  <p className="truncate text-xs text-white/48">@{peer.username} - {peer.gender} - {peer.age}</p>
+                  <p className="truncate text-xs text-white/48">{peer.gender} - {peer.age}</p>
                 </div>
               </div>
             ) : (
@@ -463,9 +505,9 @@ export default function Stranger() {
               const mine = (message.sender?._id || message.sender) !== peer?._id;
               return (
                 <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-mint text-ink' : 'bg-white/8 text-white'}`}>
-                    {message.text}
-                  </div>
+                <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-mint text-ink' : 'bg-white/8 text-white'} ${message.pending ? 'opacity-70' : ''}`}>
+                  {message.text}
+                </div>
                 </div>
               );
             })}
@@ -492,6 +534,12 @@ export default function Stranger() {
               {friendGateLabel}
             </button>
           </div>
+
+          {peer && (
+            <button type="button" onClick={reportPeer} className="mx-2 mb-2 rounded-2xl border border-rose/15 bg-rose/10 py-2 text-xs font-semibold text-rose">
+              Report unsafe behavior
+            </button>
+          )}
 
           <form onSubmit={sendMessage} className="flex shrink-0 gap-2 border-t border-white/8 p-2 lg:p-3">
             <input

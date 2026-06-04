@@ -4,7 +4,7 @@ import Message from '../models/Message.js';
 import User from '../models/User.js';
 import { findOrQueueUser, leaveQueues } from '../services/matchmaking.service.js';
 import { notifyUser } from '../services/notification.service.js';
-import { applyBlockedWords } from '../services/safety.service.js';
+import { applyBlockedWords, recordSafetyViolation } from '../services/safety.service.js';
 import { socketAuth } from './auth.socket.js';
 
 const CALL_RING_TIMEOUT_MS = 45000;
@@ -137,13 +137,23 @@ export function registerSockets(io) {
       try {
         const chat = await Chat.findOne({ _id: chatId, members: socket.user._id });
         if (!chat) throw new Error('Chat not found');
+      let safeText = '';
+      try {
+        safeText = applyBlockedWords(text || '', socket.user.safety?.blockedWords || []);
+      } catch (error) {
+        if (error.code === 'SAFETY_VIOLATION') {
+          const restrictedUser = await recordSafetyViolation(socket.user._id);
+          if (restrictedUser?.bannedUntil && restrictedUser.bannedUntil.getTime() > Date.now()) socket.disconnect(true);
+        }
+        throw error;
+      }
       const delivered = chat.members
         .filter((memberId) => memberId.toString() !== socket.user._id.toString())
         .some((memberId) => (io.sockets.adapter.rooms.get(`user:${memberId}`)?.size || 0) > 0);
       const createdMessage = await Message.create({
         chat: chat._id,
         sender: socket.user._id,
-        text: applyBlockedWords(text || '', socket.user.safety?.blockedWords || []),
+        text: safeText,
         media,
         status: delivered ? 'delivered' : 'sent',
         deliveryReceipts: deliveryReceiptsFor(io, chat, socket.user._id)

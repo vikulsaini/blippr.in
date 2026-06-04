@@ -19,6 +19,12 @@ export async function requireAuth(req, _res, next) {
       error.status = 401;
       throw error;
     }
+    if (user.bannedUntil && user.bannedUntil.getTime() > Date.now()) {
+      const error = new Error('Account temporarily restricted for safety violations.');
+      error.status = 403;
+      error.code = 'ACCOUNT_RESTRICTED';
+      throw error;
+    }
     if (
       user.isGuest &&
       user.guestExpiresAt &&

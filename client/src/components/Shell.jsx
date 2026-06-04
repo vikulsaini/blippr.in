@@ -104,7 +104,7 @@ export default function Shell() {
   }
 
   return (
-    <main className="app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden px-3 pt-3 text-white md:grid-cols-[5rem_minmax(0,1fr)] md:gap-4 md:px-5 md:py-5 xl:grid-cols-[16rem_minmax(0,1fr)]">
+    <main className="app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden px-3 pt-3 text-white md:grid-cols-[5rem_minmax(0,1fr)] md:gap-4 md:px-5 md:py-5">
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
       <div className="flex min-h-0 flex-col overflow-hidden">
         <header className={`${showHeader ? 'mb-3 flex' : 'sr-only md:not-sr-only md:mb-3 md:flex'} items-center justify-between rounded-[24px] md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3`}>
@@ -160,11 +160,7 @@ export default function Shell() {
 function DesktopNav({ locationPath, socketState, clock }) {
   const connected = socketState === 'connected' || socketState === 'reconnected';
   return (
-    <aside className="premium-nav hidden min-h-0 rounded-[28px] border border-white/8 p-2 md:flex md:flex-col xl:p-3">
-      <div className="hidden px-3 py-3 xl:block">
-        <BrandLogo />
-        <p className="mt-2 text-xs leading-5 text-white/42">Realtime chats, random rooms, calls, and safety controls.</p>
-      </div>
+    <aside className="premium-nav hidden min-h-0 rounded-[28px] border border-white/8 p-2 md:flex md:flex-col">
       <nav className="mt-2 grid gap-2">
         {tabs.map(({ to, label, icon: Icon }, index) => {
           const active = to === '/app' ? locationPath === '/app' : locationPath === to;
@@ -173,32 +169,22 @@ function DesktopNav({ locationPath, socketState, clock }) {
               key={to}
               to={to}
               end={to === '/app'}
-              className={`group flex items-center justify-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition xl:justify-start ${
+              title={label}
+              aria-label={label}
+              className={`group flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold transition ${
                 active ? 'bg-white text-ink' : 'text-white/52 hover:bg-white/8 hover:text-white'
               }`}
             >
               <span className={`grid h-9 w-9 place-items-center rounded-2xl ${active ? navGlow(index) : 'bg-white/7'}`}>
                 <Icon size={20} />
               </span>
-              <span className="hidden xl:inline">{label}</span>
             </NavLink>
           );
         })}
       </nav>
-      <div className="mt-auto hidden space-y-3 rounded-[22px] border border-white/8 bg-white/5 p-3 xl:block">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/38">System</span>
-          <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-mint text-mint' : 'bg-gold text-gold'}`} />
-        </div>
-        <div>
-          <p className="text-sm font-semibold">{connected ? 'Realtime online' : 'Reconnecting'}</p>
-          <p className="mt-1 text-xs text-white/45">{clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {['chat', 'match', 'call'].map((item, index) => (
-            <span key={item} className={`h-1.5 rounded-full ${connected ? navAccent(index) : 'bg-white/14'}`} />
-          ))}
-        </div>
+      <div className="mt-auto grid justify-items-center gap-3 rounded-[22px] border border-white/8 bg-white/5 p-3" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
+        <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-mint text-mint' : 'bg-gold text-gold'}`} />
+        <span className="h-1.5 w-6 rounded-full bg-white/14" />
       </div>
     </aside>
   );
