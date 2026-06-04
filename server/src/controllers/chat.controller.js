@@ -349,12 +349,22 @@ export const markChatRead = asyncHandler(async (req, res) => {
     await Message.updateMany(
       { chat: chat._id, sender: { $ne: req.user._id }, deletedAt: { $exists: false } },
       {
+        $set: { status: 'seen' },
+        $addToSet: { seenBy: req.user._id }
+      }
+    );
+    await Message.updateMany(
+      {
+        chat: chat._id,
+        sender: { $ne: req.user._id },
+        deletedAt: { $exists: false },
+        'deliveryReceipts.user': req.user._id
+      },
+      {
         $set: {
-          status: 'seen',
           'deliveryReceipts.$[receipt].status': 'seen',
           'deliveryReceipts.$[receipt].seenAt': new Date()
-        },
-        $addToSet: { seenBy: req.user._id }
+        }
       },
       { arrayFilters: [{ 'receipt.user': req.user._id }] }
     );

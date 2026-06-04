@@ -5,7 +5,8 @@ process.env.JWT_SECRET = 'test-secret';
 process.env.NODE_ENV = 'test';
 
 const Chat = (await import('../src/models/Chat.js')).default;
-const { hideChatFromFeed, setChatMuted, setChatPinned } = await import('../src/controllers/chat.controller.js');
+const Message = (await import('../src/models/Message.js')).default;
+const { hideChatFromFeed, markChatRead, setChatMuted, setChatPinned } = await import('../src/controllers/chat.controller.js');
 const { callHandler, chatId, chainable, makeIo, makeReq, makeRes, mongooseArray, userA, userB } = await import('./helpers.js');
 
 beforeEach(() => {
@@ -114,4 +115,37 @@ test('mute preference removes current user when disabled', async () => {
   assert.equal(error, null);
   assert.deepEqual([...chat.mutedFor], []);
   assert.equal(res.body.chat.muted, false);
+});
+
+test('mark chat read clears unread count and safely handles messages without receipt rows', async () => {
+  const io = makeIo();
+  const chat = makeChat();
+  const updateCalls = [];
+  mock.method(Chat, 'findOne', () => Promise.resolve(chat));
+  mock.method(Message, 'updateMany', (filter, update, options) => {
+    updateCalls.push({ filter, update, options });
+    return Promise.resolve({ modifiedCount: 1 });
+  });
+
+  const res = makeRes();
+  const { error } = await callHandler(
+    markChatRead,
+    makeReq({ params: { chatId }, app: { io } }),
+    res
+  );
+
+  assert.equal(error, null);
+  assert.equal(chat.unreadCounts.get(userA), 0);
+  assert.equal(chat.saveCalls, 1);
+  assert.equal(updateCalls.length, 2);
+  assert.deepEqual(updateCalls[0].update, {
+    $set: { status: 'seen' },
+    $addToSet: { seenBy: userA }
+  });
+  assert.equal(updateCalls[1].filter['deliveryReceipts.user'], userA);
+  assert.deepEqual(updateCalls[1].options, { arrayFilters: [{ 'receipt.user': userA }] });
+  assert.deepEqual(res.body, { ok: true });
+  assert.deepEqual(io.emissions, [
+    { room: `chat:${chatId}`, event: 'message:seen', payload: { chatId, userId: userA } }
+  ]);
 });
