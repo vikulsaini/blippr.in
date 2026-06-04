@@ -37,11 +37,12 @@ function dateCursor(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+const importantNotificationTypes = ['friend-request', 'friend-request-accepted', 'login', 'system'];
+
 export const listNotifications = asyncHandler(async (req, res) => {
   const limit = pageLimit(req.query.limit, 40, 80);
   const cursor = dateCursor(req.query.cursor);
-  const includeMessages = req.query.includeMessages === 'true';
-  const typeFilter = includeMessages ? {} : { type: { $ne: 'message' } };
+  const typeFilter = { type: { $in: importantNotificationTypes } };
   const notifications = await Notification.find({
     user: req.user._id,
     ...typeFilter,
@@ -63,6 +64,6 @@ export const listNotifications = asyncHandler(async (req, res) => {
 });
 
 export const markNotificationsRead = asyncHandler(async (req, res) => {
-  await Notification.updateMany({ user: req.user._id, readAt: null }, { readAt: new Date() });
+  await Notification.updateMany({ user: req.user._id, readAt: null, type: { $in: importantNotificationTypes } }, { readAt: new Date() });
   res.json({ ok: true });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Check, LogIn, Phone, ShieldCheck, UserCheck, UserPlus, X } from 'lucide-react';
+import { Bell, Check, LogIn, ShieldCheck, UserCheck, UserPlus, X } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { showNativeNotification } from '../lib/native.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
@@ -8,11 +8,10 @@ const styles = {
   'friend-request': { label: 'Friend request', icon: UserPlus, tone: 'text-mint', bg: 'bg-mint/12' },
   'friend-request-accepted': { label: 'Request accepted', icon: UserCheck, tone: 'text-mint', bg: 'bg-mint/12' },
   login: { label: 'Security', icon: LogIn, tone: 'text-amber-200', bg: 'bg-amber-300/12' },
-  call: { label: 'Call', icon: Phone, tone: 'text-coral', bg: 'bg-coral/12' },
   system: { label: 'Update', icon: ShieldCheck, tone: 'text-white/70', bg: 'bg-white/8' }
 };
 
-const importantTypes = new Set(['friend-request', 'friend-request-accepted', 'login', 'call', 'system']);
+const importantTypes = new Set(['friend-request', 'friend-request-accepted', 'login', 'system']);
 
 export default function NotificationBell() {
   const rootRef = useRef(null);
@@ -143,18 +142,18 @@ export default function NotificationBell() {
         )}
       </button>
       {open && (
-        <section className="glass fixed inset-x-3 top-16 z-30 mx-auto flex max-h-[min(34rem,calc(100dvh-6rem))] max-w-md flex-col rounded-3xl p-4 shadow-glow">
-          <div className="flex items-start justify-between gap-3 border-b border-white/8 pb-3">
+        <section className="fixed inset-0 z-[110] flex h-[100dvh] flex-col bg-ink/96 p-3 text-white shadow-glow backdrop-blur-xl sm:p-5 md:inset-4 md:rounded-[30px] md:border md:border-white/10">
+          <div className="flex items-start justify-between gap-3 border-b border-white/8 pb-4">
             <div>
-              <h2 className="text-lg font-semibold">Notifications</h2>
-              <p className="mt-1 text-xs text-white/45">Requests, accepted requests, security alerts and calls</p>
+              <h2 className="text-xl font-semibold md:text-2xl">Notifications</h2>
+              <p className="mt-1 text-xs text-white/45">Friend requests, accepted requests, login alerts and important updates</p>
             </div>
-            <button onClick={() => setOpen(false)} className="btn-icon h-9 w-9 rounded-full" aria-label="Close notifications">
+            <button onClick={() => setOpen(false)} className="btn-icon h-10 w-10 rounded-full" aria-label="Close notifications">
               <X size={17} />
             </button>
           </div>
           {message && <p className="mt-2 text-sm text-mint">{message}</p>}
-          <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
+          <div className="mx-auto mt-4 flex w-full max-w-3xl flex-1 flex-col space-y-2 overflow-y-auto pr-1">
             {loading && <NotificationSkeleton />}
             {!loading && feed.map((item) => (
               <NotificationItem key={item._id} item={item} onRespond={respond} />
@@ -163,7 +162,7 @@ export default function NotificationBell() {
               <div className="py-8 text-center">
                 <Bell className="mx-auto text-white/35" size={24} />
                 <p className="mt-2 text-sm text-white/45">No important notifications yet.</p>
-                <p className="mx-auto mt-1 max-w-56 text-xs leading-5 text-white/35">Regular message alerts stay in chats so this screen stays clean.</p>
+                <p className="mx-auto mt-1 max-w-64 text-xs leading-5 text-white/35">Messages and call rings stay in their own chat/call surfaces so this screen stays clean.</p>
                 <button onClick={loadFeed} className="btn-secondary mt-4 rounded-full px-4 py-2 text-xs font-semibold">Refresh</button>
               </div>
             )}

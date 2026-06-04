@@ -27,7 +27,7 @@ export default function Shell() {
   const [socketState, setSocketState] = useState('connected');
   const [clock, setClock] = useState(() => new Date());
   const navHidden = bottomNavHidden || keyboardOpen;
-  const showHeader = !bottomNavHidden;
+  const showHeader = !bottomNavHidden && !isRandom;
   const touchStartRef = useRef(null);
 
   useEffect(() => {
@@ -104,13 +104,15 @@ export default function Shell() {
   }
 
   return (
-    <main className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-white md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-2 pt-2 md:gap-3 md:px-3 md:py-3' : 'px-3 pt-3 md:gap-4 md:px-5 md:py-5'}`}>
+    <main className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-white md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-3 pt-3 md:gap-4 md:px-5 md:py-5'}`}>
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
       <div className="flex min-h-0 flex-col overflow-hidden">
-        <header className={`${showHeader ? (isRandom ? 'mb-2 flex' : 'mb-3 flex') : 'sr-only md:not-sr-only md:mb-3 md:flex'} items-center justify-between ${isRandom ? 'rounded-[18px] px-1.5 py-1 md:border md:border-white/8 md:bg-white/5 md:px-3 md:py-2' : 'rounded-[24px] md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3'}`}>
-          <BrandLogo compact={isRandom} />
-          <NotificationBell />
-        </header>
+        {!isRandom && (
+          <header className={`${showHeader ? 'mb-3 flex' : 'sr-only md:not-sr-only md:mb-3 md:flex'} items-center justify-between rounded-[24px] md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3`}>
+            <BrandLogo />
+            <NotificationBell />
+          </header>
+        )}
         <section
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}

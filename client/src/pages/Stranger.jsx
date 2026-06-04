@@ -437,30 +437,17 @@ export default function Stranger() {
   }, [session, viewMode, callState]);
 
   const shellClass = focused
-    ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen grid-rows-[auto_minmax(0,1fr)] gap-1 overflow-hidden bg-ink p-1 sm:p-1.5'
-    : 'mx-auto grid h-full min-h-0 w-full max-w-[1240px] grid-rows-[auto_minmax(0,1fr)] gap-1.5 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.5rem)] md:pb-0 lg:gap-2';
+    ? 'fixed inset-0 z-[90] h-[100dvh] w-screen overflow-hidden bg-ink p-1 sm:p-1.5'
+    : 'mx-auto h-full min-h-0 w-full max-w-[1280px] overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.25rem)] md:pb-0';
 
   return (
     <div className={shellClass}>
-      <div title={status} className={`grid shrink-0 items-center gap-2 rounded-[18px] border border-white/8 bg-ink/88 p-1.5 backdrop-blur md:p-2 ${showVideo ? 'grid-cols-[auto_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)_auto]'}`}>
-        <div className="justify-self-start">
-          <ModeTabs value={viewMode} onChange={switchMode} />
-        </div>
-        <p className="truncate text-center text-xs font-semibold text-white/48">{showVideo ? status : peer ? peer.name : status}</p>
-        {!showVideo && (
-          <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold md:text-sm">
-            {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
-            {randomActionLabel}
-          </button>
-        )}
-      </div>
-
       {showVideo && (
         <section
           onPointerMove={revealVideoChrome}
           onPointerDown={revealVideoChrome}
           onTouchStart={revealVideoChrome}
-          className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[18px] p-1 lg:rounded-[22px] lg:p-1.5'}`}
+          className={`${focused ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] p-1 lg:rounded-[22px] lg:p-1.5'}`}
         >
           <div className="relative min-h-0 flex-1">
             <MainVideoStage
@@ -475,6 +462,7 @@ export default function Stranger() {
               onStart={() => requestFindStranger(false)}
               emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
               status={callState}
+              modeTabs={<ModeTabs value={viewMode} onChange={switchMode} compact />}
               actions={
                 <>
                   <CircleControl onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Start' : callState} primary />
@@ -492,27 +480,31 @@ export default function Stranger() {
       )}
 
       {showChat && (
-        <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[18px]' : !showVideo ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[18px]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[18px] lg:rounded-[22px]'}`}>
-          <div className="space-y-3 border-b border-white/8 p-3 lg:p-4">
-            {peer ? (
-              <div className="flex items-center gap-3">
-                <button onClick={() => setProfileUser(peer)} className="relative">
-                  <img src={peer.avatar} alt="" className="h-12 w-12 rounded-2xl object-cover" />
-                  <span className="live-dot absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-mint text-mint" />
-                </button>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{peer.name}</p>
-                  <p className="truncate text-xs text-white/48">{peer.gender} - {peer.age}</p>
+        <aside className="depth-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] lg:rounded-[22px]">
+          <div className="space-y-3 border-b border-white/8 p-2.5 lg:p-3">
+            <div className="flex items-center justify-between gap-3">
+              {peer ? (
+                <div className="flex min-w-0 items-center gap-3">
+                  <button onClick={() => setProfileUser(peer)} className="relative shrink-0">
+                    <img src={peer.avatar} alt="" className="h-11 w-11 rounded-2xl object-cover" />
+                    <span className="live-dot absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-mint text-mint" />
+                  </button>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{peer.name}</p>
+                    <p className="truncate text-xs text-white/48">{peer.gender} - {peer.age}</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/8 text-rose"><MessageCircle size={21} /></span>
-                <div>
-                  <p className="font-semibold">Random chat</p>
+              ) : (
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/8 text-rose"><MessageCircle size={20} /></span>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">Random chat</p>
+                    <p className="truncate text-xs text-white/42">{status}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+              <ModeTabs value={viewMode} onChange={switchMode} compact />
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
@@ -580,7 +572,7 @@ export default function Stranger() {
   );
 }
 
-function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, chromeVisible, onToggleFocus, emptyText, onStart, status, actions }) {
+function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, chromeVisible, onToggleFocus, emptyText, onStart, status, modeTabs, actions }) {
   const stageHeight = focused || expanded ? 'h-full min-h-0' : 'h-full min-h-0';
 
   return (
@@ -609,18 +601,28 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
       )}
       <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/70 via-black/20 to-transparent p-2.5 transition duration-300 sm:p-3 ${chromeVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex items-start justify-between gap-2">
-          <div className="pointer-events-auto min-w-0 rounded-2xl border border-white/10 bg-black/38 px-3 py-2 text-left backdrop-blur-md">
-            <p className="truncate text-sm font-semibold text-white sm:text-base">{peer?.name || (finding ? 'Searching...' : 'Random live')}</p>
-            <p className="mt-0.5 text-[11px] font-semibold capitalize text-white/52">{status || 'idle'}</p>
+          <div className="flex min-w-0 items-start gap-2">
+            <div className="pointer-events-auto min-w-0 rounded-2xl border border-white/10 bg-black/38 px-3 py-2 text-left backdrop-blur-md">
+              <p className="truncate text-sm font-semibold text-white sm:text-base">{peer?.name || (finding ? 'Searching...' : 'Random live')}</p>
+              <p className="mt-0.5 text-[11px] font-semibold capitalize text-white/52">{status || 'idle'}</p>
+            </div>
+            <div className="pointer-events-auto hidden sm:block">
+              {modeTabs}
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={onToggleFocus}
-            className="pointer-events-auto grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-black/42 text-white/82 backdrop-blur-md transition hover:bg-white/12 sm:h-10 sm:w-10"
-            aria-label={focused ? 'Exit full screen random chat' : 'Open full screen random chat'}
-          >
-            {focused ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="pointer-events-auto sm:hidden">
+              {modeTabs}
+            </div>
+            <button
+              type="button"
+              onClick={onToggleFocus}
+              className="pointer-events-auto grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-black/42 text-white/82 backdrop-blur-md transition hover:bg-white/12 sm:h-10 sm:w-10"
+              aria-label={focused ? 'Exit full screen random chat' : 'Open full screen random chat'}
+            >
+              {focused ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+            </button>
+          </div>
         </div>
       </div>
       <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/78 via-black/22 to-transparent px-2.5 pb-[calc(env(safe-area-inset-bottom)+0.7rem)] pt-10 transition duration-300 sm:px-3 ${chromeVisible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}>
@@ -632,20 +634,20 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
   );
 }
 
-function ModeTabs({ value, onChange }) {
+function ModeTabs({ value, onChange, compact = false }) {
   const modes = [
     { value: 'chat', label: 'Chat' },
     { value: 'video', label: 'VC' }
   ];
 
   return (
-    <div className="flex shrink-0 rounded-full border border-white/10 bg-white/6 p-1">
+    <div data-no-tab-swipe className={`flex shrink-0 rounded-full border border-white/10 bg-white/6 p-1 ${compact ? 'backdrop-blur-md' : ''}`}>
       {modes.map((mode) => (
         <button
           key={mode.value}
           type="button"
           onClick={() => onChange(mode.value)}
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${value === mode.value ? 'bg-white text-ink shadow-[0_10px_24px_rgba(255,255,255,0.12)]' : 'text-white/58 hover:text-white'}`}
+          className={`rounded-full font-semibold transition ${compact ? 'px-2.5 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-xs' : 'px-3 py-1.5 text-xs'} ${value === mode.value ? 'bg-white text-ink shadow-[0_10px_24px_rgba(255,255,255,0.12)]' : 'text-white/58 hover:text-white'}`}
         >
           {mode.label}
         </button>
