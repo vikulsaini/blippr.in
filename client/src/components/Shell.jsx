@@ -104,11 +104,11 @@ export default function Shell() {
   }
 
   return (
-    <main className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-white md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-3 pt-3 md:gap-4 md:px-5 md:py-5'}`}>
+    <main className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-white md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'}`}>
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
       <div className="flex min-h-0 flex-col overflow-hidden">
         {showMainHeader && (
-          <header className="mb-3 flex items-center justify-between rounded-[24px] md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3">
+          <header className="mb-2 flex items-center justify-between rounded-[22px] px-1 md:mb-3 md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3">
             <BrandLogo />
             <NotificationBell />
           </header>
@@ -128,7 +128,7 @@ export default function Shell() {
       {!isChats && <GlobalIncomingCall />}
       <GuestUpgradeModal />
       {!navHidden && (
-        <nav className="safe-bottom premium-nav fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-white/8 px-5 pt-1.5 backdrop-blur md:hidden">
+        <nav className="safe-bottom premium-nav fixed inset-x-3 bottom-2 z-20 mx-auto max-w-[22rem] rounded-[24px] border border-white/8 px-2 pt-1 backdrop-blur md:hidden">
           <div className="grid grid-cols-4">
             {tabs.map(({ to, label, icon: Icon }, index) => (
               <NavLink
@@ -136,18 +136,18 @@ export default function Shell() {
                 to={to}
                 end={to === '/app'}
                 className={({ isActive }) =>
-                  `group relative flex min-h-[3rem] flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-xs transition ${
+                  `group relative flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-[18px] px-1 py-1 text-xs transition ${
                     isActive ? 'text-white' : 'text-white/42 hover:text-white/78'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <span className={`absolute top-0 h-0.5 w-5 rounded-full transition ${isActive ? navAccent(index) : 'bg-transparent'}`} />
-                    <span className={`grid h-8 w-8 place-items-center rounded-2xl transition ${isActive ? `${navGlow(index)} text-ink` : ''}`}>
-                      <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                    <span className={`absolute top-0.5 h-0.5 w-4 rounded-full transition ${isActive ? navAccent(index) : 'bg-transparent'}`} />
+                    <span className={`grid h-7 w-7 place-items-center rounded-[14px] transition ${isActive ? `${navGlow(index)} text-ink` : ''}`}>
+                      <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
                     </span>
-                    <span className={`text-[10px] font-medium ${isActive ? 'text-white' : 'text-white/42'}`}>{label}</span>
+                    <span className={`text-[9px] font-medium leading-none ${isActive ? 'text-white' : 'text-white/42'}`}>{label}</span>
                   </>
                 )}
               </NavLink>

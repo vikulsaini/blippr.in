@@ -89,7 +89,7 @@ export default function ChatList({
         )}
       </div>
 
-      <div data-chat-feed className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3">
+      <div data-chat-feed className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20 md:pb-3">
         {loading ? (
           <ChatSkeleton />
         ) : (
