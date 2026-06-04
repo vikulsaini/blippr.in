@@ -2,10 +2,10 @@ import { MessageCircle } from 'lucide-react';
 
 export default function BrandLogo({ compact = false, className = '' }) {
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
-      <span className="tone-ring relative grid h-10 w-10 place-items-center rounded-[18px] border border-white/12 bg-[linear-gradient(135deg,#ffffff,#d8fff8_48%,#e8e3ff)] text-ink">
-        <MessageCircle size={19} strokeWidth={2.5} />
-        <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-ink bg-rose" />
+    <div className={`flex items-center ${compact ? 'gap-2' : 'gap-2.5'} ${className}`}>
+      <span className={`tone-ring relative grid place-items-center border border-white/12 bg-[linear-gradient(135deg,#ffffff,#d8fff8_48%,#e8e3ff)] text-ink ${compact ? 'h-8 w-8 rounded-[14px]' : 'h-10 w-10 rounded-[18px]'}`}>
+        <MessageCircle size={compact ? 16 : 19} strokeWidth={2.5} />
+        <span className={`absolute rounded-full border-2 border-ink bg-rose ${compact ? '-right-0.5 -top-0.5 h-2.5 w-2.5' : '-right-0.5 -top-0.5 h-3 w-3'}`} />
       </span>
       {!compact && (
         <span className="leading-none">

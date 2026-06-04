@@ -104,11 +104,11 @@ export default function Shell() {
   }
 
   return (
-    <main className="app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden px-3 pt-3 text-white md:grid-cols-[5rem_minmax(0,1fr)] md:gap-4 md:px-5 md:py-5">
+    <main className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-white md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-2 pt-2 md:gap-3 md:px-3 md:py-3' : 'px-3 pt-3 md:gap-4 md:px-5 md:py-5'}`}>
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
       <div className="flex min-h-0 flex-col overflow-hidden">
-        <header className={`${showHeader ? 'mb-3 flex' : 'sr-only md:not-sr-only md:mb-3 md:flex'} items-center justify-between rounded-[24px] md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3`}>
-          <BrandLogo />
+        <header className={`${showHeader ? (isRandom ? 'mb-2 flex' : 'mb-3 flex') : 'sr-only md:not-sr-only md:mb-3 md:flex'} items-center justify-between ${isRandom ? 'rounded-[18px] px-1.5 py-1 md:border md:border-white/8 md:bg-white/5 md:px-3 md:py-2' : 'rounded-[24px] md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3'}`}>
+          <BrandLogo compact={isRandom} />
           <NotificationBell />
         </header>
         <section
@@ -116,8 +116,8 @@ export default function Shell() {
           onTouchEnd={handleTouchEnd}
           className={`flex min-h-0 flex-1 flex-col ${navHidden || isChats || isRandom ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24 md:pb-0'} ${isChats ? '-mx-3 md:mx-0' : ''}`}
         >
-          {!bottomNavHidden && <SocketStateBanner />}
-          {!bottomNavHidden && <GuestLimitBanner />}
+          {!bottomNavHidden && !isRandom && <SocketStateBanner />}
+          {!bottomNavHidden && !isRandom && <GuestLimitBanner />}
           <div className={isChats || isRandom ? 'min-h-0 flex-1' : 'mx-auto w-full max-w-6xl'}>
             <Outlet context={{ setBottomNavHidden }} />
           </div>

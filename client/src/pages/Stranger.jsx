@@ -421,33 +421,33 @@ export default function Stranger() {
   }, [session, viewMode, callState]);
 
   const shellClass = focused
-    ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen grid-rows-[auto_minmax(0,1fr)] gap-2 overflow-hidden bg-ink p-2 sm:p-3'
-    : 'mx-auto grid h-full min-h-0 w-full max-w-6xl grid-rows-[auto_minmax(0,1fr)] gap-2 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] md:pb-0 lg:gap-4';
+    ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen grid-rows-[auto_minmax(0,1fr)] gap-1.5 overflow-hidden bg-ink p-1.5 sm:p-2'
+    : 'mx-auto grid h-full min-h-0 w-full max-w-none grid-rows-[auto_minmax(0,1fr)] gap-1.5 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.5rem)] md:pb-0 lg:gap-2';
 
   return (
     <div className={shellClass}>
-      <div title={status} className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-[22px] border border-white/8 bg-ink/88 p-2 backdrop-blur">
+      <div title={status} className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-[18px] border border-white/8 bg-ink/88 p-1.5 backdrop-blur md:p-2">
         <div className="justify-self-start">
           <ModeTabs value={viewMode} onChange={switchMode} />
         </div>
         <p className="truncate text-center text-xs font-semibold text-white/48">{peer ? peer.name : status}</p>
-        <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
+        <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold md:text-sm">
           {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
           {randomActionLabel}
         </button>
       </div>
 
       {showVideo && (
-        <section className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] lg:rounded-[28px]'}`}>
-          <div className="flex items-center justify-between gap-3 border-b border-white/8 p-3 lg:p-4">
+        <section className={`${focused ? 'flex min-h-0 flex-col overflow-hidden rounded-[18px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[18px] lg:rounded-[22px]'}`}>
+          <div className="flex items-center justify-between gap-3 border-b border-white/8 px-3 py-2">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose">Random live</p>
-              <h2 className="truncate text-xl font-semibold">{peer ? peer.name : finding ? 'Searching...' : 'Meet someone new'}</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose">Random live</p>
+              <h2 className="truncate text-base font-semibold md:text-lg">{peer ? peer.name : finding ? 'Searching...' : 'Meet someone new'}</h2>
             </div>
             <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs font-semibold text-white/55">{callState}</span>
           </div>
 
-          <div className="relative flex-1 p-2 lg:p-3">
+          <div className="relative min-h-0 flex-1 p-1.5 md:p-2">
             <MainVideoStage
               peer={peer}
               finding={finding}
@@ -462,7 +462,7 @@ export default function Stranger() {
             <LocalPreview stream={localStream} videoRef={localVideoRef} cameraOff={cameraOff} />
           </div>
 
-          <div className="grid grid-cols-3 gap-1.5 border-t border-white/8 p-2 sm:grid-cols-6 lg:gap-2 lg:p-3">
+          <div className="grid grid-cols-3 gap-1.5 border-t border-white/8 p-1.5 sm:grid-cols-6 md:p-2">
             <ControlButton onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Start' : callState} primary />
             <ControlButton onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
             <ControlButton onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
@@ -474,7 +474,7 @@ export default function Stranger() {
       )}
 
       {showChat && (
-        <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px]' : !showVideo ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[22px] lg:rounded-[28px]'}`}>
+        <aside className={`${focused ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[18px]' : !showVideo ? 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[18px]' : 'depth-panel flex min-h-0 flex-col overflow-hidden rounded-[18px] lg:rounded-[22px]'}`}>
           <div className="space-y-3 border-b border-white/8 p-3 lg:p-4">
             {peer ? (
               <div className="flex items-center gap-3">
@@ -566,9 +566,9 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, on
   const stageHeight = focused || expanded ? 'h-full min-h-0' : 'h-full min-h-0';
 
   return (
-    <div className={`relative overflow-hidden rounded-[20px] border border-white/8 bg-black/45 lg:rounded-[24px] ${stageHeight}`}>
+    <div className={`relative overflow-hidden rounded-[16px] border border-white/8 bg-black/70 lg:rounded-[20px] ${stageHeight}`}>
       {stream ? (
-        <video ref={videoRef} autoPlay playsInline className={`h-full w-full object-cover ${stageHeight}`} />
+        <video ref={videoRef} autoPlay playsInline className={`h-full w-full object-contain ${stageHeight}`} />
       ) : (
         <div className={`grid h-full place-items-center p-4 text-center lg:p-6 ${stageHeight}`}>
           <div>
@@ -579,8 +579,8 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, on
                 {finding ? <Loader2 className="animate-spin" size={25} /> : <Video size={25} />}
               </span>
             )}
-            <p className="mt-4 text-base font-semibold">{peer?.name || 'Random live'}</p>
-            <p className="mt-3 text-sm text-white/48">{emptyText}</p>
+            <p className="mt-3 text-base font-semibold">{peer?.name || 'Random live'}</p>
+            <p className="mt-2 text-sm text-white/48">{emptyText}</p>
             {!peer && !finding && onStart && (
               <button onClick={onStart} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold">
                 Start VC
@@ -589,7 +589,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, on
           </div>
         </div>
       )}
-      <div className="absolute inset-x-2 top-2 flex items-center justify-between gap-2 lg:inset-x-3 lg:top-3 lg:gap-3">
+      <div className="absolute inset-x-2 top-2 flex items-center justify-between gap-2">
         <span className="rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold backdrop-blur">{peer?.name || 'Stranger'}</span>
         <div className="flex items-center gap-2">
           <span className="hidden rounded-full border border-white/10 bg-ink/70 px-3 py-1 text-xs font-semibold text-white/65 backdrop-blur sm:inline-flex">Remote</span>
@@ -642,7 +642,7 @@ function LocalPreview({ stream, videoRef, cameraOff }) {
   }, [stream, videoRef, cameraOff]);
 
   return (
-    <div className="absolute bottom-4 right-4 h-24 w-20 overflow-hidden rounded-[18px] border border-white/12 bg-ink shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:h-32 sm:w-24 lg:bottom-6 lg:right-6 lg:h-36 lg:w-28 lg:rounded-[20px]">
+    <div className="absolute bottom-3 right-3 h-24 w-20 overflow-hidden rounded-[16px] border border-white/12 bg-ink shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:h-28 sm:w-24 lg:bottom-4 lg:right-4 lg:h-32 lg:w-28">
       {stream && !cameraOff ? (
         <video ref={videoRef} autoPlay playsInline muted className="h-full w-full scale-x-[-1] object-cover" />
       ) : (
@@ -661,7 +661,7 @@ function ControlButton({ icon: Icon, label, onClick, disabled, primary, danger }
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex min-h-11 items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-[10px] font-semibold capitalize disabled:opacity-35 sm:gap-2 sm:px-3 sm:py-3 sm:text-xs ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'btn-secondary'}`}
+      className={`flex min-h-10 items-center justify-center gap-1 rounded-xl px-1.5 py-1.5 text-[10px] font-semibold capitalize disabled:opacity-35 sm:gap-2 sm:px-2.5 sm:py-2 sm:text-xs ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'btn-secondary'}`}
     >
       <Icon size={17} />
       {label}
