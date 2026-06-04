@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Flag, Loader2, Maximize2, MessageCircle, Mic, MicOff, Minimize2, PhoneOff, Send, Shuffle, UserPlus, Video, VideoOff } from 'lucide-react';
+import { Check, Flag, Loader2, Maximize2, MessageCircle, Mic, MicOff, Minimize2, Send, ShieldCheck, Shuffle, UserPlus, Video, VideoOff } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
@@ -12,6 +12,7 @@ const waitingLines = [
   'Keeping friends and blocked users out of this queue...'
 ];
 const FRIEND_UNLOCK_MS = 3 * 60 * 1000;
+const SAFETY_ACK_KEY = 'varta_random_safety_ack';
 
 export default function Stranger() {
   const [session, setSession] = useState(null);
@@ -29,6 +30,8 @@ export default function Stranger() {
   const [focused, setFocused] = useState(false);
   const [viewMode, setViewMode] = useState('chat');
   const [now, setNow] = useState(() => Date.now());
+  const [safetyOpen, setSafetyOpen] = useState(false);
+  const pendingFindRef = useRef(false);
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteIceQueueRef = useRef([]);
@@ -72,8 +75,8 @@ export default function Stranger() {
   useEffect(() => {
     const socket = getRealtimeSocket();
 
-    function handleMatched({ chat, peer: matchedPeer }) {
-      startSession(chat, matchedPeer);
+    function handleMatched({ chat, peer: matchedPeer, initiator }) {
+      startSession(chat, matchedPeer, initiator);
     }
 
     function handleMessage({ message }) {
@@ -106,13 +109,22 @@ export default function Stranger() {
     };
   }, []);
 
-  function startSession(chat, matchedPeer) {
+  function startSession(chat, matchedPeer, initiator) {
     getRealtimeSocket().emit('chat:join', { chatId: chat._id });
-    setSession({ chat, peer: matchedPeer, startedAt: chat.createdAt || new Date().toISOString() });
+    setSession({ chat, peer: matchedPeer, initiator, startedAt: chat.createdAt || new Date().toISOString() });
     setMessages([]);
     setFriendSent(false);
     setFinding(false);
     setStatus(`Connected with @${matchedPeer?.username || 'stranger'}`);
+  }
+
+  function requestFindStranger(next = false) {
+    if (!window.localStorage.getItem(SAFETY_ACK_KEY)) {
+      pendingFindRef.current = next;
+      setSafetyOpen(true);
+      return;
+    }
+    findStranger(next);
   }
 
   async function findStranger(next = false) {
@@ -132,10 +144,10 @@ export default function Stranger() {
 
   function handleRandomAction() {
     if (!session && !finding) {
-      findStranger(false);
+      requestFindStranger(false);
       return;
     }
-    findStranger(true);
+    requestFindStranger(true);
   }
 
   function handleFindAck(result = {}) {
@@ -145,7 +157,7 @@ export default function Stranger() {
       return;
     }
     if (result.matched) {
-      startSession(result.chat, result.peer);
+      startSession(result.chat, result.peer, result.initiator);
       return;
     }
     setFinding(true);
@@ -159,6 +171,21 @@ export default function Stranger() {
     setSession(null);
     setMessages([]);
     setFinding(false);
+  }
+
+  function switchMode(nextMode) {
+    if (nextMode === viewMode) return;
+    leaveSession();
+    setViewMode(nextMode);
+    setStatus(nextMode === 'video' ? 'Ready for random video' : 'Ready for random chat');
+    window.setTimeout(() => requestFindStranger(false), 0);
+  }
+
+  function acknowledgeSafety() {
+    window.localStorage.setItem(SAFETY_ACK_KEY, '1');
+    setSafetyOpen(false);
+    findStranger(pendingFindRef.current);
+    pendingFindRef.current = false;
   }
 
   async function sendMessage(event) {
@@ -198,7 +225,7 @@ export default function Stranger() {
         body: JSON.stringify({ userId: peer._id, reason: 'inappropriate', notes: 'Reported from random chat.' })
       });
       setStatus('Reported and skipped.');
-      findStranger(true);
+      requestFindStranger(true);
     } catch (error) {
       setStatus(error.message);
     }
@@ -345,6 +372,13 @@ export default function Stranger() {
     setCameraOff((value) => !value);
   }
 
+  useEffect(() => {
+    if (!session?.chat?._id || viewMode !== 'video' || callState !== 'idle') return;
+    if (session.initiator && session.initiator !== session.peer?._id) {
+      startVideoChat();
+    }
+  }, [session, viewMode, callState]);
+
   const shellClass = focused
     ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen grid-rows-[auto_minmax(0,1fr)] gap-2 overflow-hidden bg-ink p-2 sm:p-3'
     : 'mx-auto grid h-full min-h-0 w-full max-w-6xl grid-rows-[auto_minmax(0,1fr)] gap-2 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] md:pb-0 lg:gap-4';
@@ -353,7 +387,7 @@ export default function Stranger() {
     <div className={shellClass}>
       <div title={status} className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-[22px] border border-white/8 bg-ink/88 p-2 backdrop-blur">
         <div className="justify-self-start">
-          <ModeTabs value={viewMode} onChange={setViewMode} />
+          <ModeTabs value={viewMode} onChange={switchMode} />
         </div>
         <p className="truncate text-center text-xs font-semibold text-white/48">{peer ? `@${peer.username}` : status}</p>
         <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
@@ -381,16 +415,17 @@ export default function Stranger() {
               focused={focused}
               expanded
               onToggleFocus={() => setFocused((value) => !value)}
+              onStart={() => requestFindStranger(false)}
               emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
             />
             <LocalPreview stream={localStream} videoRef={localVideoRef} cameraOff={cameraOff} />
           </div>
 
           <div className="grid grid-cols-5 gap-1.5 border-t border-white/8 p-2 lg:gap-2 lg:p-3">
-            <ControlButton onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Video' : callState} primary />
+            <ControlButton onClick={startVideoChat} disabled={!session || callState !== 'idle'} icon={Video} label={callState === 'idle' ? 'Start' : callState} primary />
             <ControlButton onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
             <ControlButton onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
-            <ControlButton onClick={cleanupCall} disabled={callState === 'idle'} icon={PhoneOff} label="End" danger />
+            <ControlButton onClick={sendFriendRequest} disabled={!peer || friendSent || !friendUnlocked} icon={friendSent ? Check : UserPlus} label={friendGateLabel} primary />
             <ControlButton onClick={reportPeer} disabled={!peer} icon={Flag} label="Report" danger />
           </div>
         </section>
@@ -422,7 +457,7 @@ export default function Stranger() {
 
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
             {!session && (
-              <EmptyRandom finding={finding} onStart={() => findStranger(false)} />
+              <EmptyRandom finding={finding} onStart={() => requestFindStranger(false)} />
             )}
             {messages.map((message) => {
               const mine = (message.sender?._id || message.sender) !== peer?._id;
@@ -474,11 +509,12 @@ export default function Stranger() {
       )}
 
       <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
+      <SafetyModal open={safetyOpen} onClose={() => setSafetyOpen(false)} onAgree={acknowledgeSafety} />
     </div>
   );
 }
 
-function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, onToggleFocus, emptyText }) {
+function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, onToggleFocus, emptyText, onStart }) {
   const stageHeight = focused || expanded ? 'h-full min-h-0' : 'h-full min-h-0';
 
   return (
@@ -497,6 +533,11 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, on
             )}
             <p className="mt-4 text-base font-semibold">{peer?.name || 'Random live'}</p>
             <p className="mt-3 text-sm text-white/48">{emptyText}</p>
+            {!peer && !finding && onStart && (
+              <button onClick={onStart} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold">
+                Start VC
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -595,5 +636,27 @@ function EmptyRandom({ finding, onStart }) {
         )}
       </div>
     </motion.div>
+  );
+}
+
+function SafetyModal({ open, onClose, onAgree }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur">
+      <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="depth-panel w-full max-w-sm rounded-[24px] p-4">
+        <span className="tone-ring grid h-12 w-12 place-items-center rounded-2xl bg-mint/10 text-mint">
+          <ShieldCheck size={23} />
+        </span>
+        <h3 className="mt-4 text-lg font-semibold">Before you start</h3>
+        <div className="mt-3 space-y-2 text-sm leading-6 text-white/58">
+          <p>Keep random chat respectful. Adult, abusive, hateful, exploitative, or unsafe content is not allowed.</p>
+          <p>Messages can be blocked by safety filters. Reports may restrict or ban accounts.</p>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button type="button" onClick={onClose} className="btn-secondary rounded-2xl py-3 text-sm font-semibold">Cancel</button>
+          <button type="button" onClick={onAgree} className="btn-primary rounded-2xl py-3 text-sm font-semibold">I agree</button>
+        </div>
+      </motion.div>
+    </div>
   );
 }

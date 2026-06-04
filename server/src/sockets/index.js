@@ -4,6 +4,7 @@ import Message from '../models/Message.js';
 import User from '../models/User.js';
 import { findOrQueueUser, leaveQueues } from '../services/matchmaking.service.js';
 import { notifyUser } from '../services/notification.service.js';
+import { applyBlockedWords } from '../services/safety.service.js';
 import { socketAuth } from './auth.socket.js';
 
 const CALL_RING_TIMEOUT_MS = 45000;
@@ -96,13 +97,6 @@ function deliveryReceiptsFor(io, chat, senderId) {
         deliveredAt: connected ? new Date() : undefined
       };
     });
-}
-
-function applyBlockedWords(text = '', blockedWords = []) {
-  return blockedWords.reduce((value, word) => {
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return escaped ? value.replace(new RegExp(escaped, 'gi'), '***') : value;
-  }, text);
 }
 
 async function markMissedCallIfStillRinging(io, callId) {

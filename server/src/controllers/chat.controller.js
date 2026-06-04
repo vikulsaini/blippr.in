@@ -6,6 +6,7 @@ import Message from '../models/Message.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { notifyUser } from '../services/notification.service.js';
+import { applyBlockedWords } from '../services/safety.service.js';
 
 export const createDirectChatSchema = Joi.object({
   userId: Joi.string().hex().length(24).required()
@@ -77,13 +78,6 @@ async function populateMessage(messageId) {
 
 function receiverIds(chat, senderId) {
   return chat.members.filter((memberId) => memberId.toString() !== senderId.toString());
-}
-
-function applyBlockedWords(text = '', blockedWords = []) {
-  return blockedWords.reduce((value, word) => {
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return escaped ? value.replace(new RegExp(escaped, 'gi'), '***') : value;
-  }, text);
 }
 
 function deliveryReceiptsFor(chat, senderId, io) {
