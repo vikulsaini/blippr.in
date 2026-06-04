@@ -6,8 +6,11 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { notifyUser } from '../services/notification.service.js';
 
 export const friendRequestSchema = Joi.object({
-  userId: Joi.string().hex().length(24).required()
+  userId: Joi.string().hex().length(24).required(),
+  sourceChatId: Joi.string().hex().length(24).optional()
 });
+
+const RANDOM_FRIEND_REQUEST_MIN_MS = 3 * 60 * 1000;
 
 export const sendFriendRequest = asyncHandler(async (req, res) => {
   if ((req.user.blockedUsers || []).some((userId) => userId.toString() === req.body.userId)) {
@@ -20,6 +23,26 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
     const error = new Error('User not found');
     error.status = 404;
     throw error;
+  }
+  if (req.body.sourceChatId) {
+    const sourceChat = await Chat.findOne({
+      _id: req.body.sourceChatId,
+      type: 'stranger',
+      temporary: true,
+      members: { $all: [req.user._id, req.body.userId] }
+    }).select('createdAt');
+    if (!sourceChat) {
+      const error = new Error('Random chat session not found');
+      error.status = 404;
+      throw error;
+    }
+    const elapsed = Date.now() - sourceChat.createdAt.getTime();
+    if (elapsed < RANDOM_FRIEND_REQUEST_MIN_MS) {
+      const remainingSeconds = Math.ceil((RANDOM_FRIEND_REQUEST_MIN_MS - elapsed) / 1000);
+      const error = new Error(`Talk for ${Math.ceil(remainingSeconds / 60)} more minute${remainingSeconds > 60 ? 's' : ''} before sending a friend request`);
+      error.status = 429;
+      throw error;
+    }
   }
 
   const request = await FriendRequest.findOneAndUpdate(

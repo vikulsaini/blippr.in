@@ -11,6 +11,7 @@ const waitingLines = [
   'Pairing you with a random online user...',
   'Keeping friends and blocked users out of this queue...'
 ];
+const FRIEND_UNLOCK_MS = 3 * 60 * 1000;
 
 export default function Stranger() {
   const [session, setSession] = useState(null);
@@ -27,6 +28,7 @@ export default function Stranger() {
   const [cameraOff, setCameraOff] = useState(false);
   const [focused, setFocused] = useState(false);
   const [viewMode, setViewMode] = useState('chat');
+  const [now, setNow] = useState(() => Date.now());
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteIceQueueRef = useRef([]);
@@ -40,6 +42,11 @@ export default function Stranger() {
   const randomActionLabel = !session && !finding ? 'Start' : finding ? 'Searching' : 'Skip';
   const showVideo = viewMode === 'video';
   const showChat = viewMode === 'chat';
+  const sessionStartedAt = session?.startedAt || session?.chat?.createdAt;
+  const elapsedMs = sessionStartedAt ? Math.max(0, now - new Date(sessionStartedAt).getTime()) : 0;
+  const friendUnlockMs = Math.max(0, FRIEND_UNLOCK_MS - elapsedMs);
+  const friendUnlocked = !!peer && friendUnlockMs === 0;
+  const friendGateLabel = friendSent ? 'Sent' : friendUnlocked ? 'Add friend' : `Wait ${formatCountdown(friendUnlockMs)}`;
 
   useEffect(() => {
     sessionRef.current = session;
@@ -56,6 +63,11 @@ export default function Stranger() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const socket = getRealtimeSocket();
@@ -96,7 +108,7 @@ export default function Stranger() {
 
   function startSession(chat, matchedPeer) {
     getRealtimeSocket().emit('chat:join', { chatId: chat._id });
-    setSession({ chat, peer: matchedPeer });
+    setSession({ chat, peer: matchedPeer, startedAt: chat.createdAt || new Date().toISOString() });
     setMessages([]);
     setFriendSent(false);
     setFinding(false);
@@ -162,8 +174,15 @@ export default function Stranger() {
 
   async function sendFriendRequest() {
     if (!peer?._id || friendSent) return;
+    if (!friendUnlocked) {
+      setStatus(`Talk for ${formatCountdown(friendUnlockMs)} more before sending a request.`);
+      return;
+    }
     try {
-      await api('/api/friends/requests', { method: 'POST', body: JSON.stringify({ userId: peer._id }) });
+      await api('/api/friends/requests', {
+        method: 'POST',
+        body: JSON.stringify({ userId: peer._id, sourceChatId: session?.chat?._id })
+      });
       setFriendSent(true);
       setStatus('Friend request sent. Chat appears only after they accept.');
     } catch (error) {
@@ -332,8 +351,11 @@ export default function Stranger() {
 
   return (
     <div className={shellClass}>
-      <div title={status} className="flex shrink-0 items-center justify-between gap-2 rounded-[22px] border border-white/8 bg-ink/88 p-2 backdrop-blur">
-        <ModeTabs value={viewMode} onChange={setViewMode} />
+      <div title={status} className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-[22px] border border-white/8 bg-ink/88 p-2 backdrop-blur">
+        <div className="justify-self-start">
+          <ModeTabs value={viewMode} onChange={setViewMode} />
+        </div>
+        <p className="truncate text-center text-xs font-semibold text-white/48">{peer ? `@${peer.username}` : status}</p>
         <button onClick={handleRandomAction} className="btn-primary flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold">
           {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
           {randomActionLabel}
@@ -398,7 +420,7 @@ export default function Stranger() {
             )}
           </div>
 
-          <div className="flex-1 space-y-2 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
             {!session && (
               <EmptyRandom finding={finding} onStart={() => findStranger(false)} />
             )}
@@ -427,15 +449,16 @@ export default function Stranger() {
             <button
               type="button"
               onClick={sendFriendRequest}
-              disabled={!peer || friendSent}
+              disabled={!peer || friendSent || !friendUnlocked}
               className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold disabled:opacity-45 ${friendSent ? 'bg-mint text-ink' : 'btn-primary'}`}
+              title={friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request'}
             >
               {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
-              {friendSent ? 'Sent' : 'Add friend'}
+              {friendGateLabel}
             </button>
           </div>
 
-          <form onSubmit={sendMessage} className="flex gap-2 border-t border-white/8 p-2 lg:p-3">
+          <form onSubmit={sendMessage} className="flex shrink-0 gap-2 border-t border-white/8 p-2 lg:p-3">
             <input
               value={text}
               onChange={(event) => setText(event.target.value)}
@@ -515,6 +538,13 @@ function ModeTabs({ value, onChange }) {
       ))}
     </div>
   );
+}
+
+function formatCountdown(ms) {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
 function LocalPreview({ stream, videoRef, cameraOff }) {
