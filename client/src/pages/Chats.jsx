@@ -19,12 +19,12 @@ export default function Chats() {
   const { setBottomNavHidden } = useOutletContext() || {};
   const tokenUserId = normalizeId(getTokenSubject());
   const [me, setMe] = useState(() => readCache('me', 'global'));
-  const [chats, setChats] = useState(() => readCache('chats', tokenUserId, []));
+  const [chats, setChats] = useState(() => friendChats(readCache('chats', tokenUserId, [])));
   const [activeChat, setActiveChat] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
   const [profileChat, setProfileChat] = useState(null);
   const [query, setQuery] = useState('');
-  const [loadingChats, setLoadingChats] = useState(!readCache('chats', tokenUserId, []).length);
+  const [loadingChats, setLoadingChats] = useState(!friendChats(readCache('chats', tokenUserId, [])).length);
   const currentUserId = normalizeId(me?._id || tokenUserId);
 
   const {
@@ -67,6 +67,7 @@ export default function Chats() {
   });
 
   function mergeChat(updatedChat, unreadCount) {
+    if (!isFriendChat(updatedChat)) return;
     setChats((current) => {
       const withCount = { ...updatedChat, unreadCount };
       const rest = current.filter((chat) => chat._id !== updatedChat._id);
@@ -108,7 +109,7 @@ export default function Chats() {
     if (cachedMe) setMe(cachedMe);
     const cacheUserId = normalizeId(cachedMe?._id || tokenUserId);
     if (cacheUserId) {
-      const cachedChats = readCache('chats', cacheUserId, []);
+      const cachedChats = friendChats(readCache('chats', cacheUserId, []));
       if (cachedChats.length) setChats(cachedChats);
     }
 
@@ -120,6 +121,7 @@ export default function Chats() {
         api('/api/chats?archived=true')
       ]);
       const loadedChats = [...(activeData.chats || []), ...(archivedData.chats || [])]
+        .filter(isFriendChat)
         .filter((chat, index, all) => all.findIndex((item) => item._id === chat._id) === index);
       setMe(user);
       setChats(loadedChats);
@@ -340,4 +342,12 @@ export default function Chats() {
       />
     </div>
   );
+}
+
+function isFriendChat(chat) {
+  return chat?.type === 'direct' && chat?.temporary !== true;
+}
+
+function friendChats(chats = []) {
+  return chats.filter(isFriendChat);
 }

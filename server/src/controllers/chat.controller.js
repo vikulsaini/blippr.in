@@ -134,6 +134,8 @@ export const listChats = asyncHandler(async (req, res) => {
   ];
   const filter = {
     $and: [
+      { type: 'direct' },
+      { temporary: { $ne: true } },
       { members: req.user._id },
       { members: { $nin: hiddenMemberIds } },
       { hiddenFor: { $ne: req.user._id } },

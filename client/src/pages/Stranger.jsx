@@ -26,7 +26,7 @@ export default function Stranger() {
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [viewMode, setViewMode] = useState('both');
+  const [viewMode, setViewMode] = useState('chat');
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteIceQueueRef = useRef([]);
@@ -38,9 +38,8 @@ export default function Stranger() {
   const peer = session?.peer;
   const waitingText = useMemo(() => waitingLines[Math.floor(Math.random() * waitingLines.length)], [finding]);
   const randomActionLabel = !session && !finding ? 'Start' : finding ? 'Searching' : 'Skip';
-  const showVideo = viewMode !== 'chat';
-  const showChat = viewMode !== 'video';
-  const splitRows = showVideo && showChat ? 'grid-rows-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:grid-rows-none' : 'grid-rows-[minmax(0,1fr)]';
+  const showVideo = viewMode === 'video';
+  const showChat = viewMode === 'chat';
 
   useEffect(() => {
     sessionRef.current = session;
@@ -213,6 +212,7 @@ export default function Stranger() {
     if (!session?.chat?._id || !peer?._id) return;
     if (callState !== 'idle') return;
     try {
+      setViewMode('video');
       setCallState('connecting');
       setStatus(`Connecting video with @${peer.username || 'stranger'}...`);
       await createAndSendOffer();
@@ -249,6 +249,7 @@ export default function Stranger() {
     if (!nextPeer.getSenders().length) stream.getTracks().forEach((track) => nextPeer.addTrack(track, stream));
 
     if (type === 'offer') {
+      setViewMode('video');
       setCallState('connecting');
       setStatus('Connecting video chat...');
       if (nextPeer.signalingState === 'have-local-offer') {
@@ -326,8 +327,8 @@ export default function Stranger() {
   }
 
   const shellClass = focused
-    ? `fixed inset-0 z-[90] grid h-[100dvh] w-screen ${splitRows} gap-2 overflow-hidden bg-ink p-2 sm:p-3 ${showVideo && showChat ? 'lg:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.55fr)]' : ''}`
-    : `mx-auto grid h-full min-h-0 w-full max-w-6xl ${splitRows} gap-2 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] md:pb-0 lg:gap-4 ${showVideo && showChat ? 'lg:grid-cols-[minmax(0,1.35fr)_minmax(21rem,0.65fr)]' : ''}`;
+    ? 'fixed inset-0 z-[90] grid h-[100dvh] w-screen grid-rows-[minmax(0,1fr)] gap-2 overflow-hidden bg-ink p-2 sm:p-3'
+    : 'mx-auto grid h-full min-h-0 w-full max-w-6xl grid-rows-[minmax(0,1fr)] gap-2 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+4.75rem)] md:pb-0 lg:gap-4';
 
   return (
     <div className={shellClass}>
@@ -355,7 +356,7 @@ export default function Stranger() {
               stream={remoteStream}
               videoRef={remoteVideoRef}
               focused={focused}
-              expanded={viewMode === 'video'}
+              expanded
               onToggleFocus={() => setFocused((value) => !value)}
               emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
             />
@@ -500,9 +501,8 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, on
 
 function ModeTabs({ value, onChange }) {
   const modes = [
-    { value: 'both', label: 'Both' },
-    { value: 'video', label: 'VC' },
-    { value: 'chat', label: 'Chat' }
+    { value: 'chat', label: 'Chat' },
+    { value: 'video', label: 'VC' }
   ];
 
   return (
