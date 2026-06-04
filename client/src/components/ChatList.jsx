@@ -42,8 +42,8 @@ export default function ChatList({
   }, [activeChats, currentUserId]);
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col px-3 pt-3 md:px-4">
-      <div className="sticky top-0 z-10 -mx-4 bg-ink/95 px-4 pb-3 backdrop-blur">
+    <section className="flex min-h-0 flex-1 flex-col px-2 pt-2 md:px-4 md:pt-3">
+      <div className="sticky top-0 z-10 -mx-3 bg-ink/90 px-3 pb-3 backdrop-blur-xl md:-mx-4 md:px-4">
         {selectedChats.size ? (
           <SelectionToolbar
             count={selectedChats.size}
@@ -57,13 +57,13 @@ export default function ChatList({
         ) : (
           <div className="mb-3 flex shrink-0 items-center justify-between">
             <div>
-              <h2 className="bg-gradient-to-r from-white via-mint to-sky bg-clip-text text-2xl font-semibold text-transparent">Chats</h2>
-              <p className="text-sm text-white/45">
+              <h2 className="bg-gradient-to-r from-white via-cyan-100 to-mint bg-clip-text text-2xl font-bold text-transparent">Chats</h2>
+              <p className="text-sm font-medium text-slate-300/85">
                 {activeChats.length} friends, {onlineFriendCount} online now
                 {chats.some((chat) => chat.archived) ? `, ${chats.filter((chat) => chat.archived).length} archived` : ''}
               </p>
             </div>
-            <span className="rounded-full border border-mint/20 bg-mint/10 px-3 py-1 text-xs font-semibold text-mint">
+            <span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
               {onlineFriendCount} online
             </span>
           </div>
@@ -71,17 +71,17 @@ export default function ChatList({
 
         {!selectedChats.size && (
           <>
-            <div className="mb-3 grid grid-cols-3 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <div className="mb-3 grid grid-cols-3 gap-1 rounded-[16px] border border-cyan-200/10 bg-slate-950/35 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(6,182,212,0.06)]">
               <TabButton active={tab === 'chats'} onClick={() => setTab('chats')} label="Chats" />
               <TabButton active={tab === 'favorites'} onClick={() => setTab('favorites')} label="Favorites" />
               <TabButton active={tab === 'archived'} onClick={() => setTab('archived')} label="Archived" />
             </div>
-            <label className="flex shrink-0 items-center gap-3 rounded-[16px] border border-sky/15 bg-sky/5 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-              <Search size={18} className="text-sky/75" />
+            <label className="flex shrink-0 items-center gap-3 rounded-[16px] border border-cyan-200/12 bg-black/24 px-4 py-3 shadow-[inset_0_2px_8px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.07)]">
+              <Search size={18} className="text-cyan-200/80" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-slate-100 outline-none"
                 placeholder="Search friends or messages"
               />
             </label>
@@ -179,7 +179,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
   }
 
   return (
-    <div className="relative overflow-hidden border-b border-white/8">
+    <div className="relative mb-1.5 overflow-hidden rounded-[20px] border border-cyan-200/8 bg-black/10">
       <div className="absolute inset-y-0 left-0 flex items-center gap-2 pl-3 text-xs font-semibold text-mint">
         <Archive size={17} />
         Archive
@@ -199,7 +199,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
           event.stopPropagation();
           onSelect();
         }}
-        className={`interactive-card relative flex w-full items-center gap-3 bg-ink px-1 py-2.5 text-left md:rounded-[18px] md:px-2 ${chat.unreadCount ? 'bg-sky/7' : ''} ${selected ? 'bg-mint/10' : ''}`}
+        className={`interactive-card relative flex w-full items-center gap-3 rounded-[20px] border border-white/6 bg-slate-950/38 px-2.5 py-2.5 text-left shadow-[0_12px_34px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur md:px-3 ${chat.unreadCount ? 'border-cyan-200/14 bg-cyan-300/7' : ''} ${selected ? 'border-mint/30 bg-mint/12' : ''}`}
       >
         <button
           className="relative"
@@ -209,12 +209,12 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
           }}
           aria-label={`View ${displayName || 'friend'} profile`}
         >
-          {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full border border-white/10 object-cover shadow-[0_8px_22px_rgba(0,0,0,0.24)]" /> : <div className="h-10 w-10 rounded-full border border-white/10 bg-white/8" />}
+          {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full border border-cyan-100/14 object-cover shadow-[0_10px_26px_rgba(0,0,0,0.30)]" /> : <div className="h-10 w-10 rounded-full border border-cyan-100/14 bg-white/8" />}
           {other?.isOnline && <span className="live-dot absolute ml-7 mt-7 h-2.5 w-2.5 rounded-full bg-mint text-mint" />}
         </button>
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center justify-between gap-3">
-            <p className="truncate font-medium">{displayName || 'Friend'}</p>
+            <p className="truncate font-semibold text-white">{displayName || 'Friend'}</p>
             <span className="flex items-center gap-1">
               {chat.archived && <Archive size={12} className="text-white/35" />}
               {chat.pinned && <Pin size={12} className="text-sky" />}
@@ -224,7 +224,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
             </span>
           </div>
           <div className="mt-1 flex items-center justify-between gap-3">
-            <p className={`truncate text-xs ${typing ? 'font-semibold text-mint' : chat.unreadCount ? 'font-semibold text-white' : 'text-white/45'}`}>
+            <p className={`truncate text-xs ${typing ? 'font-semibold text-mint' : chat.unreadCount ? 'font-semibold text-slate-100' : 'font-medium text-slate-300/75'}`}>
               {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
             </p>
             {chat.unreadCount > 0 && (

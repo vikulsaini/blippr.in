@@ -108,7 +108,7 @@ export default function Shell() {
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
       <div className="flex min-h-0 flex-col overflow-hidden">
         {showMainHeader && (
-          <header className="mb-2 flex items-center justify-between rounded-[22px] px-1 md:mb-3 md:border md:border-white/8 md:bg-white/5 md:px-4 md:py-3">
+          <header className="mb-2 flex items-center justify-between rounded-[22px] border border-cyan-200/10 bg-slate-950/28 px-3 py-2 shadow-[0_16px_44px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl md:mb-3 md:px-4 md:py-3">
             <BrandLogo />
             <NotificationBell />
           </header>
@@ -144,7 +144,7 @@ export default function Shell() {
                 {({ isActive }) => (
                   <>
                     <span className={`absolute top-0.5 h-0.5 w-4 rounded-full transition ${isActive ? navAccent(index) : 'bg-transparent'}`} />
-                    <span className={`grid h-7 w-7 place-items-center rounded-[14px] transition ${isActive ? `${navGlow(index)} text-ink` : ''}`}>
+                    <span className={`grid h-7 w-7 place-items-center rounded-[14px] transition ${isActive ? `${navGlow(index)} text-ink` : 'bg-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'}`}>
                       <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
                     </span>
                     <span className={`text-[9px] font-medium leading-none ${isActive ? 'text-white' : 'text-white/42'}`}>{label}</span>
@@ -184,7 +184,7 @@ function DesktopNav({ locationPath, socketState, clock }) {
           );
         })}
       </nav>
-      <div className="mt-auto grid justify-items-center gap-3 rounded-[22px] border border-white/8 bg-white/5 p-3" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
+      <div className="mt-auto grid justify-items-center gap-3 rounded-[22px] border border-cyan-200/10 bg-white/5 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
         <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-mint text-mint' : 'bg-gold text-gold'}`} />
         <span className="h-1.5 w-6 rounded-full bg-white/14" />
       </div>
@@ -198,9 +198,9 @@ function navAccent(index) {
 
 function navGlow(index) {
   return [
-    'bg-mint shadow-[0_8px_22px_rgba(61,214,198,0.22)]',
-    'bg-rose shadow-[0_8px_22px_rgba(255,138,168,0.20)]',
-    'bg-sky shadow-[0_8px_22px_rgba(98,168,255,0.20)]',
+    'bg-mint shadow-[0_8px_24px_rgba(20,184,166,0.30)]',
+    'bg-rose shadow-[0_8px_24px_rgba(255,138,168,0.22)]',
+    'bg-sky shadow-[0_8px_24px_rgba(6,182,212,0.26)]',
     'bg-gold shadow-[0_8px_22px_rgba(240,189,72,0.18)]'
   ][index] || 'bg-mint';
 }
