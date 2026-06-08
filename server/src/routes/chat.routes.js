@@ -11,6 +11,7 @@ import {
   listCalls,
   listChats,
   listMessages,
+  locationUpdateSchema,
   markChatRead,
   messageSchema,
   nicknameSchema,
@@ -21,6 +22,7 @@ import {
   setChatMuted,
   setChatPinned,
   setChatStarred,
+  updateLiveLocation,
   updateNickname
 } from '../controllers/chat.controller.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -35,6 +37,7 @@ router.get('/:chatId/messages', listMessages);
 router.get('/:chatId/calls', listCalls);
 router.post('/:chatId/messages', validate(messageSchema), sendMessage);
 router.patch('/:chatId/messages/:messageId', validate(editMessageSchema), editMessage);
+router.patch('/:chatId/messages/:messageId/location', validate(locationUpdateSchema), updateLiveLocation);
 router.post('/:chatId/messages/:messageId/reactions', validate(reactionSchema), reactToMessage);
 router.patch('/:chatId/read', markChatRead);
 router.patch('/:chatId/nicknames', validate(nicknameSchema), updateNickname);

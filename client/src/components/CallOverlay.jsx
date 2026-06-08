@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Gauge, Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, RotateCw, Signal, SignalLow, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
 
@@ -6,6 +6,8 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
+  const chromeTimerRef = useRef(null);
+  const [chromeVisible, setChromeVisible] = useState(true);
 
   useEffect(() => {
     if (localVideoRef.current) localVideoRef.current.srcObject = call?.localStream || null;
@@ -20,13 +22,28 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
     remoteElement?.play?.().catch(() => {});
   }, [call?.remoteStream, call?.speakerOn, call?.type]);
 
+  useEffect(() => {
+    revealChrome();
+    return () => window.clearTimeout(chromeTimerRef.current);
+  }, [call?.callId, call?.status, call?.type]);
+
   if (!call) return null;
 
   const isVideo = call.type === 'video';
+  const canAutoHideChrome = isVideo && call.status !== 'incoming';
+  const chromeClass = canAutoHideChrome && !chromeVisible ? 'translate-y-2 opacity-0 pointer-events-none' : 'translate-y-0 opacity-100';
   const title = call.status === 'incoming' ? 'Incoming call' : call.status === 'calling' ? 'Calling...' : call.status === 'reconnecting' ? 'Reconnecting...' : 'Connected';
   const routeLabel = isVideo ? 'Video speaker' : call.speakerOn ? 'Speaker' : 'Receiver';
   const QualityIcon = call.quality === 'poor' ? SignalLow : Signal;
   const qualityLabel = call.quality === 'reconnecting' ? 'Reconnecting' : call.quality === 'poor' ? 'Poor connection' : call.quality === 'good' ? 'Good connection' : 'Checking connection';
+
+  function revealChrome() {
+    setChromeVisible(true);
+    window.clearTimeout(chromeTimerRef.current);
+    if (call?.type === 'video' && call?.status !== 'incoming') {
+      chromeTimerRef.current = window.setTimeout(() => setChromeVisible(false), 2600);
+    }
+  }
 
   if (minimized) {
     return (
@@ -55,70 +72,84 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
     );
   }
 
+  const controls = call.status === 'incoming' ? (
+    <div className="grid w-full max-w-sm grid-cols-2 gap-2">
+      <CallButton label="Reject" icon={PhoneOff} onClick={onReject} tone="danger" />
+      <CallButton label="Accept" icon={Phone} onClick={onAccept} tone="mint" />
+    </div>
+  ) : (
+    <div className={`grid w-full gap-1.5 sm:gap-2 ${isVideo ? 'max-w-md grid-cols-3 sm:max-w-3xl sm:grid-cols-6' : 'max-w-lg grid-cols-5'}`}>
+      <CallButton label={call.muted ? 'Unmute' : 'Mute'} icon={call.muted ? MicOff : Mic} onClick={onToggleMute} />
+      <CallButton label={isVideo ? 'Speaker' : call.speakerOn ? 'Speaker' : 'Receiver'} icon={call.speakerOn ? Volume2 : VolumeX} onClick={onToggleSpeaker} active={call.speakerOn} />
+      <CallButton label={call.cameraOff ? 'Camera' : 'Video'} icon={call.cameraOff ? VideoOff : Video} onClick={onToggleCamera} disabled={!isVideo} />
+      {isVideo && <CallButton label="Low data" icon={Gauge} onClick={onToggleLowDataMode} active={call.lowDataMode} />}
+      <CallButton label="Switch" icon={RotateCw} onClick={onSwitchCamera} disabled={!isVideo || call.cameraOff} />
+      <CallButton label="End" icon={PhoneOff} onClick={onEnd} tone="danger" />
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 z-50 bg-ink text-white">
       <motion.section
+        onPointerDown={revealChrome}
+        onPointerMove={revealChrome}
+        onTouchStart={revealChrome}
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative flex h-dvh flex-col px-4 py-5"
+        className="relative h-dvh overflow-hidden p-1 sm:p-1.5"
       >
-        <div className="text-center">
-          <button onClick={onMinimize} className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label="Minimize call">
-            <Minimize2 size={18} />
-          </button>
-          <p className="text-sm text-white/50">{title}</p>
-          <h2 className="mt-1 text-2xl font-semibold">{call.peerUser?.name || 'Varta friend'}</h2>
-          <div className="mt-2 flex items-center justify-center gap-2 text-sm text-white/48">
-            <span>{routeLabel}</span>
-            <span className="h-1 w-1 rounded-full bg-white/25" />
-            <span className={`inline-flex items-center gap-1 ${call.quality === 'poor' ? 'text-coral' : call.quality === 'reconnecting' ? 'text-white/55' : 'text-mint'}`}>
-              <QualityIcon size={15} />
-              {qualityLabel}
-            </span>
-          </div>
-        </div>
-
-        <div className="relative mt-7 flex flex-1 items-center justify-center overflow-hidden rounded-[24px] border border-white/8 bg-panel">
+        <div className="relative h-full overflow-hidden rounded-[16px] border border-white/10 bg-black/82 shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:rounded-[20px]">
           {!isVideo && <audio ref={remoteAudioRef} autoPlay playsInline />}
           {isVideo && call.remoteStream ? (
-            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
+            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-contain" />
           ) : (
-            <div className="grid place-items-center text-center">
-              <div className="relative">
-                <span className="absolute inset-0 animate-ping rounded-full bg-mint/15" />
-                <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-white/8 object-cover" />
+            <div className="grid h-full place-items-center p-6 text-center">
+              <div>
+                <div className="relative mx-auto h-28 w-28">
+                  <span className="absolute inset-0 animate-ping rounded-full bg-mint/15" />
+                  <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-white/8 object-cover shadow-glow" />
+                </div>
+                <p className="mt-5 text-base font-semibold">{call.peerUser?.name || 'Varta friend'}</p>
+                <p className="mt-2 text-sm text-white/52">{call.status === 'reconnecting' ? 'Trying to restore connection...' : call.status === 'connected' ? 'Voice connected' : 'Waiting for answer'}</p>
               </div>
-              <p className="mt-5 text-sm text-white/52">{call.status === 'reconnecting' ? 'Trying to restore audio...' : call.status === 'connected' ? 'Voice connected' : 'Waiting for answer'}</p>
             </div>
           )}
 
+          <div className={`absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/76 via-black/24 to-transparent p-2 transition duration-300 sm:p-3 ${chromeClass}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 rounded-[14px] border border-white/10 bg-black/40 px-2.5 py-1.5 text-left backdrop-blur-md sm:rounded-2xl sm:px-3">
+                <p className="truncate text-[11px] font-semibold text-white sm:text-sm">{call.peerUser?.name || 'Varta friend'}</p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-semibold text-white/52 sm:text-[11px]">
+                  <span>{title}</span>
+                  <span>{routeLabel}</span>
+                  <span className={`inline-flex items-center gap-1 ${call.quality === 'poor' ? 'text-coral' : call.quality === 'reconnecting' ? 'text-white/55' : 'text-mint'}`}>
+                    <QualityIcon size={12} />
+                    {qualityLabel}
+                  </span>
+                </div>
+              </div>
+              <button onClick={onMinimize} className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-black/42 text-white/82 backdrop-blur-md transition hover:bg-white/12 sm:h-9 sm:w-9" aria-label="Minimize call">
+                <Minimize2 size={16} />
+              </button>
+            </div>
+          </div>
+
           {isVideo && call.localStream && (
-            <div className="absolute right-3 top-3 h-[8.5rem] w-24 overflow-hidden rounded-[18px] border border-white/12 bg-ink shadow-glow">
+            <div className="absolute right-2 top-16 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-ink shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:right-4 sm:top-20 sm:h-28 sm:w-24">
               {call.cameraOff ? (
                 <div className="grid h-full place-items-center text-white/45"><VideoOff size={22} /></div>
               ) : (
                 <video ref={localVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
               )}
+              <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">You</span>
             </div>
           )}
-        </div>
 
-        <div className="safe-bottom mt-6">
-          {call.status === 'incoming' ? (
-            <div className="grid grid-cols-2 gap-3">
-              <CallButton label="Reject" icon={PhoneOff} onClick={onReject} tone="danger" />
-              <CallButton label="Accept" icon={Phone} onClick={onAccept} tone="mint" />
+          <div className={`absolute inset-x-0 bottom-0 z-20 grid place-items-center bg-gradient-to-t from-black/82 via-black/25 to-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.65rem)] pt-12 transition duration-300 sm:px-3 ${chromeClass}`}>
+            <div className="flex w-full max-w-sm justify-center rounded-[24px] border border-white/10 bg-black/40 p-1.5 backdrop-blur-md sm:max-w-3xl sm:rounded-full sm:p-2">
+              {controls}
             </div>
-          ) : (
-            <div className={`grid gap-2 ${isVideo ? 'grid-cols-6' : 'grid-cols-5'}`}>
-              <CallButton label={call.muted ? 'Unmute' : 'Mute'} icon={call.muted ? MicOff : Mic} onClick={onToggleMute} />
-              <CallButton label={isVideo ? 'Speaker' : call.speakerOn ? 'Speaker' : 'Receiver'} icon={call.speakerOn ? Volume2 : VolumeX} onClick={onToggleSpeaker} active={call.speakerOn} />
-              <CallButton label={call.cameraOff ? 'Camera' : 'Video'} icon={call.cameraOff ? VideoOff : Video} onClick={onToggleCamera} disabled={!isVideo} />
-              {isVideo && <CallButton label="Low data" icon={Gauge} onClick={onToggleLowDataMode} active={call.lowDataMode} />}
-              <CallButton label="Switch" icon={RotateCw} onClick={onSwitchCamera} disabled={!isVideo || call.cameraOff} />
-              <CallButton label="End" icon={PhoneOff} onClick={onEnd} tone="danger" />
-            </div>
-          )}
+          </div>
         </div>
       </motion.section>
     </div>
@@ -150,9 +181,9 @@ function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = f
   };
 
   return (
-    <button onClick={onClick} disabled={disabled} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-[18px] text-[11px] font-semibold disabled:opacity-35 ${tones[tone]}`}>
+    <button onClick={onClick} disabled={disabled} className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-[18px] px-1 text-[10px] font-semibold disabled:opacity-35 sm:min-h-12 sm:text-[11px] ${tones[tone]}`}>
       <Icon size={19} />
-      {label}
+      <span className="truncate">{label}</span>
     </button>
   );
 }

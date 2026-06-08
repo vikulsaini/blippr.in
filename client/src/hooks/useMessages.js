@@ -287,6 +287,61 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     }
   }
 
+  async function sendLocation({ latitude, longitude, accuracy, live = false, durationMs = 15 * 60 * 1000 }) {
+    if (!activeChat) return null;
+    const tempId = `temp-location-${Date.now()}`;
+    const now = new Date();
+    const optimisticMessage = {
+      _id: tempId,
+      chat: activeChat._id,
+      sender: currentUserId,
+      text: live ? 'Shared live location' : 'Shared current location',
+      location: {
+        type: live ? 'live' : 'current',
+        coordinates: [longitude, latitude],
+        accuracy,
+        startedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+        expiresAt: live ? new Date(now.getTime() + durationMs).toISOString() : undefined
+      },
+      reactions: [],
+      status: 'sending',
+      createdAt: now.toISOString()
+    };
+
+    setMessages((current) => [...current, optimisticMessage]);
+    setChats((current) =>
+      current
+        .map((chat) => (chat._id === activeChat._id ? { ...chat, lastMessage: optimisticMessage, updatedAt: optimisticMessage.createdAt } : chat))
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    );
+
+    try {
+      const { message } = await api(`/api/chats/${activeChat._id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          text: optimisticMessage.text,
+          location: { latitude, longitude, accuracy, type: live ? 'live' : 'current', durationMs }
+        })
+      });
+      setMessages((current) => current.map((item) => (item._id === tempId ? message : item)));
+      return message;
+    } catch (err) {
+      setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
+      throw new Error(err.message || 'Could not share location');
+    }
+  }
+
+  async function updateLiveLocation(messageId, { latitude, longitude, accuracy, ended = false }) {
+    if (!activeChat || !messageId) return null;
+    const { message } = await api(`/api/chats/${activeChat._id}/messages/${messageId}/location`, {
+      method: 'PATCH',
+      body: JSON.stringify({ latitude, longitude, accuracy, ended })
+    });
+    setMessages((current) => current.map((item) => (item._id === message._id ? message : item)));
+    return message;
+  }
+
   async function reactToMessage(messageId, emoji) {
     const { message } = await api(`/api/chats/${activeChat._id}/messages/${messageId}/reactions`, {
       method: 'POST',
@@ -347,6 +402,8 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     mergeCall,
     sendMessage,
     sendMedia,
+    sendLocation,
+    updateLiveLocation,
     reactToMessage,
     editMessage,
     deleteMessage,

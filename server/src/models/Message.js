@@ -12,12 +12,34 @@ const mediaSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const locationSchema = new mongoose.Schema(
+  {
+    type: { type: String, enum: ['current', 'live'], default: 'current' },
+    coordinates: {
+      type: [Number],
+      validate: {
+        validator(value) {
+          return !value?.length || value.length === 2;
+        },
+        message: 'Location coordinates must be [longitude, latitude]'
+      }
+    },
+    accuracy: Number,
+    startedAt: Date,
+    updatedAt: Date,
+    expiresAt: Date,
+    endedAt: Date
+  },
+  { _id: false }
+);
+
 const messageSchema = new mongoose.Schema(
   {
     chat: { type: mongoose.Schema.Types.ObjectId, ref: 'Chat', required: true, index: true },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     text: { type: String, maxlength: 4000 },
     media: mediaSchema,
+    location: locationSchema,
     replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
     mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     reactions: [

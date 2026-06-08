@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, Check, LogIn, ShieldCheck, UserCheck, UserPlus, X } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { showNativeNotification } from '../lib/native.js';
@@ -14,7 +14,6 @@ const styles = {
 const importantTypes = new Set(['friend-request', 'friend-request-accepted', 'login', 'system']);
 
 export default function NotificationBell() {
-  const rootRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [requests, setRequests] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -31,7 +30,7 @@ export default function NotificationBell() {
       setRequests(requestData.requests || []);
       const importantNotifications = (notificationData.notifications || []).filter((notification) => importantTypes.has(notification.type));
       setNotifications(importantNotifications);
-      setUnreadCount(notificationData.unreadCount || importantNotifications.filter((notification) => !notification.readAt).length);
+      setUnreadCount(importantNotifications.filter((notification) => !notification.readAt).length);
     } catch {
       setRequests([]);
       setNotifications([]);
@@ -86,14 +85,13 @@ export default function NotificationBell() {
 
   useEffect(() => {
     if (!open) return;
-    function handlePointerDown(event) {
-      if (!rootRef.current?.contains(event.target)) setOpen(false);
-    }
-    document.addEventListener('pointerdown', handlePointerDown);
+    const readAt = new Date().toISOString();
     api('/api/notifications/read', { method: 'PATCH' })
-      .then(() => setUnreadCount(0))
+      .then(() => {
+        setUnreadCount(0);
+        setNotifications((current) => current.map((notification) => ({ ...notification, readAt: notification.readAt || readAt })));
+      })
       .catch(() => {});
-    return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [open]);
 
   const feed = useMemo(() => {
@@ -129,10 +127,10 @@ export default function NotificationBell() {
     }
   }
 
-  const count = requests.length + unreadCount;
+  const count = feed.filter((item) => item.request || !item.readAt).length;
 
   return (
-    <div ref={rootRef} className="relative">
+    <div className="relative">
       <button onClick={() => setOpen((value) => !value)} className="btn-icon relative h-11 w-11 rounded-[16px]" aria-label="Notifications">
         <Bell size={20} />
         {count > 0 && (
@@ -142,7 +140,7 @@ export default function NotificationBell() {
         )}
       </button>
       {open && (
-        <section className="fixed inset-0 z-[110] flex h-[100dvh] flex-col bg-ink/96 p-3 text-white shadow-glow backdrop-blur-xl sm:p-5 md:inset-4 md:rounded-[30px] md:border md:border-white/10">
+        <section className="fixed inset-0 z-[110] flex h-[100dvh] flex-col bg-ink/96 px-3 pb-[calc(env(safe-area-inset-bottom)+0.85rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)] text-white shadow-glow backdrop-blur-xl sm:p-5 md:inset-4 md:rounded-[30px] md:border md:border-white/10">
           <div className="flex items-start justify-between gap-3 border-b border-white/8 pb-4">
             <div>
               <h2 className="text-xl font-semibold md:text-2xl">Notifications</h2>
@@ -153,7 +151,7 @@ export default function NotificationBell() {
             </button>
           </div>
           {message && <p className="mt-2 text-sm text-mint">{message}</p>}
-          <div className="mx-auto mt-4 flex w-full max-w-3xl flex-1 flex-col space-y-2 overflow-y-auto pr-1">
+          <div className="mx-auto mt-4 flex w-full max-w-3xl flex-1 flex-col space-y-2 overflow-y-auto overscroll-contain pr-1">
             {loading && <NotificationSkeleton />}
             {!loading && feed.map((item) => (
               <NotificationItem key={item._id} item={item} onRespond={respond} />

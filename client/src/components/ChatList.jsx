@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Archive, BellOff, MessageCircle, Pin, Search, Star, Trash2, X } from 'lucide-react';
+import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X } from 'lucide-react';
 import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
 import { haptics } from '../lib/haptics.js';
 import { presenceText } from '../lib/presence.js';
@@ -31,15 +31,7 @@ export default function ChatList({
     });
     return filterChats(scoped, query, currentUserId);
   }, [chats, currentUserId, query, tab]);
-  const activeChats = useMemo(() => chats.filter((chat) => !chat.archived), [chats]);
-  const onlineFriendCount = useMemo(() => {
-    const onlineIds = new Set();
-    activeChats.forEach((chat) => {
-      const other = getOtherMember(chat, currentUserId);
-      if (other?.isOnline) onlineIds.add(other._id);
-    });
-    return onlineIds.size;
-  }, [activeChats, currentUserId]);
+  const archivedCount = useMemo(() => chats.filter((chat) => chat.archived).length, [chats]);
 
   return (
     <section className="flex min-h-0 flex-1 flex-col px-2 pt-2 md:px-4 md:pt-3">
@@ -58,14 +50,8 @@ export default function ChatList({
           <div className="mb-3 flex shrink-0 items-center justify-between">
             <div>
               <h2 className="bg-gradient-to-r from-white via-cyan-100 to-mint bg-clip-text text-2xl font-bold text-transparent">Chats</h2>
-              <p className="text-sm font-medium text-slate-300/85">
-                {activeChats.length} friends, {onlineFriendCount} online now
-                {chats.some((chat) => chat.archived) ? `, ${chats.filter((chat) => chat.archived).length} archived` : ''}
-              </p>
+              {archivedCount > 0 && <p className="text-sm font-medium text-slate-300/85">{archivedCount} archived chats</p>}
             </div>
-            <span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
-              {onlineFriendCount} online
-            </span>
           </div>
         )}
 
@@ -89,7 +75,7 @@ export default function ChatList({
         )}
       </div>
 
-      <div data-chat-feed className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20 md:pb-3">
+      <div data-chat-feed className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3">
         {loading ? (
           <ChatSkeleton />
         ) : (
@@ -120,9 +106,9 @@ export default function ChatList({
         {!loading && !chats.length && (
           <EmptyState
             icon={MessageCircle}
-            title="No friends yet"
-            text="Discover people nearby and send a request to start chatting."
-            action="Find people"
+            title="No chats yet"
+            text="Start a random chat to make your first friend."
+            action="Start random"
             onAction={onFindPeople}
           />
         )}
@@ -134,6 +120,16 @@ export default function ChatList({
             action={tab === 'archived' ? 'Back to chats' : 'Clear search'}
             onAction={() => (tab === 'archived' ? setTab('chats') : setQuery(''))}
           />
+        )}
+        {!loading && (
+          <button
+            type="button"
+            onClick={onFindPeople}
+            className="btn-primary sticky bottom-4 ml-auto mr-3 flex w-max items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold shadow-glow"
+          >
+            <Shuffle size={15} />
+            Random
+          </button>
         )}
       </div>
     </section>
@@ -268,8 +264,9 @@ function EmptyState({ icon: Icon, title, text, action, onAction }) {
 
 function TabButton({ active, label, onClick }) {
   return (
-    <button onClick={onClick} className={`rounded-[12px] py-2 text-xs font-semibold ${active ? 'btn-primary' : 'text-white/55'}`}>
+    <button onClick={onClick} className={`relative rounded-[12px] py-2 text-xs font-semibold transition ${active ? 'bg-white/10 text-white' : 'text-white/38 hover:text-white/65'}`}>
       {label}
+      <span className={`absolute inset-x-4 bottom-1 h-0.5 rounded-full transition ${active ? 'bg-gradient-to-r from-mint to-sky opacity-100' : 'bg-transparent opacity-0'}`} />
     </button>
   );
 }

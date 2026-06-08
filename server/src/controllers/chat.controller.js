@@ -23,8 +23,22 @@ export const messageSchema = Joi.object({
     name: Joi.string().trim().max(180).optional(),
     mimeType: Joi.string().trim().max(120).optional(),
     size: Joi.number().integer().min(0).optional()
+  }).optional(),
+  location: Joi.object({
+    type: Joi.string().valid('current', 'live').default('current'),
+    latitude: Joi.number().min(-90).max(90).required(),
+    longitude: Joi.number().min(-180).max(180).required(),
+    accuracy: Joi.number().min(0).optional(),
+    durationMs: Joi.number().integer().min(60_000).max(8 * 60 * 60 * 1000).optional()
   }).optional()
-}).or('text', 'media');
+}).or('text', 'media', 'location');
+
+export const locationUpdateSchema = Joi.object({
+  latitude: Joi.number().min(-90).max(90).required(),
+  longitude: Joi.number().min(-180).max(180).required(),
+  accuracy: Joi.number().min(0).optional(),
+  ended: Joi.boolean().optional()
+});
 
 export const reactionSchema = Joi.object({
   emoji: Joi.string().min(1).max(8).required()
@@ -248,6 +262,16 @@ export const sendMessage = asyncHandler(async (req, res) => {
     throw error;
   }
   const io = req.app.get('io');
+  const locationPayload = req.body.location
+    ? {
+        type: req.body.location.type || 'current',
+        coordinates: [req.body.location.longitude, req.body.location.latitude],
+        accuracy: req.body.location.accuracy,
+        startedAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: req.body.location.type === 'live' ? new Date(Date.now() + (req.body.location.durationMs || 15 * 60 * 1000)) : undefined
+      }
+    : undefined;
   let safeText;
   try {
     safeText = applyBlockedWords(req.body.text || '', req.user.safety?.blockedWords || []);
@@ -261,7 +285,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
     status: receiverIsConnected(io, chat, req.user._id) ? 'delivered' : 'sent',
     deliveryReceipts: deliveryReceiptsFor(chat, req.user._id, io),
     ...req.body,
-    text: safeText
+    text: safeText,
+    location: locationPayload
   });
   const message = await populateMessage(createdMessage._id);
   chat.lastMessage = createdMessage._id;
@@ -291,7 +316,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
       .map((memberId) =>
         notifyUser(memberId, {
           title: req.user.name,
-          body: message.text || 'Sent a media message',
+          body: message.text || (message.location ? 'Shared a location' : 'Sent a media message'),
           url: `/app?chat=${chat._id}`,
           type: 'message',
           chatId: chat._id,
@@ -300,6 +325,37 @@ export const sendMessage = asyncHandler(async (req, res) => {
       )
   );
   res.status(201).json({ message });
+});
+
+export const updateLiveLocation = asyncHandler(async (req, res) => {
+  const chat = await Chat.findOne({ _id: req.params.chatId, members: req.user._id });
+  const message = await Message.findOne({
+    _id: req.params.messageId,
+    chat: req.params.chatId,
+    sender: req.user._id,
+    'location.type': 'live',
+    deletedAt: { $exists: false }
+  });
+  if (!chat || !message) {
+    const error = new Error('Live location not found');
+    error.status = 404;
+    throw error;
+  }
+
+  if (message.location.expiresAt && message.location.expiresAt.getTime() < Date.now()) {
+    message.location.endedAt = message.location.endedAt || new Date();
+  } else if (req.body.ended) {
+    message.location.endedAt = new Date();
+  } else {
+    message.location.coordinates = [req.body.longitude, req.body.latitude];
+    message.location.accuracy = req.body.accuracy;
+    message.location.updatedAt = new Date();
+  }
+
+  await message.save();
+  const populated = await populateMessage(message._id);
+  req.app.get('io')?.to(`chat:${chat._id}`).emit('message:edited', { message: populated });
+  res.json({ message: populated });
 });
 
 export const reactToMessage = asyncHandler(async (req, res) => {

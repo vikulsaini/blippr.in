@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Mic, Phone, Plus, Reply, Search, Send, Smile, Square, Video, X } from 'lucide-react';
+import { ArrowLeft, Camera, FileText, Image, MapPin, Mic, Navigation, Phone, Plus, Reply, Search, Send, Smile, Square, Video, X } from 'lucide-react';
 import ConversationTimeline from './chat/ConversationTimeline.jsx';
 import { getNickname, getOtherMember, normalizeId } from '../lib/chat.js';
 import { presenceText } from '../lib/presence.js';
 
 const composerEmojis = ['\u{1F60A}', '\u{1F602}', '\u{1F970}', '\u{1F60D}', '\u{1F44B}', '\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F525}', '\u{1F389}', '\u{1F622}', '\u{1F62E}', '\u{1F64F}', '\u{1F914}', '\u{1F634}', '\u{1F618}', '\u{2728}'];
 
-export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onSendMedia, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onEditMessage, onDeleteMessage, onReportMessage, onStartCall, isTyping = false }) {
+export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onSendMedia, onSendLocation, onUpdateLiveLocation, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onEditMessage, onDeleteMessage, onReportMessage, onStartCall, isTyping = false }) {
   const myId = normalizeId(currentUserId);
   const otherMember = getOtherMember(chat, myId);
   const displayName = getNickname(chat, currentUserId, otherMember);
@@ -17,11 +17,20 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const [recording, setRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [attachmentOpen, setAttachmentOpen] = useState(false);
+  const [permissionPrompt, setPermissionPrompt] = useState(null);
+  const [fileAccept, setFileAccept] = useState('image/*,video/*,audio/*,application/pdf,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip');
+  const [captureMode, setCaptureMode] = useState('');
   const [viewportHeight, setViewportHeight] = useState(0);
   const endRef = useRef(null);
   const fileInputRef = useRef(null);
   const recorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const liveLocationRef = useRef({ watchId: null, messageId: null, timer: null, lastSentAt: 0 });
+
+  useEffect(() => {
+    return () => stopLiveLocation();
+  }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
@@ -46,12 +55,134 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
 
   function handleTextInput(value) {
     if (emojiOpen) setEmojiOpen(false);
+    if (attachmentOpen) setAttachmentOpen(false);
     setText(value);
+  }
+
+  function openPicker({ accept, capture = '', title, message }) {
+    setEmojiOpen(false);
+    setAttachmentOpen(false);
+    setUploadError('');
+    setPermissionPrompt({
+      title,
+      message,
+      action: () => {
+        if (!window.isSecureContext && location.hostname !== 'localhost') {
+          setUploadError('Open Varta on HTTPS to allow mobile photos, media and files.');
+          return;
+        }
+        setFileAccept(accept);
+        setCaptureMode(capture);
+        window.setTimeout(() => fileInputRef.current?.click(), 0);
+      }
+    });
+  }
+
+  function openAttachmentSheet() {
+    setEmojiOpen(false);
+    setAttachmentOpen((open) => !open);
+  }
+
+  function shareCurrentLocation() {
+    setEmojiOpen(false);
+    setAttachmentOpen(false);
+    setUploadError('');
+    if (!navigator.geolocation) {
+      setUploadError('Location sharing is not supported on this device.');
+      return;
+    }
+    setPermissionPrompt({
+      title: 'Share current location?',
+      message: 'We need location permission to share your current approximate location with this friend.',
+      action: requestCurrentLocation
+    });
+  }
+
+  function requestCurrentLocation() {
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          await onSendLocation?.({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy: coords.accuracy,
+            live: false
+          });
+        } catch (err) {
+          setUploadError(err.message || 'Could not share location');
+        }
+      },
+      () => setUploadError('Location permission was denied or unavailable.'),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    );
+  }
+
+  function shareLiveLocation() {
+    setEmojiOpen(false);
+    setAttachmentOpen(false);
+    setUploadError('');
+    if (!navigator.geolocation) {
+      setUploadError('Live location is not supported on this device.');
+      return;
+    }
+    setPermissionPrompt({
+      title: 'Share live location?',
+      message: 'We need location permission to share your live approximate location with this friend for 15 minutes.',
+      action: startLiveLocationWatch
+    });
+  }
+
+  function startLiveLocationWatch() {
+    stopLiveLocation();
+    const durationMs = 15 * 60 * 1000;
+    liveLocationRef.current.timer = window.setTimeout(() => stopLiveLocation(true), durationMs);
+    liveLocationRef.current.watchId = navigator.geolocation.watchPosition(
+      async ({ coords }) => {
+        try {
+          const state = liveLocationRef.current;
+          if (!state.messageId) {
+            const message = await onSendLocation?.({
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              accuracy: coords.accuracy,
+              live: true,
+              durationMs
+            });
+            state.messageId = message?._id;
+            state.lastSentAt = Date.now();
+            setUploadError('Live location sharing for 15 minutes.');
+            return;
+          }
+          if (Date.now() - state.lastSentAt < 15000) return;
+          state.lastSentAt = Date.now();
+          await onUpdateLiveLocation?.(state.messageId, {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy: coords.accuracy
+          });
+        } catch (err) {
+          setUploadError(err.message || 'Could not update live location');
+        }
+      },
+      () => setUploadError('Location permission was denied or unavailable.'),
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 30000 }
+    );
+  }
+
+  function stopLiveLocation(updateServer = false) {
+    const state = liveLocationRef.current;
+    if (state.watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(state.watchId);
+    if (state.timer) window.clearTimeout(state.timer);
+    if (updateServer && state.messageId) {
+      onUpdateLiveLocation?.(state.messageId, { latitude: 0, longitude: 0, ended: true }).catch(() => {});
+    }
+    liveLocationRef.current = { watchId: null, messageId: null, timer: null, lastSentAt: 0 };
   }
 
   async function handleFilePick(event) {
     const file = event.target.files?.[0];
     event.target.value = '';
+    setCaptureMode('');
     if (!file || !onSendMedia) return;
     setEmojiOpen(false);
     setUploadError('');
@@ -190,9 +321,35 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             ))}
           </motion.div>
         )}
+        {attachmentOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="mb-2 rounded-[22px] border border-white/8 bg-panel p-3 shadow-glow"
+          >
+            <p className="mb-2 px-1 text-xs font-semibold text-white/45">Share with this friend</p>
+            <div className="grid grid-cols-4 gap-2">
+              <AttachButton icon={Image} label="Gallery" onClick={() => openPicker({ accept: 'image/*,video/*', title: 'Open gallery?', message: 'We need access to your photos and videos so you can share media in this chat.' })} />
+              <AttachButton icon={FileText} label="Document" onClick={() => openPicker({ accept: 'application/pdf,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip', title: 'Choose document?', message: 'We need access to your files so you can choose a document to share.' })} />
+              <AttachButton icon={Camera} label="Camera" onClick={() => openPicker({ accept: 'image/*,video/*', capture: 'environment', title: 'Open camera?', message: 'We need camera access so you can take a photo or video to share.' })} />
+              <AttachButton icon={MapPin} label="Location" onClick={shareCurrentLocation} />
+            </div>
+            <button type="button" onClick={shareLiveLocation} className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/6 px-3 py-2 text-xs font-semibold text-white/62">
+              <Navigation size={14} />
+              Share live location
+            </button>
+          </motion.div>
+        )}
         <div className="flex items-end gap-2 rounded-[20px] border border-white/8 bg-black/24 p-1.5 shadow-[inset_0_2px_10px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.06)]">
-          <input ref={fileInputRef} type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={handleFilePick} />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-icon h-10 w-10 shrink-0" aria-label="Share media">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={fileAccept}
+            capture={captureMode || undefined}
+            className="hidden"
+            onChange={handleFilePick}
+          />
+          <button type="button" onClick={openAttachmentSheet} className={`h-10 w-10 shrink-0 ${attachmentOpen ? 'btn-primary rounded-full' : 'btn-icon'}`} aria-label="Share photos, media, files or location">
             <Plus size={19} />
           </button>
           <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`h-10 w-10 shrink-0 ${emojiOpen ? 'btn-primary rounded-full' : 'btn-icon'}`} aria-label="Emoji"><Smile size={18} /></button>
@@ -219,8 +376,53 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             <button type="button" onClick={startRecording} disabled={!chat || uploading} className="btn-icon h-10 w-10 shrink-0 disabled:opacity-40" aria-label="Voice message"><Mic size={18} /></button>
           )}
         </div>
+        {permissionPrompt && (
+          <PermissionPrompt
+            title={permissionPrompt.title}
+            message={permissionPrompt.message}
+            onCancel={() => setPermissionPrompt(null)}
+            onContinue={() => {
+              const action = permissionPrompt.action;
+              setPermissionPrompt(null);
+              action?.();
+            }}
+          />
+        )}
       </form>
     </div>
+  );
+}
+
+function PermissionPrompt({ title, message, onCancel, onContinue }) {
+  return (
+    <div className="fixed inset-0 z-[80] grid place-items-end bg-black/45 p-3 backdrop-blur-sm">
+      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface w-full max-w-md rounded-[24px] p-4 shadow-glow">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-mint/12 text-mint">
+            <MapPin size={19} />
+          </span>
+          <div>
+            <h3 className="font-semibold">{title}</h3>
+            <p className="mt-1 text-sm leading-6 text-white/55">{message}</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" onClick={onCancel} className="btn-secondary rounded-2xl py-3 text-sm font-semibold">Not now</button>
+          <button type="button" onClick={onContinue} className="btn-primary rounded-2xl py-3 text-sm font-semibold">Continue</button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function AttachButton({ icon: Icon, label, onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="grid min-h-20 place-items-center rounded-2xl border border-white/8 bg-white/6 px-2 py-3 text-[11px] font-semibold text-white/68">
+      <span className="grid h-9 w-9 place-items-center rounded-2xl bg-white/8 text-mint">
+        <Icon size={17} />
+      </span>
+      {label}
+    </button>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, CheckCheck, Copy, Edit3, Flag, MessageCircle, Phone, PhoneMissed, Reply, Trash2, Video, X } from 'lucide-react';
+import { Check, CheckCheck, Copy, Edit3, Flag, MapPin, MessageCircle, Phone, PhoneMissed, Reply, Trash2, Video, X } from 'lucide-react';
 import { normalizeId } from '../../lib/chat.js';
 
 const quickEmojis = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F64F}'];
@@ -164,6 +164,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
           </div>
         )}
         {message.media && <MediaPreview media={message.media} />}
+        {message.location && <LocationPreview location={message.location} mine={mine} />}
         {message.text && <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>}
         <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-ink/62' : 'text-slate-400'}`}>
           {message.editedAt && <span>edited</span>}
@@ -338,6 +339,35 @@ function MediaPreview({ media }) {
   }
   if (media.type === 'video') return <video src={media.url} controls className="mb-2 max-h-64 rounded-2xl" />;
   return <a href={media.url} className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs underline">{media.name || 'Open attachment'}</a>;
+}
+
+function LocationPreview({ location, mine }) {
+  const [longitude, latitude] = location.coordinates || [];
+  const mapUrl = typeof latitude === 'number' && typeof longitude === 'number' ? `https://maps.google.com/?q=${latitude},${longitude}` : '';
+  const live = location.type === 'live';
+  const ended = !!location.endedAt || (location.expiresAt && new Date(location.expiresAt).getTime() < Date.now());
+
+  return (
+    <a
+      href={mapUrl || undefined}
+      target="_blank"
+      rel="noreferrer"
+      className={`mb-2 block rounded-2xl border p-3 no-underline ${mine ? 'border-ink/12 bg-ink/10 text-ink' : 'border-white/8 bg-white/8 text-slate-100'}`}
+    >
+      <div className="flex items-center gap-3">
+        <span className={`grid h-10 w-10 place-items-center rounded-2xl ${live && !ended ? 'bg-mint text-ink' : 'bg-white/10'}`}>
+          <MapPin size={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">{live ? (ended ? 'Live location ended' : 'Live location') : 'Current location'}</span>
+          <span className={`block truncate text-xs ${mine ? 'text-ink/58' : 'text-white/50'}`}>
+            {mapUrl ? 'Tap to open map' : 'Waiting for coordinates'}
+            {location.updatedAt ? ` · updated ${formatTime(location.updatedAt)}` : ''}
+          </span>
+        </span>
+      </div>
+    </a>
+  );
 }
 
 function shouldShowDate(previous, current) {

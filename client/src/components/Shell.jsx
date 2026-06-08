@@ -26,7 +26,7 @@ export default function Shell() {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [socketState, setSocketState] = useState('connected');
   const [clock, setClock] = useState(() => new Date());
-  const navHidden = bottomNavHidden || keyboardOpen;
+  const navHidden = bottomNavHidden || keyboardOpen || isRandom;
   const showMainHeader = isChats && !isConversation && !bottomNavHidden;
   const touchStartRef = useRef(null);
 
@@ -104,12 +104,15 @@ export default function Shell() {
   }
 
   return (
-    <main className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-white md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'}`}>
+    <main
+      data-random-route={isRandom ? 'true' : undefined}
+      className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-white md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'}`}
+    >
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
       <div className="flex min-h-0 flex-col overflow-hidden">
         {showMainHeader && (
           <header className="mb-2 flex items-center justify-between rounded-[22px] border border-cyan-200/10 bg-slate-950/28 px-3 py-2 shadow-[0_16px_44px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl md:mb-3 md:px-4 md:py-3">
-            <BrandLogo />
+            <BrandLogo compactTitle />
             <NotificationBell />
           </header>
         )}
@@ -143,11 +146,11 @@ export default function Shell() {
               >
                 {({ isActive }) => (
                   <>
-                    <span className={`absolute top-0.5 h-0.5 w-4 rounded-full transition ${isActive ? navAccent(index) : 'bg-transparent'}`} />
-                    <span className={`grid h-7 w-7 place-items-center rounded-[14px] transition ${isActive ? `${navGlow(index)} text-ink` : 'bg-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'}`}>
+                    <span className={`absolute top-0.5 h-0.5 w-5 rounded-full transition ${isActive ? navAccent(index) : 'bg-transparent'}`} />
+                    <span className={`grid h-7 w-7 place-items-center rounded-[14px] transition ${isActive ? `${navGlow(index)} scale-105 text-ink` : 'bg-white/6 text-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'}`}>
                       <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
                     </span>
-                    <span className={`text-[9px] font-medium leading-none ${isActive ? 'text-white' : 'text-white/42'}`}>{label}</span>
+                    <span className={`text-[9px] font-semibold leading-none ${isActive ? 'text-white' : 'text-white/36'}`}>{label}</span>
                   </>
                 )}
               </NavLink>

@@ -52,6 +52,8 @@ export default function Chats() {
     mergeCall,
     sendMessage,
     sendMedia,
+    sendLocation,
+    updateLiveLocation,
     reactToMessage,
     editMessage,
     deleteMessage,
@@ -260,7 +262,7 @@ export default function Chats() {
           onOpenChat={handleChatOpen}
           onToggleSelect={toggleSelect}
           onOpenProfile={openProfile}
-          onFindPeople={() => navigate('/app/discover')}
+          onFindPeople={() => navigate('/app/stranger')}
         />
       </div>
       {activeChat ? (
@@ -274,6 +276,8 @@ export default function Chats() {
             setText={setText}
             onSend={sendMessage}
             onSendMedia={sendMedia}
+            onSendLocation={sendLocation}
+            onUpdateLiveLocation={updateLiveLocation}
             onBack={closeConversation}
             onProfile={(user) => openProfile(user, activeChat)}
             replyTo={replyTo}

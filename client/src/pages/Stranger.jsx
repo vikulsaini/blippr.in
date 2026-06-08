@@ -52,7 +52,8 @@ export default function Stranger() {
   const elapsedMs = sessionStartedAt ? Math.max(0, now - new Date(sessionStartedAt).getTime()) : 0;
   const friendUnlockMs = Math.max(0, FRIEND_UNLOCK_MS - elapsedMs);
   const friendUnlocked = !!peer && friendUnlockMs === 0;
-  const friendGateLabel = friendSent ? 'Sent' : friendUnlocked ? 'Add friend' : `Wait ${formatCountdown(friendUnlockMs)}`;
+  const friendTimerLabel = formatCountdown(Math.min(elapsedMs, FRIEND_UNLOCK_MS));
+  const friendGateLabel = friendSent ? 'Sent' : friendUnlocked ? `Add ${friendTimerLabel}` : `Wait ${friendTimerLabel}`;
 
   useEffect(() => {
     sessionRef.current = session;
@@ -438,7 +439,7 @@ export default function Stranger() {
 
   const shellClass = focused
     ? 'fixed inset-0 z-[90] h-[100dvh] w-screen overflow-hidden bg-ink p-1 sm:p-1.5'
-    : 'mx-auto h-full min-h-0 w-full max-w-[1280px] overflow-hidden pb-[calc(env(safe-area-inset-bottom)+3.75rem)] md:pb-0';
+    : 'mx-auto h-full min-h-0 w-full max-w-[1280px] overflow-hidden pb-[env(safe-area-inset-bottom)]';
 
   return (
     <div className={shellClass}>
@@ -461,6 +462,7 @@ export default function Stranger() {
               onToggleFocus={() => setFocused((value) => !value)}
               onStart={() => requestFindStranger(false)}
               emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
+              tipText={finding ? 'Tip: Stay for 3+ minutes to unlock friend request.' : ''}
               status={callState}
               modeTabs={<ModeTabs value={viewMode} onChange={switchMode} compact />}
               actions={
@@ -537,7 +539,7 @@ export default function Stranger() {
               type="button"
               onClick={sendFriendRequest}
               disabled={!peer || friendSent || !friendUnlocked}
-              className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent ? 'bg-mint text-ink' : 'btn-primary'}`}
+              className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent || friendUnlocked ? 'bg-mint text-ink' : 'btn-primary'}`}
               title={friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request'}
             >
               {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
@@ -572,7 +574,7 @@ export default function Stranger() {
   );
 }
 
-function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, chromeVisible, onToggleFocus, emptyText, onStart, status, modeTabs, actions }) {
+function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, chromeVisible, onToggleFocus, emptyText, tipText, onStart, status, modeTabs, actions }) {
   const stageHeight = focused || expanded ? 'h-full min-h-0' : 'h-full min-h-0';
 
   return (
@@ -591,6 +593,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
             )}
             <p className="mt-3 text-base font-semibold">{peer?.name || 'Random live'}</p>
             <p className="mt-2 text-sm text-white/48">{emptyText}</p>
+            {tipText && <p className="mt-1 text-xs font-medium text-mint/80">{tipText}</p>}
             {!peer && !finding && onStart && (
               <button onClick={onStart} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold">
                 Start VC
@@ -626,7 +629,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
         </div>
       </div>
       <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/78 via-black/22 to-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-10 transition duration-300 sm:px-3 ${chromeVisible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}>
-        <div className="pointer-events-auto mx-auto flex max-w-3xl items-center justify-start gap-1 overflow-x-auto rounded-full border border-white/10 bg-black/38 p-1 backdrop-blur-md sm:justify-center sm:gap-2 sm:p-2">
+        <div className="pointer-events-auto mx-auto grid w-full max-w-md grid-cols-3 gap-2 rounded-[24px] border border-white/10 bg-black/38 p-2 backdrop-blur-md sm:max-w-3xl sm:grid-cols-6 sm:gap-3 sm:rounded-full sm:p-2.5">
           {actions}
         </div>
       </div>
@@ -641,13 +644,13 @@ function ModeTabs({ value, onChange, compact = false }) {
   ];
 
   return (
-    <div data-no-tab-swipe className={`flex shrink-0 rounded-full border border-white/10 bg-white/6 p-1 ${compact ? 'backdrop-blur-md' : ''}`}>
+    <div data-no-tab-swipe className={`flex shrink-0 rounded-full border border-white/10 bg-black/36 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${compact ? 'backdrop-blur-md' : ''}`}>
       {modes.map((mode) => (
         <button
           key={mode.value}
           type="button"
           onClick={() => onChange(mode.value)}
-          className={`rounded-full font-semibold transition ${compact ? 'px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs' : 'px-3 py-1.5 text-xs'} ${value === mode.value ? 'bg-white text-ink shadow-[0_10px_24px_rgba(255,255,255,0.12)]' : 'text-white/58 hover:text-white'}`}
+          className={`rounded-full font-semibold transition ${compact ? 'px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs' : 'px-3 py-1.5 text-xs'} ${value === mode.value ? 'bg-gradient-to-r from-mint to-sky text-ink shadow-[0_10px_24px_rgba(20,184,166,0.24)]' : 'text-white/42 hover:text-white/75'}`}
         >
           {mode.label}
         </button>
@@ -688,10 +691,10 @@ function CircleControl({ icon: Icon, label, onClick, disabled, primary, danger }
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-full px-2 text-[10px] font-semibold capitalize disabled:opacity-35 sm:h-12 sm:min-w-12 sm:px-3.5 sm:text-xs ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'border border-white/10 bg-white/10 text-white/82 hover:bg-white/16'}`}
+      className={`flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[10px] font-semibold capitalize disabled:opacity-35 sm:h-12 sm:px-3.5 sm:text-xs ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'border border-white/10 bg-white/10 text-white/82 hover:bg-white/16'} ${label.includes('3:00') ? 'ring-1 ring-mint/45' : ''}`}
     >
       <Icon size={17} />
-      <span className="hidden sm:inline">{label}</span>
+      <span className="truncate">{label}</span>
     </button>
   );
 }
@@ -704,6 +707,7 @@ function EmptyRandom({ finding, onStart }) {
           {finding ? <Loader2 className="animate-spin" size={24} /> : <Shuffle size={24} />}
         </span>
         <p className="mt-4 font-semibold">{finding ? 'Waiting for someone' : 'Start random chat'}</p>
+        {finding && <p className="mt-1 text-xs font-medium text-mint/80">Tip: Stay for 3+ minutes to unlock friend request.</p>}
         {!finding && (
           <button onClick={onStart} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold">
             Start random

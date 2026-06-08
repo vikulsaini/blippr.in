@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Search, Sparkles, UserPlus } from 'lucide-react';
+import { Check, Copy, Search, Sparkles, UserPlus } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { api } from '../lib/api.js';
 import { presenceText } from '../lib/presence.js';
@@ -10,7 +10,12 @@ export default function Discover() {
   const [users, setUsers] = useState([]);
   const [sentIds, setSentIds] = useState(new Set());
   const [profileUser, setProfileUser] = useState(null);
+  const [me, setMe] = useState(null);
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    api('/api/users/me').then(({ user }) => setMe(user)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -47,6 +52,13 @@ export default function Discover() {
     }
   }
 
+  async function shareProfile() {
+    if (!me?.username) return;
+    const value = `${window.location.origin}/u/${me.username}`;
+    await navigator.clipboard?.writeText(value);
+    setMessage('Profile link copied');
+  }
+
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4">
       <section className="depth-panel rounded-[20px] p-2 md:p-3">
@@ -70,7 +82,11 @@ export default function Discover() {
             <Sparkles size={21} />
           </span>
           <p className="mt-3 font-medium">Search people</p>
-          <p className="mt-1 text-sm text-white/52">Type a name or username to find someone.</p>
+          <p className="mt-1 text-sm text-white/52">Example: @vikul or "Riya"</p>
+          <button type="button" onClick={shareProfile} disabled={!me?.username} className="btn-secondary mx-auto mt-4 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:opacity-40">
+            <Copy size={14} />
+            Share my profile
+          </button>
         </div>
       )}
 
