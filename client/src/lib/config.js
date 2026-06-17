@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = import.meta.env.PROD ? 'https://blippr-api-2k6p.onrender.com' : 'http://localhost:8080';
+const DEFAULT_API_URL = import.meta.env.PROD ? 'https://api.blippr.in' : 'http://localhost:8080';
 const RETIRED_BACKEND_HOSTS = new Set(['server-zeta-one-69.vercel.app']);
 
 function normalizeServerUrl(value) {

@@ -18,7 +18,8 @@ registerSockets(io);
 
 async function boot() {
   console.log('Starting Blippr API');
-  console.log(`Environment check: MONGO_URI=${process.env.MONGO_URI ? 'set' : 'missing'}, REDIS_URL=${process.env.REDIS_URL ? 'set' : 'missing'}`);
+  const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL;
+  console.log(`Environment check: MongoDB=${mongoUri ? 'set' : 'missing'}, REDIS_URL=${process.env.REDIS_URL ? 'set' : 'missing'}`);
   await connectMongo();
   await connectRedis();
   server.listen(port, () => {
