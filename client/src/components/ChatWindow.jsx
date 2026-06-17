@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Camera, FileText, Image, MapPin, Mic, Navigation, Phone, Plus, Reply, Search, Send, Smile, Square, Video, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Camera, FileText, Image, MapPin, Mic, Navigation, Phone, Plus, Reply, Search, Send, Smile, Square, Video, X } from 'lucide-react';
 import ConversationTimeline from './chat/ConversationTimeline.jsx';
 import { getNickname, getOtherMember, normalizeId } from '../lib/chat.js';
 import { presenceText } from '../lib/presence.js';
@@ -22,6 +22,8 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const [fileAccept, setFileAccept] = useState('image/*,video/*,audio/*,application/pdf,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip');
   const [captureMode, setCaptureMode] = useState('');
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [showScrollFAB, setShowScrollFAB] = useState(false);
+  const scrollContainerRef = useRef(null);
   const endRef = useRef(null);
   const fileInputRef = useRef(null);
   const recorderRef = useRef(null);
@@ -35,6 +37,12 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
   }, [messages.at(-1)?._id, calls.at(-1)?._id, isTyping]);
+
+  function handleScroll(e) {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const isScrolledUp = scrollHeight - scrollTop - clientHeight > 300;
+    setShowScrollFAB(isScrolledUp);
+  }
 
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -236,20 +244,20 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   }
 
   return (
-    <div data-no-tab-swipe className="flex h-full min-h-0 flex-col overflow-hidden bg-ink" style={viewportHeight ? { height: `${viewportHeight}px` } : undefined}>
-      <header className="shrink-0 border-b border-white/5 bg-ink px-3 py-2.5 shadow-nm-flat z-10">
+    <div data-no-tab-swipe className="flex h-full min-h-0 flex-col overflow-hidden bg-bg relative" style={viewportHeight ? { height: `${viewportHeight}px` } : undefined}>
+      <header className="shrink-0 border-b border-border-default bg-surface px-3 py-2.5 shadow-card z-10">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
             {otherMember?.avatar && (
               <button onClick={() => onProfile?.(otherMember)} className="relative" aria-label={`View ${displayName} profile`}>
-                <img src={otherMember.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
-                <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-ink ${otherMember.isOnline ? 'bg-mint' : 'bg-white/30'}`} />
+                <img src={otherMember.avatar} alt="" className="h-10 w-10 rounded-full object-cover border border-border-default" />
+                <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface ${otherMember.isOnline ? 'bg-success' : 'bg-border-default'}`} />
               </button>
             )}
             <button onClick={() => otherMember && onProfile?.(otherMember)} className="min-w-0 text-left">
-              <p className="truncate font-semibold text-white">{displayName || 'Select a chat'}</p>
-              <p className={`truncate text-xs font-medium ${isTyping || otherMember?.isOnline ? 'text-mint' : 'text-slate-400'}`}>{isTyping ? 'typing...' : otherMember ? presenceText(otherMember) : 'No active conversation'}</p>
+              <p className="truncate font-semibold text-text-primary">{displayName || 'Select a chat'}</p>
+              <p className={`truncate text-xs font-medium ${isTyping || otherMember?.isOnline ? 'text-accent' : 'text-text-muted'}`}>{isTyping ? 'typing...' : otherMember ? presenceText(otherMember) : 'No active conversation'}</p>
             </button>
           </div>
           <div className="flex gap-2">
@@ -259,15 +267,19 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </div>
         </div>
         {searchOpen && (
-          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-white/5 bg-ink px-3 shadow-nm-inset-sm">
+          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-border-default bg-bg px-3">
             <Search size={16} className="text-slate-400" />
-            <input value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" placeholder="Search in conversation" />
-            {messageSearch && <button onClick={() => setMessageSearch('')} type="button" className="rounded-full bg-white/10 p-1" aria-label="Clear search"><X size={13} /></button>}
+            <input value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none text-text-primary" placeholder="Search in conversation" />
+            {messageSearch && <button onClick={() => setMessageSearch('')} type="button" className="rounded-full bg-border-default p-1 text-text-muted hover:text-text-primary" aria-label="Clear search"><X size={13} /></button>}
           </label>
         )}
       </header>
 
-      <section className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+      <section
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 scrollbar-thin"
+      >
         <ConversationTimeline
           messages={messages}
           calls={calls}
@@ -284,18 +296,45 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         />
       </section>
 
-      <form onSubmit={onSend} className="shrink-0 border-t border-white/5 bg-ink px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-nm-flat z-10">
+      {/* Scroll-to-bottom FAB */}
+      <AnimatePresence>
+        {showScrollFAB && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            onClick={() => {
+              scrollContainerRef.current?.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+              });
+            }}
+            className="absolute bottom-24 right-4 btn-primary flex items-center gap-1.5 rounded-full px-3 py-2 text-xs shadow-float z-20"
+          >
+            <ArrowDown size={14} />
+            <span>Recent Messages</span>
+            {chat?.unreadCount > 0 && (
+              <span className="grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[8px] font-bold text-white badge-pulse">
+                {chat.unreadCount}
+              </span>
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      <form onSubmit={onSend} className="shrink-0 border-t border-border-default bg-surface px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-card z-10">
         {replyTo && (
-          <div className="mb-2 flex items-center gap-2 rounded-xl border border-mint/20 bg-mint/10 px-3 py-2 text-sm">
-            <Reply size={15} className="text-mint" />
-            <p className="min-w-0 flex-1 truncate text-white/70">{replyTo.text || 'Replying to message'}</p>
-            <button type="button" onClick={onCancelReply} className="rounded-full bg-white/10 p-1" aria-label="Cancel reply"><X size={14} /></button>
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent-tint px-3 py-2 text-sm">
+            <Reply size={15} className="text-accent" />
+            <p className="min-w-0 flex-1 truncate text-text-secondary">{replyTo.text || 'Replying to message'}</p>
+            <button type="button" onClick={onCancelReply} className="rounded-full bg-border-default p-1 text-text-muted hover:text-text-primary" aria-label="Cancel reply"><X size={14} /></button>
           </div>
         )}
         {uploadError && (
-          <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-coral/25 bg-coral/10 px-3 py-2 text-xs text-coral">
+          <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-danger/25 bg-danger/10 px-3 py-2 text-xs text-danger">
             <span>{uploadError}</span>
-            <button type="button" onClick={() => setUploadError('')} className="rounded-full bg-white/10 p-1" aria-label="Dismiss media error"><X size={13} /></button>
+            <button type="button" onClick={() => setUploadError('')} className="rounded-full bg-border-default p-1 text-text-muted hover:text-text-primary" aria-label="Dismiss media error"><X size={13} /></button>
           </div>
         )}
         {emojiOpen && (
@@ -303,7 +342,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.96 }}
-            className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-white/5 bg-ink p-2 shadow-nm-flat"
+            className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-border-default bg-surface p-2 shadow-float"
           >
             {composerEmojis.map((emoji, index) => (
               <motion.button
@@ -314,7 +353,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
                 transition={{ delay: index * 0.015 }}
                 whileTap={{ scale: 0.82 }}
                 onClick={() => setText(`${text}${emoji}`)}
-                className="grid h-9 place-items-center rounded-xl text-xl hover:bg-white/8"
+                className="grid h-9 place-items-center rounded-xl text-xl hover:bg-surface-hover"
               >
                 {emoji}
               </motion.button>
@@ -325,9 +364,9 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           <motion.div
             initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="mb-2 rounded-[22px] border border-white/5 bg-ink p-3 shadow-nm-flat"
+            className="mb-2 rounded-[22px] border border-border-default bg-surface p-3 shadow-float"
           >
-            <p className="mb-2 px-1 text-xs font-semibold text-white/45">Share with this friend</p>
+            <p className="mb-2 px-1 text-xs font-semibold text-text-faint">Share with this friend</p>
             <div className="grid grid-cols-4 gap-2">
               <AttachButton icon={Image} label="Gallery" onClick={() => openPicker({ accept: 'image/*,video/*', title: 'Open gallery?', message: 'We need access to your photos and videos so you can share media in this chat.' })} />
               <AttachButton icon={FileText} label="Document" onClick={() => openPicker({ accept: 'application/pdf,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip', title: 'Choose document?', message: 'We need access to your files so you can choose a document to share.' })} />
@@ -340,7 +379,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             </button>
           </motion.div>
         )}
-        <div className="flex items-end gap-2 rounded-[20px] border border-white/5 bg-ink p-1.5 shadow-nm-inset-sm">
+        <div className="flex items-end gap-2 rounded-[20px] border border-border-default bg-bg p-1.5">
           <input
             ref={fileInputRef}
             type="file"
@@ -357,7 +396,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             value={text}
             onChange={(event) => handleTextInput(event.target.value)}
             onFocus={() => setEmojiOpen(false)}
-            className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2.5 text-sm font-medium text-slate-100 outline-none"
+            className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2.5 text-sm font-medium text-text-primary outline-none"
             placeholder={uploading ? 'Uploading...' : recording ? 'Recording voice...' : chat ? 'Message' : 'Start from Discover'}
             disabled={!chat || uploading || recording}
             rows={1}
@@ -371,7 +410,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           {text.trim() ? (
             <button disabled={!chat || uploading} className="btn-primary grid h-10 w-10 shrink-0 place-items-center rounded-full disabled:opacity-40" aria-label="Send"><Send size={18} /></button>
           ) : recording ? (
-            <button type="button" onClick={stopRecording} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-coral text-ink" aria-label="Stop recording"><Square size={16} /></button>
+            <button type="button" onClick={stopRecording} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-danger text-white hover:bg-red-600 active:scale-[0.96] transition" aria-label="Stop recording"><Square size={16} /></button>
           ) : (
             <button type="button" onClick={startRecording} disabled={!chat || uploading} className="btn-icon h-10 w-10 shrink-0 disabled:opacity-40" aria-label="Voice message"><Mic size={18} /></button>
           )}
@@ -396,14 +435,14 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
 function PermissionPrompt({ title, message, onCancel, onContinue }) {
   return (
     <div className="fixed inset-0 z-[80] grid place-items-end bg-black/45 p-3 backdrop-blur-sm">
-      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface w-full max-w-md rounded-[24px] p-4 shadow-glow">
+      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface-card w-full max-w-md rounded-[24px] p-4 shadow-elevated">
         <div className="flex items-start gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-mint/12 text-mint">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent-light text-accent">
             <MapPin size={19} />
           </span>
           <div>
             <h3 className="font-semibold">{title}</h3>
-            <p className="mt-1 text-sm leading-6 text-white/55">{message}</p>
+            <p className="mt-1 text-sm leading-6 text-text-muted">{message}</p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -417,8 +456,8 @@ function PermissionPrompt({ title, message, onCancel, onContinue }) {
 
 function AttachButton({ icon: Icon, label, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="grid min-h-20 place-items-center rounded-2xl border border-white/5 bg-ink px-2 py-3 text-[11px] font-semibold text-white/68 shadow-nm-flat-sm hover:translate-y-[-1px] transition">
-      <span className="grid h-9 w-9 place-items-center rounded-2xl bg-ink shadow-nm-inset-sm text-mint">
+    <button type="button" onClick={onClick} className="btn-secondary grid min-h-20 place-items-center rounded-2xl px-2 py-3 text-[11px] font-semibold text-text-secondary hover:translate-y-[-1px] transition">
+      <span className="grid h-9 w-9 place-items-center rounded-2xl bg-accent-tint text-accent">
         <Icon size={17} />
       </span>
       {label}

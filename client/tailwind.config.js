@@ -2,6 +2,10 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        heading: ['"Plus Jakarta Sans"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif']
+      },
       colors: {
         accent: {
           DEFAULT: '#0D9488',
@@ -38,6 +42,23 @@ export default {
         '2xl': '16px',
         '3xl': '20px',
         '4xl': '24px'
+      },
+      animation: {
+        'fade-slide-up': 'fadeSlideUp 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards',
+        'badge-pulse': 'badgePulse 2s ease-in-out infinite'
+      },
+      keyframes: {
+        fadeSlideUp: {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' }
+        },
+        badgePulse: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(13, 148, 136, 0.4)' },
+          '50%': { boxShadow: '0 0 0 4px rgba(13, 148, 136, 0)' }
+        }
+      },
+      transitionTimingFunction: {
+        spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
       }
     }
   },

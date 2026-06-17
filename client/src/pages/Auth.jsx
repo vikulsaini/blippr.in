@@ -17,7 +17,10 @@ import {
   Smile,
   Compass,
   Globe,
-  ChevronDown
+  ChevronDown,
+  Music,
+  Camera,
+  MessageCircle
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { api, setToken } from '../lib/api.js';
@@ -400,6 +403,14 @@ export default function Auth() {
                           <PasswordRule met={hasMinLength} text="Least 8 characters" />
                           <PasswordRule met={hasNumOrSymbol} text="Least one number (0-9) or a symbol" />
                           <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
+                          {/* Password strength bar */}
+                          {password.length > 0 && (
+                            <div className="mt-2 flex gap-1">
+                              {[hasMinLength, hasNumOrSymbol, hasMixedCase].map((met, i) => (
+                                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </>
@@ -729,14 +740,14 @@ export default function Auth() {
           </motion.div>
 
           {/* Social Icons floating on background waves */}
-          <div className="absolute top-[32%] right-[10%] z-10 h-10 w-10 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center border border-slate-100 dark:border-slate-800 animate-bounce" style={{ animationDuration: '3s' }}>
-            <span className="text-base">🎵</span> {/* TikTok placeholder */}
+          <div className="absolute top-[32%] right-[10%] z-10 h-10 w-10 rounded-full bg-white shadow-card flex items-center justify-center border border-border-default">
+            <Music size={16} className="text-accent" />
           </div>
-          <div className="absolute top-[18%] left-[8%] z-10 h-11 w-11 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center border border-slate-100 dark:border-slate-800 animate-bounce" style={{ animationDuration: '4.5s' }}>
-            <span className="text-lg">📸</span> {/* Instagram placeholder */}
+          <div className="absolute top-[18%] left-[8%] z-10 h-11 w-11 rounded-full bg-white shadow-card flex items-center justify-center border border-border-default">
+            <Camera size={18} className="text-accent" />
           </div>
-          <div className="absolute bottom-[8%] right-[18%] z-10 h-9 w-9 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center border border-slate-100 dark:border-slate-800 animate-bounce" style={{ animationDuration: '3.8s' }}>
-            <span className="text-sm">💬</span>
+          <div className="absolute bottom-[8%] right-[18%] z-10 h-9 w-9 rounded-full bg-white shadow-card flex items-center justify-center border border-border-default">
+            <MessageCircle size={14} className="text-accent" />
           </div>
 
         </div>

@@ -156,25 +156,25 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         onPointerUp={stopPress}
         onPointerCancel={stopPress}
         onPointerLeave={stopPress}
-        className={`max-w-[78%] touch-pan-y rounded-[20px] px-3 py-2 text-sm ${mine ? 'rounded-br-md border border-cyan-100/10 bg-gradient-to-r from-mint to-cyan-500 text-ink shadow-[3px_3px_10px_rgba(0,0,0,0.3)]' : 'rounded-bl-md border border-white/5 bg-ink text-slate-100 shadow-nm-flat-sm'}`}
+        className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-[#0EA5E9] text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'}`}
       >
         {message.replyTo && (
-          <div className={`mb-1.5 rounded-xl border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-ink/30 bg-ink/10 text-ink/70' : 'border-mint/50 bg-white/8 text-slate-300'}`}>
+          <div className={`mb-1.5 rounded-xl border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-white/40 bg-white/10 text-white/90' : 'border-accent/40 bg-bg text-text-secondary'}`}>
             <p className="line-clamp-2">{message.replyTo.text || 'Replied message'}</p>
           </div>
         )}
         {message.media && <MediaPreview media={message.media} />}
         {message.location && <LocationPreview location={message.location} mine={mine} />}
         {message.text && <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>}
-        <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-ink/62' : 'text-slate-400'}`}>
+        <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-white/80' : 'text-text-muted'}`}>
           {message.editedAt && <span>edited</span>}
           <span>{formatTime(message.createdAt)}</span>
           {mine && <StatusIcon status={message.status} />}
         </div>
         {!!message.reactions?.length && (
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="mt-1.5 flex flex-wrap gap-1">
             {reactionSummary(message.reactions).map((reaction) => (
-              <span key={reaction.emoji} className={`rounded-full px-2 py-0.5 text-xs ${mine ? 'bg-ink/12' : 'bg-white/8'}`}>
+              <span key={reaction.emoji} className={`rounded-full px-2 py-0.5 text-xs ${mine ? 'bg-white/20 text-white' : 'bg-bg text-text-secondary border border-border-default'}`}>
                 {reaction.emoji} {reaction.count}
               </span>
             ))}
@@ -189,9 +189,9 @@ function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[60] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
       <button className="fixed inset-0 cursor-default bg-black/35 backdrop-blur-[2px]" onClick={onClose} aria-label="Close message actions" />
-      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface relative mx-auto max-w-md rounded-t-[24px] p-3 shadow-glow">
+      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface-card relative mx-auto max-w-md rounded-t-[24px] p-3 shadow-elevated">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="truncate text-xs text-white/50">{message.text || 'Message options'}</p>
+          <p className="truncate text-xs text-text-muted">{message.text || 'Message options'}</p>
           <button onClick={onClose} className="btn-icon h-7 w-7" aria-label="Close reactions"><X size={14} /></button>
         </div>
         <div className="grid grid-cols-6 gap-2">
@@ -218,11 +218,11 @@ function EditMessageSheet({ value, onChange, onClose, onSave }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-[65] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
       <button className="fixed inset-0 cursor-default bg-black/40 backdrop-blur-[2px]" onClick={onClose} aria-label="Close edit message" />
-      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface relative mx-auto max-w-md rounded-t-[24px] p-4 shadow-glow">
+      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface-card relative mx-auto max-w-md rounded-t-[24px] p-4 shadow-elevated">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="font-semibold">Edit message</h3>
-            <p className="mt-0.5 text-xs text-white/45">Update the text and save it back to the conversation.</p>
+            <p className="mt-0.5 text-xs text-text-muted">Update the text and save it back to the conversation.</p>
           </div>
           <button onClick={onClose} className="btn-icon h-8 w-8" aria-label="Cancel edit"><X size={15} /></button>
         </div>
@@ -231,7 +231,7 @@ function EditMessageSheet({ value, onChange, onClose, onSave }) {
           onChange={(event) => onChange(event.target.value)}
           autoFocus
           rows={3}
-          className="mt-4 w-full resize-none rounded-2xl border border-white/8 bg-white/5 px-3 py-3 text-sm outline-none focus:border-mint/40"
+          className="mt-4 w-full resize-none rounded-2xl border border-border-default bg-bg px-3 py-3 text-sm outline-none focus:border-accent/40 text-text-primary"
           placeholder="Edit message"
         />
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -249,7 +249,7 @@ function ActionButton({ icon: Icon, label, onClick, tone = 'neutral', disabled =
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold disabled:opacity-35 ${tone === 'danger' ? 'border border-coral/20 bg-coral/10 text-coral' : 'btn-secondary'}`}
+      className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold disabled:opacity-35 ${tone === 'danger' ? 'border border-danger/20 bg-danger/10 text-danger hover:bg-danger/20 transition' : 'btn-secondary'}`}
     >
       <Icon size={15} />
       {label}
@@ -275,10 +275,10 @@ function CallHistoryItem({ call, currentUserId }) {
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
-      <div className={`flex max-w-[82%] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-nm-flat-sm ${isMissed ? 'border-coral/18 bg-coral/10 text-coral' : 'border-white/5 bg-ink text-slate-300'}`}>
+      <div className={`flex max-w-[82%] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-card ${isMissed ? 'border-danger/18 bg-danger/10 text-danger' : 'border-border-default bg-surface text-text-secondary'}`}>
         <Icon size={13} />
         <span>{direction} {call.type} call</span>
-        <span className="text-slate-500">-</span>
+        <span className="text-text-faint">-</span>
         <span>{statusText}</span>
       </div>
     </motion.div>
@@ -288,11 +288,11 @@ function CallHistoryItem({ call, currentUserId }) {
 function TypingBubble() {
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-      <div className="flex items-center gap-1 rounded-[20px] rounded-bl-md border border-white/5 bg-ink px-3 py-2 shadow-nm-flat-sm">
+      <div className="flex items-center gap-1.5 rounded-[20px] rounded-bl-none border border-border-default bg-surface px-4 py-2.5 shadow-card">
         {[0, 1, 2].map((dot) => (
           <motion.span
             key={dot}
-            className="h-1.5 w-1.5 rounded-full bg-slate-300"
+            className="h-2 w-2 rounded-full bg-accent"
             animate={{ y: [0, -4, 0], opacity: [0.45, 1, 0.45] }}
             transition={{ duration: 0.85, repeat: Infinity, delay: dot * 0.14, ease: 'easeInOut' }}
           />
@@ -304,11 +304,11 @@ function TypingBubble() {
 
 function EmptyState({ name }) {
   return (
-    <div className="grid h-full place-items-center text-center">
+    <div className="grid h-full place-items-center text-center py-20">
       <div>
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/8 text-mint"><MessageCircle size={24} /></span>
-        <p className="mt-4 font-semibold">Start the conversation</p>
-        <p className="mt-1 text-sm text-white/45">{name ? `Say hello to ${name}.` : 'Choose a friend from your list.'}</p>
+        <span className="tone-ring mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent-light text-accent"><MessageCircle size={24} /></span>
+        <p className="mt-4 font-semibold text-text-primary">Start the conversation</p>
+        <p className="mt-1 text-sm text-text-muted">{name ? `Say hello to ${name}.` : 'Choose a friend from your list.'}</p>
       </div>
     </div>
   );
@@ -317,20 +317,20 @@ function EmptyState({ name }) {
 function DateDivider({ value }) {
   return (
     <div className="my-4 flex justify-center">
-      <span className="rounded-full border border-white/5 bg-ink px-3 py-1 text-[11px] font-medium text-slate-400 shadow-nm-inset-sm">{formatDate(value)}</span>
+      <span className="rounded-full border border-border-default bg-bg px-3 py-1 text-[11px] font-semibold text-text-muted">{formatDate(value)}</span>
     </div>
   );
 }
 
 function MediaPreview({ media }) {
-  if (!media.url) return <span className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs">Preparing attachment...</span>;
+  if (!media.url) return <span className="mb-2 block rounded-2xl bg-bg/40 px-3 py-2 text-xs">Preparing attachment...</span>;
   if (media.type === 'image') return <img src={media.url} alt="" className="mb-2 max-h-64 rounded-2xl object-cover" />;
   if (media.type === 'audio') {
     return (
-      <div className="mb-2 rounded-2xl bg-white/10 p-2">
+      <div className="mb-2 rounded-2xl bg-bg/40 p-2">
         <div className="mb-2 flex h-8 items-end gap-0.5">
           {Array.from({ length: 24 }).map((_, index) => (
-            <span key={index} className="w-1 rounded-full bg-mint/70" style={{ height: `${8 + ((index * 7) % 22)}px` }} />
+            <span key={index} className="w-1 rounded-full bg-accent/70" style={{ height: `${8 + ((index * 7) % 22)}px` }} />
           ))}
         </div>
         <audio src={media.url} controls className="max-w-full" />
@@ -338,7 +338,7 @@ function MediaPreview({ media }) {
     );
   }
   if (media.type === 'video') return <video src={media.url} controls className="mb-2 max-h-64 rounded-2xl" />;
-  return <a href={media.url} className="mb-2 block rounded-2xl bg-white/10 px-3 py-2 text-xs underline">{media.name || 'Open attachment'}</a>;
+  return <a href={media.url} className="mb-2 block rounded-2xl bg-bg/40 px-3 py-2 text-xs underline">{media.name || 'Open attachment'}</a>;
 }
 
 function LocationPreview({ location, mine }) {
@@ -352,15 +352,15 @@ function LocationPreview({ location, mine }) {
       href={mapUrl || undefined}
       target="_blank"
       rel="noreferrer"
-      className={`mb-2 block rounded-2xl border p-3 no-underline ${mine ? 'border-ink/12 bg-ink/10 text-ink' : 'border-white/8 bg-white/8 text-slate-100'}`}
+      className={`mb-2 block rounded-2xl border p-3 no-underline ${mine ? 'border-white/20 bg-white/10 text-white' : 'border-border-default bg-bg text-text-primary'}`}
     >
       <div className="flex items-center gap-3">
-        <span className={`grid h-10 w-10 place-items-center rounded-2xl ${live && !ended ? 'bg-mint text-ink' : 'bg-white/10'}`}>
+        <span className={`grid h-10 w-10 place-items-center rounded-2xl ${live && !ended ? 'bg-white text-accent' : 'bg-accent-tint text-accent'}`}>
           <MapPin size={18} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">{live ? (ended ? 'Live location ended' : 'Live location') : 'Current location'}</span>
-          <span className={`block truncate text-xs ${mine ? 'text-ink/58' : 'text-white/50'}`}>
+          <span className={`block truncate text-xs ${mine ? 'text-white/75' : 'text-text-muted'}`}>
             {mapUrl ? 'Tap to open map' : 'Waiting for coordinates'}
             {location.updatedAt ? ` · updated ${formatTime(location.updatedAt)}` : ''}
           </span>

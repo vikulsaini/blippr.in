@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, LogIn, ShieldCheck, UserCheck, UserPlus, X } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { showNativeNotification } from '../lib/native.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 
 const styles = {
-  'friend-request': { label: 'Friend request', icon: UserPlus, tone: 'text-mint', bg: 'bg-mint/12' },
-  'friend-request-accepted': { label: 'Request accepted', icon: UserCheck, tone: 'text-mint', bg: 'bg-mint/12' },
-  login: { label: 'Security', icon: LogIn, tone: 'text-amber-200', bg: 'bg-amber-300/12' },
-  system: { label: 'Update', icon: ShieldCheck, tone: 'text-white/70', bg: 'bg-white/8' }
+  'friend-request': { label: 'Friend request', icon: UserPlus, tone: 'text-accent', bg: 'bg-accent/10' },
+  'friend-request-accepted': { label: 'Request accepted', icon: UserCheck, tone: 'text-accent', bg: 'bg-accent/10' },
+  login: { label: 'Security', icon: LogIn, tone: 'text-gold', bg: 'bg-gold/10' },
+  system: { label: 'Update', icon: ShieldCheck, tone: 'text-text-muted', bg: 'bg-bg' }
 };
 
 const importantTypes = new Set(['friend-request', 'friend-request-accepted', 'login', 'system']);
@@ -134,57 +135,70 @@ export default function NotificationBell() {
       <button onClick={() => setOpen((value) => !value)} className="btn-icon relative h-11 w-11 rounded-[16px]" aria-label="Notifications">
         <Bell size={20} />
         {count > 0 && (
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-coral px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[10px] font-bold text-white badge-pulse">
             {Math.min(count, 99)}
           </span>
         )}
       </button>
-      {open && (
-        <section className="fixed inset-0 z-[110] flex h-[100dvh] flex-col bg-ink/96 px-3 pb-[calc(env(safe-area-inset-bottom)+0.85rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)] text-white shadow-glow backdrop-blur-xl sm:p-5 md:inset-4 md:rounded-[30px] md:border md:border-white/10">
-          <div className="flex items-start justify-between gap-3 border-b border-white/8 pb-4">
-            <div>
-              <h2 className="text-xl font-semibold md:text-2xl">Notifications</h2>
-              <p className="mt-1 text-xs text-white/45">Friend requests, accepted requests, login alerts and important updates</p>
-            </div>
-            <button onClick={() => setOpen(false)} className="btn-icon h-10 w-10 rounded-full" aria-label="Close notifications">
-              <X size={17} />
-            </button>
-          </div>
-          {message && <p className="mt-2 text-sm text-mint">{message}</p>}
-          <div className="mx-auto mt-4 flex w-full max-w-3xl flex-1 flex-col space-y-2 overflow-y-auto overscroll-contain pr-1">
-            {loading && <NotificationSkeleton />}
-            {!loading && feed.map((item) => (
-              <NotificationItem key={item._id} item={item} onRespond={respond} />
-            ))}
-            {!loading && !feed.length && (
-              <div className="py-20 flex-1 flex flex-col items-center justify-center text-center">
-                <div className="relative mb-4">
-                  <Bell className="text-mint animate-bounce" size={36} />
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-mint opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-mint"></span>
-                  </span>
-                </div>
-                <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-200">No important notifications yet.</p>
-                <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-slate-500">Messages and call rings stay in their own chat/call surfaces so this screen stays clean.</p>
-                <button onClick={loadFeed} className="border border-mint text-mint bg-transparent hover:bg-mint/8 mt-4 rounded-full px-4 py-2 text-xs font-semibold transition-colors">Refresh</button>
+      <AnimatePresence>
+        {open && (
+          <motion.section
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+            className="fixed inset-0 z-[110] flex h-[100dvh] flex-col bg-surface/98 px-3 pb-[calc(env(safe-area-inset-bottom)+0.85rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)] text-text-primary shadow-elevated backdrop-blur-xl sm:p-5 md:inset-4 md:rounded-[30px] md:border md:border-border-default"
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-border-default pb-4">
+              <div>
+                <h2 className="text-xl font-semibold md:text-2xl">Notifications</h2>
+                <p className="mt-1 text-xs text-text-muted">Friend requests, accepted requests, login alerts and important updates</p>
               </div>
-            )}
-          </div>
-        </section>
-      )}
+              <button onClick={() => setOpen(false)} className="btn-icon h-10 w-10 rounded-full" aria-label="Close notifications">
+                <X size={17} />
+              </button>
+            </div>
+            {message && <p className="mt-2 text-sm font-medium text-accent">{message}</p>}
+            <div className="mx-auto mt-4 flex w-full max-w-3xl flex-1 flex-col space-y-2 overflow-y-auto overscroll-contain scrollbar-thin pr-1">
+              {loading && <NotificationSkeleton />}
+              {!loading && feed.map((item, index) => (
+                <motion.div
+                  key={item._id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.2 }}
+                >
+                  <NotificationItem item={item} onRespond={respond} />
+                </motion.div>
+              ))}
+              {!loading && !feed.length && (
+                <div className="py-20 flex-1 flex flex-col items-center justify-center text-center">
+                  <div className="relative mb-4">
+                    <span className="tone-ring grid h-16 w-16 place-items-center rounded-2xl bg-accent/10 text-accent">
+                      <Bell size={28} />
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-text-primary">No important notifications yet.</p>
+                  <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-text-muted">Messages and call rings stay in their own chat/call surfaces so this screen stays clean.</p>
+                  <button onClick={loadFeed} className="btn-secondary mx-auto mt-4 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold">Refresh</button>
+                </div>
+              )}
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 function NotificationSkeleton() {
   return Array.from({ length: 4 }).map((_, index) => (
-    <div key={index} className="flex animate-pulse gap-3 rounded-2xl border border-white/10 bg-white/7 p-3">
-      <div className="h-10 w-10 rounded-2xl bg-white/10" />
+    <div key={index} className="flex gap-3 rounded-2xl border border-border-default bg-bg p-3">
+      <div className="h-10 w-10 rounded-2xl skeleton" />
       <div className="flex-1 space-y-2">
-        <div className="h-3 w-24 rounded-full bg-white/10" />
-        <div className="h-3 w-40 rounded-full bg-white/8" />
-        <div className="h-2.5 w-52 rounded-full bg-white/6" />
+        <div className="h-3 w-24 rounded-full skeleton" />
+        <div className="h-3 w-40 rounded-full skeleton" />
+        <div className="h-2.5 w-52 rounded-full skeleton" />
       </div>
     </div>
   ));
@@ -196,7 +210,7 @@ function NotificationItem({ item, onRespond }) {
   const actor = item.actor || item.request?.from;
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/7 p-3">
+    <article className="rounded-2xl border border-border-default bg-surface p-3 shadow-card transition-all duration-200 hover:shadow-card-hover">
       <div className="flex gap-3">
         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${style.bg} ${style.tone}`}>
           {actor?.avatar ? <img src={actor.avatar} alt="" className="h-10 w-10 rounded-2xl object-cover" /> : <Icon size={18} />}
@@ -204,16 +218,16 @@ function NotificationItem({ item, onRespond }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.bg} ${style.tone}`}>{style.label}</span>
-            <span className="text-[10px] text-white/35">{formatTime(item.createdAt)}</span>
+            <span className="text-[10px] text-text-faint">{formatTime(item.createdAt)}</span>
           </div>
-          <p className="mt-1 truncate text-sm font-medium">{item.title}</p>
-          <p className="line-clamp-2 text-xs leading-5 text-white/55">{item.body}</p>
+          <p className="mt-1 truncate text-sm font-medium text-text-primary">{item.title}</p>
+          <p className="line-clamp-2 text-xs leading-5 text-text-muted">{item.body}</p>
         </div>
       </div>
       {item.request && (
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <button onClick={() => onRespond(item.request._id, 'rejected')} className="btn-secondary rounded-[14px] py-2 text-sm" aria-label="Reject"><X className="mx-auto" size={18} /></button>
-          <button onClick={() => onRespond(item.request._id, 'accepted')} className="btn-primary rounded-[14px] py-2 text-sm font-semibold" aria-label="Accept"><Check className="mx-auto" size={18} /></button>
+          <button onClick={() => onRespond(item.request._id, 'rejected')} className="btn-secondary rounded-[14px] py-2.5 text-sm min-h-[44px]" aria-label="Reject"><X className="mx-auto" size={18} /></button>
+          <button onClick={() => onRespond(item.request._id, 'accepted')} className="btn-primary rounded-[14px] py-2.5 text-sm font-semibold min-h-[44px]" aria-label="Accept"><Check className="mx-auto" size={18} /></button>
         </div>
       )}
     </article>

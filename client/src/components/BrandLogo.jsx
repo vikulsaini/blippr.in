@@ -1,9 +1,7 @@
-import { MessageCircle } from 'lucide-react';
-
 export default function BrandLogo({ compact = false, compactTitle = false, className = '' }) {
   return (
-    <div className={`flex items-center ${compact ? 'gap-2' : 'gap-2.5'} ${className}`}>
-      <span className={`relative grid place-items-center rounded-2xl bg-white border border-slate-200 shadow-sm ${compact || compactTitle ? 'h-9 w-9 p-1' : 'h-11 w-11 p-1.5'}`}>
+    <div className={`flex items-center ${compact ? 'gap-2' : 'gap-2.5'} ${className} group`}>
+      <span className={`relative grid place-items-center rounded-2xl bg-white border border-border-default shadow-card transition-all duration-200 group-hover:shadow-glow group-hover:scale-[1.03] ${compact || compactTitle ? 'h-9 w-9 p-1' : 'h-11 w-11 p-1.5'}`}>
         <svg viewBox="0 0 100 100" className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Arch/Roof */}
           <path d="M 32 36 A 22 22 0 0 1 68 36" stroke="url(#logo-grad)" strokeWidth="7.5" strokeLinecap="round" />
@@ -38,8 +36,8 @@ export default function BrandLogo({ compact = false, compactTitle = false, class
       </span>
       {!compact && (
         <span className="leading-none">
-          <span className={`block font-bold tracking-tight text-text-primary ${compactTitle ? 'text-[1.1rem]' : 'text-[1.5rem]'}`}>
-            blippr<span className="text-accent">.in</span>
+          <span className={`block font-heading font-bold tracking-tight text-text-primary ${compactTitle ? 'text-[1.1rem]' : 'text-[1.5rem]'}`}>
+            blippr<span className="gradient-text">.in</span>
           </span>
           <span className={`mt-0.5 block font-semibold uppercase text-text-muted ${compactTitle ? 'text-[8px] tracking-[0.12em]' : 'text-[10px] tracking-[0.18em]'}`}>
             digital cafe

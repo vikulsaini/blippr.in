@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Shuffle, Search, UserRound } from 'lucide-react';
 import BrandLogo from './BrandLogo.jsx';
 import GuestLimitBanner from './GuestLimitBanner.jsx';
@@ -7,6 +8,7 @@ import GuestUpgradeModal from './GuestUpgradeModal.jsx';
 import GlobalIncomingCall from './GlobalIncomingCall.jsx';
 import NotificationBell from './NotificationBell.jsx';
 import SocketStateBanner from './SocketStateBanner.jsx';
+import ToastProvider from './Toast.jsx';
 import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
 
 const tabs = [
@@ -29,6 +31,7 @@ export default function Shell() {
   const navHidden = bottomNavHidden || keyboardOpen || isRandom;
   const showMainHeader = isChats && !isConversation && !bottomNavHidden;
   const touchStartRef = useRef(null);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     refreshPushSubscriptionIfAllowed().catch(() => {});
@@ -65,6 +68,13 @@ export default function Shell() {
       viewport.removeEventListener('scroll', updateKeyboardState);
     };
   }, []);
+
+  /* Scroll to top on route change */
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo?.({ top: 0, behavior: 'smooth' });
+    }
+  }, [location.pathname]);
 
   function activeTabIndex() {
     const index = tabs.findIndex((tab) => tab.to === location.pathname);
@@ -117,19 +127,32 @@ export default function Shell() {
           </header>
         )}
         <section
+          ref={contentRef}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className={`flex min-h-0 flex-1 flex-col ${navHidden || isChats || isRandom ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain pb-24 md:pb-0'} ${isChats ? '-mx-3 md:mx-0' : ''}`}
+          className={`flex min-h-0 flex-1 flex-col ${navHidden || isChats || isRandom ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain scrollbar-thin pb-24 md:pb-0'} ${isChats ? '-mx-3 md:mx-0' : ''}`}
         >
           {!bottomNavHidden && !isRandom && <SocketStateBanner />}
           {!bottomNavHidden && !isRandom && <GuestLimitBanner />}
           <div className={isChats || isRandom ? 'min-h-0 flex-1' : 'mx-auto w-full max-w-6xl'}>
-            <Outlet context={{ setBottomNavHidden }} />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+                className={isChats || isRandom ? 'min-h-0 h-full' : ''}
+              >
+                <Outlet context={{ setBottomNavHidden }} />
+              </motion.div>
+            </AnimatePresence>
           </div>
         </section>
       </div>
       {!isChats && <GlobalIncomingCall />}
       <GuestUpgradeModal />
+      <ToastProvider />
       {!navHidden && (
         <nav className="safe-bottom premium-nav fixed inset-x-3 bottom-2 z-20 mx-auto max-w-[22rem] rounded-3xl px-2 pt-1 backdrop-blur-sm md:hidden">
           <div className="grid grid-cols-4">
@@ -146,7 +169,13 @@ export default function Shell() {
               >
                 {({ isActive }) => (
                   <>
-                    <span className={`absolute top-0.5 h-0.5 w-5 rounded-full transition-all duration-300 ${isActive ? 'bg-accent opacity-100' : 'bg-transparent opacity-0'}`} />
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-pill"
+                        className="absolute top-0.5 h-0.5 w-5 rounded-full bg-accent"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
                     <span className={`grid h-7 w-7 place-items-center rounded-xl transition-all duration-200 ${isActive ? 'bg-accent text-white shadow-accent-sm' : 'bg-transparent'}`}>
                       <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
                     </span>
@@ -176,10 +205,18 @@ function DesktopNav({ locationPath, socketState, clock }) {
               end={to === '/app'}
               title={label}
               aria-label={label}
-              className={`group flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.96] ${
+              className={`group relative flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.96] ${
                 active ? 'bg-accent-tint text-accent' : 'text-text-faint hover:bg-surface-hover hover:text-text-secondary'
               }`}
             >
+              {active && (
+                <motion.span
+                  layoutId="desktop-nav-pill"
+                  className="absolute inset-0 rounded-2xl bg-accent-tint"
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  style={{ zIndex: -1 }}
+                />
+              )}
               <span className={`grid h-9 w-9 place-items-center rounded-2xl transition-all duration-200 ${active ? 'bg-accent text-white shadow-accent-sm' : 'bg-transparent'}`}>
                 <Icon size={20} />
               </span>

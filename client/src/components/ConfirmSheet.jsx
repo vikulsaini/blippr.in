@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
 export default function ConfirmSheet({
@@ -11,39 +11,50 @@ export default function ConfirmSheet({
   onConfirm,
   onCancel
 }) {
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[70] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-      <button className="fixed inset-0 cursor-default bg-black/40 backdrop-blur-[2px]" onClick={onCancel} aria-label="Close dialog" />
-      <motion.div
-        initial={{ y: 28, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="surface relative mx-auto max-w-md rounded-t-[26px] p-4 shadow-glow"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-base font-semibold">{title}</h3>
-            {description && <p className="mt-1 text-sm leading-6 text-white/55">{description}</p>}
-          </div>
-          <button onClick={onCancel} className="btn-icon h-8 w-8 shrink-0" aria-label="Close">
-            <X size={15} />
-          </button>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <button type="button" onClick={onCancel} className="btn-secondary rounded-2xl py-3 text-sm font-semibold">
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={`rounded-2xl py-3 text-sm font-semibold ${tone === 'danger' ? 'bg-coral text-ink' : 'btn-primary'}`}
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-x-0 bottom-0 z-[70] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 cursor-default bg-black/30 backdrop-blur-[2px]"
+            onClick={onCancel}
+            aria-label="Close dialog"
+          />
+          <motion.div
+            initial={{ y: 28, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 28, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="relative mx-auto max-w-md rounded-t-[26px] bg-surface border border-border-default p-5 shadow-elevated"
           >
-            {confirmLabel}
-          </button>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-text-primary">{title}</h3>
+                {description && <p className="mt-1.5 text-sm leading-6 text-text-muted">{description}</p>}
+              </div>
+              <button onClick={onCancel} className="btn-icon h-9 w-9 shrink-0" aria-label="Close">
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button type="button" onClick={onCancel} className="btn-secondary rounded-2xl py-3 text-sm font-semibold min-h-[44px]">
+                {cancelLabel}
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                className={`rounded-2xl py-3 text-sm font-semibold min-h-[44px] ${tone === 'danger' ? 'bg-danger text-white hover:bg-red-600 active:scale-[0.96] transition cursor-pointer' : 'btn-primary'}`}
+              >
+                {confirmLabel}
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }

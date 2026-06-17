@@ -1,9 +1,31 @@
-import { useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X } from 'lucide-react';
 import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
 import { haptics } from '../lib/haptics.js';
 import { presenceText } from '../lib/presence.js';
+
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.04
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      stiffness: 350,
+      damping: 28
+    }
+  }
+};
 
 export default function ChatList({
   chats,
@@ -76,33 +98,44 @@ export default function ChatList({
         )}
       </div>
 
-      <div data-chat-feed className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3">
+      <div data-chat-feed className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin">
+        {/* Mobile Pull-to-Refresh Gesture Hint */}
+        <div className="flex justify-center py-2 text-[10px] font-semibold text-text-faint md:hidden opacity-70">
+          <span>↓ Pull down to refresh feeds</span>
+        </div>
         {loading ? (
           <ChatSkeleton />
         ) : (
-          visibleChats.map((chat) => {
-            const other = getOtherMember(chat, currentUserId);
-            const displayName = getNickname(chat, currentUserId, other);
-            return (
-              <SwipeChatRow
-                key={chat._id}
-                chat={chat}
-                selected={selectedChats.has(chat._id)}
-                currentUserId={currentUserId}
-                typing={typingChatId === chat._id}
-                displayName={displayName}
-                other={other}
-                onOpen={() => onOpenChat(chat)}
-                onProfile={() => other && onOpenProfile(other, chat)}
-                onSelect={() => {
-                  haptics.select();
-                  onToggleSelect(chat._id);
-                }}
-                onPreference={onPreference}
-                onSetChatPreference={onSetChatPreference}
-              />
-            );
-          })
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="space-y-1"
+          >
+            {visibleChats.map((chat) => {
+              const other = getOtherMember(chat, currentUserId);
+              const displayName = getNickname(chat, currentUserId, other);
+              return (
+                <SwipeChatRow
+                  key={chat._id}
+                  chat={chat}
+                  selected={selectedChats.has(chat._id)}
+                  currentUserId={currentUserId}
+                  typing={typingChatId === chat._id}
+                  displayName={displayName}
+                  other={other}
+                  onOpen={() => onOpenChat(chat)}
+                  onProfile={() => other && onOpenProfile(other, chat)}
+                  onSelect={() => {
+                    haptics.select();
+                    onToggleSelect(chat._id);
+                  }}
+                  onPreference={onPreference}
+                  onSetChatPreference={onSetChatPreference}
+                />
+              );
+            })}
+          </motion.div>
         )}
         {!loading && !chats.length && (
           <div className="space-y-4">
@@ -188,7 +221,11 @@ function ToolbarButton({ icon: Icon, label, onClick, danger = false }) {
 }
 
 function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, other, onOpen, onProfile, onSelect, onSetChatPreference }) {
-  const xRef = useRef(0);
+  const x = useMotionValue(0);
+  const archiveOpacity = useTransform(x, [0, 80], [0.4, 1]);
+  const archiveScale = useTransform(x, [0, 80], [0.9, 1.05]);
+  const muteOpacity = useTransform(x, [-80, 0], [1, 0.4]);
+  const muteScale = useTransform(x, [-80, 0], [1.05, 0.9]);
 
   function handleSwipeEnd(_, info) {
     if (info.offset.x > 86) {
@@ -201,20 +238,29 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
   }
 
   return (
-    <div className="relative mb-1.5 overflow-hidden rounded-2xl bg-bg">
-      <div className="absolute inset-y-0 left-0 flex items-center gap-2 pl-3 text-xs font-semibold text-accent">
+    <motion.div
+      variants={itemVariants}
+      className="relative mb-1.5 overflow-hidden rounded-2xl bg-bg"
+    >
+      <motion.div
+        style={{ opacity: archiveOpacity, scale: archiveScale }}
+        className="absolute inset-y-0 left-0 flex items-center gap-2 pl-4 text-xs font-semibold text-accent"
+      >
         <Archive size={17} />
         Archive
-      </div>
-      <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-3 text-xs font-semibold text-danger">
+      </motion.div>
+      <motion.div
+        style={{ opacity: muteOpacity, scale: muteScale }}
+        className="absolute inset-y-0 right-0 flex items-center gap-2 pr-4 text-xs font-semibold text-danger"
+      >
         <BellOff size={17} />
         Mute
-      </div>
+      </motion.div>
       <motion.article
         drag="x"
+        style={{ x }}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.18}
-        onDrag={(_, info) => { xRef.current = info.offset.x; }}
         onDragEnd={handleSwipeEnd}
         onContextMenu={(event) => {
           event.preventDefault();
@@ -232,7 +278,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
           aria-label={`View ${displayName || 'friend'} profile`}
         >
           {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full border border-border-default object-cover shadow-card" /> : <div className="h-10 w-10 rounded-full border border-border-default bg-bg" />}
-          {other?.isOnline && <span className="live-dot absolute ml-7 mt-7 h-2.5 w-2.5 rounded-full bg-success text-success" />}
+          {other?.isOnline && <span className="absolute bottom-0 right-0 status-dot online" />}
         </button>
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center justify-between gap-3">
@@ -242,7 +288,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
               {chat.pinned && <Pin size={12} className="text-accent" />}
               {chat.starred && <Star size={12} className="fill-gold text-gold" />}
               {chat.muted && <BellOff size={12} className="text-text-faint" />}
-              <span className={`h-2 w-2 rounded-full ${other?.isOnline ? 'bg-success shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-border-default'}`} />
+              <span className={`status-dot ${other?.isOnline ? 'online' : 'offline'}`} />
             </span>
           </div>
           <div className="mt-1 flex items-center justify-between gap-3">
@@ -250,14 +296,14 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
               {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
             </p>
             {chat.unreadCount > 0 && (
-              <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">
+              <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white badge-pulse">
                 {chat.unreadCount}
               </span>
             )}
           </div>
         </ChatRowButton>
       </motion.article>
-    </div>
+    </motion.div>
   );
 }
 

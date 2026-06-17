@@ -454,8 +454,8 @@ export default function Stranger() {
   }, [session, viewMode, callState]);
 
   const shellClass = focused
-    ? 'fixed inset-0 z-[90] h-[100dvh] w-screen overflow-hidden bg-ink p-1 sm:p-1.5'
-    : 'mx-auto h-full min-h-0 w-full max-w-[1280px] overflow-hidden pb-[env(safe-area-inset-bottom)]';
+    ? 'fixed inset-0 z-[90] h-[100dvh] w-screen overflow-hidden bg-bg p-1 sm:p-1.5'
+    : 'mx-auto h-full min-h-0 w-full max-w-[1280px] overflow-hidden pb-[env(safe-area-inset-bottom)] px-2';
 
   return (
     <div className={shellClass}>
@@ -464,7 +464,7 @@ export default function Stranger() {
           onPointerMove={revealVideoChrome}
           onPointerDown={revealVideoChrome}
           onTouchStart={revealVideoChrome}
-          className={`${focused ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[14px] border border-white/5 bg-ink shadow-nm-flat sm:rounded-[16px]' : 'depth-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5'}`}
+          className={`${focused ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[14px] border border-border-default bg-bg shadow-card sm:rounded-[16px]' : 'surface-card flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5 bg-surface shadow-card'}`}
         >
           <div className="relative min-h-0 flex-1">
             <MainVideoStage
@@ -498,34 +498,37 @@ export default function Stranger() {
       )}
 
       {showChat && (
-        <aside className="depth-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px]">
-          <div className="space-y-2 border-b border-white/5 p-2 lg:p-3">
+        <aside className="surface-card flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px] bg-surface shadow-card">
+          <div className="space-y-2 border-b border-border-default p-2 lg:p-3">
             <div className="flex items-center justify-between gap-3">
               {peer ? (
                 <div className="flex min-w-0 items-center gap-3">
                   <button onClick={() => setProfileUser(peer)} className="relative shrink-0">
-                    <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl" />
-                    <span className="live-dot absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-mint text-mint" />
+                    <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl border border-border-default" />
+                    <span className="absolute bottom-0 right-0 status-dot online" />
                   </button>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">{peer.name}</p>
-                    <p className="truncate text-xs text-white/48">{peer.gender} - {peer.age}</p>
+                    <p className="truncate font-semibold text-text-primary">{peer.name}</p>
+                    <p className="truncate text-xs text-text-muted">{peer.gender} · {peer.age}</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[15px] bg-ink shadow-nm-inset-sm text-rose sm:h-11 sm:w-11 sm:rounded-2xl"><MessageCircle size={19} /></span>
+                  <span className="tone-ring grid h-10 w-10 shrink-0 place-items-center rounded-[15px] bg-accent-light text-accent sm:h-11 sm:w-11 sm:rounded-2xl"><MessageCircle size={19} /></span>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">Random chat</p>
-                    <p className="truncate text-xs text-white/42">{status}</p>
+                    <p className="truncate font-semibold text-text-primary">Random chat</p>
+                    <p className="truncate text-xs text-text-muted">{status}</p>
                   </div>
                 </div>
               )}
-              <ModeTabs value={viewMode} onChange={switchMode} compact />
+              <div className="flex items-center gap-2">
+                {session && <ConnectionQualityIndicator state={callState} />}
+                <ModeTabs value={viewMode} onChange={switchMode} compact />
+              </div>
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5 sm:p-3">
+          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-2.5 sm:p-3 bg-bg">
             {!session && (
               <EmptyRandom finding={finding} queueText={queueText} onStart={() => requestFindStranger(false)} />
             )}
@@ -533,7 +536,7 @@ export default function Stranger() {
               const mine = (message.sender?._id || message.sender) !== peer?._id;
               return (
                 <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${mine ? 'border border-cyan-100/10 bg-gradient-to-r from-mint to-cyan-500 text-ink shadow-[3px_3px_10px_rgba(0,0,0,0.3)]' : 'border border-white/5 bg-ink text-slate-100 shadow-nm-flat-sm'} ${message.pending ? 'opacity-70' : ''}`}>
+                <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-[#0EA5E9] text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} ${message.pending ? 'opacity-70' : ''}`}>
                   {message.text}
                 </div>
                 </div>
@@ -543,7 +546,7 @@ export default function Stranger() {
           </div>
 
           {session ? (
-            <div className="grid grid-cols-2 gap-1.5 border-t border-white/5 p-2 lg:gap-2 lg:p-3">
+            <div className="grid grid-cols-2 gap-1.5 border-t border-border-default p-2 lg:gap-2 lg:p-3 bg-surface">
               <button
                 type="button"
                 onClick={handleRandomAction}
@@ -556,7 +559,7 @@ export default function Stranger() {
                 type="button"
                 onClick={sendFriendRequest}
                 disabled={!peer || friendSent || !friendUnlocked}
-                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent || friendUnlocked ? 'bg-mint text-ink' : 'btn-primary'}`}
+                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent || friendUnlocked ? 'btn-primary' : 'btn-primary'}`}
                 title={friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request'}
               >
                 {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
@@ -564,11 +567,11 @@ export default function Stranger() {
               </button>
             </div>
           ) : (
-            <div className="border-t border-white/5 p-2 lg:p-3">
+            <div className="border-t border-border-default p-2 lg:p-3 bg-surface">
               <button
                 type="button"
                 onClick={handleRandomAction}
-                className="btn-primary flex w-full min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-[0_8px_24px_rgba(0,201,177,0.2)]"
+                className="btn-primary flex w-full min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-accent-sm"
               >
                 {finding ? (
                   <>
@@ -586,17 +589,17 @@ export default function Stranger() {
           )}
 
           {peer && (
-            <button type="button" onClick={reportPeer} className="mx-2 mb-2 rounded-2xl border border-rose/15 bg-rose/10 py-2 text-xs font-semibold text-rose">
+            <button type="button" onClick={reportPeer} className="mx-2 mb-2 rounded-2xl border border-danger/20 bg-danger/10 py-2 text-xs font-semibold text-danger">
               Report unsafe behavior
             </button>
           )}
 
           {session && (
-            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 border-t border-white/5 p-2 lg:gap-2 lg:p-3">
+            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 border-t border-border-default p-2 lg:gap-2 lg:p-3 bg-surface">
               <input
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                className="min-w-0 flex-1 rounded-[15px] border border-white/5 bg-ink px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 shadow-nm-inset-sm text-slate-800 dark:text-slate-100"
+                className="min-w-0 flex-1 rounded-[15px] border border-border-default bg-bg px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 text-text-primary placeholder:text-text-faint font-medium"
                 placeholder="Say something..."
               />
               <button disabled={!text.trim()} className="btn-primary grid h-11 w-11 place-items-center rounded-[15px] disabled:opacity-40 sm:h-12 sm:w-12 sm:rounded-2xl" aria-label="Send">
@@ -760,45 +763,62 @@ function CircleControl({ icon: Icon, label, onClick, disabled, primary, danger }
   );
 }
 
+function ConnectionQualityIndicator({ state }) {
+  if (state !== 'connected' && state !== 'connecting') return null;
+  const bars = state === 'connected' ? 3 : 1;
+  return (
+    <div className="flex items-center gap-1 py-0.5 px-2 bg-surface-hover rounded-xl border border-border-default" title="WebRTC Connection Quality">
+      <div className="flex items-end gap-0.5 h-3">
+        <div className={`w-0.5 rounded-t-sm h-1.5 ${bars >= 1 ? 'bg-success' : 'bg-border-default'}`} />
+        <div className={`w-0.5 rounded-t-sm h-2.5 ${bars >= 2 ? 'bg-success' : 'bg-border-default'}`} />
+        <div className={`w-0.5 rounded-t-sm h-3.5 ${bars >= 3 ? 'bg-success' : 'bg-border-default'}`} />
+      </div>
+    </div>
+  );
+}
+
 function EmptyRandom({ finding, queueText }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid h-full min-h-0 place-items-center text-center py-12 px-4">
-      <div className="surface rounded-[24px] border border-slate-300 dark:border-slate-800 p-6 max-w-sm shadow-nm-flat bg-white dark:bg-[#1A2230] border-slate-200 dark:border-slate-700/60">
+      <div className="surface-card rounded-[24px] p-6 max-w-sm bg-surface border border-border-default shadow-card text-center flex flex-col items-center">
         {finding ? (
           <div className="flex flex-col items-center">
-            {/* Elegant morphing wave SVG */}
-            <svg viewBox="0 0 120 28" className="h-10 w-28 text-accent mb-4" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M10 14 Q 30 4, 50 14 T 90 14 T 110 14"
-                stroke="currentColor"
-                strokeWidth="4"
-                strokeLinecap="round"
+            {/* Elegant Radar Ripple Animation */}
+            <div className="relative flex items-center justify-center h-28 w-28 mb-4">
+              <motion.div
+                className="absolute inset-0 rounded-full bg-accent/10 border border-accent/20"
+                animate={{ scale: [1, 2.2], opacity: [0.6, 0] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeOut' }}
+              />
+              <motion.div
+                className="absolute inset-0 rounded-full bg-accent/20"
+                animate={{ scale: [1, 1.6], opacity: [0.8, 0] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeOut', delay: 0.6 }}
+              />
+              <motion.span
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}
+                className="tone-ring relative grid h-16 w-16 place-items-center rounded-full bg-accent text-white shadow-glow"
               >
-                <animate
-                  attributeName="d"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                  values="
-                    M10 14 Q 30 4, 50 14 T 90 14 T 110 14;
-                    M10 14 Q 30 24, 50 14 T 90 14 T 110 14;
-                    M10 14 Q 30 4, 50 14 T 90 14 T 110 14
-                  "
-                />
-              </path>
-            </svg>
-            <p className="text-base font-semibold text-slate-800 dark:text-slate-200 min-h-[1.75rem] transition-all duration-300">
+                <Shuffle size={26} />
+              </motion.span>
+            </div>
+            <p className="text-base font-semibold text-text-primary min-h-[1.75rem] transition-all duration-300">
               {queueText}
             </p>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            <p className="mt-2 text-xs text-text-muted leading-relaxed">
               Tip: Stay in the chat for 3+ minutes to unlock the friend request option.
             </p>
           </div>
         ) : (
           <>
-            <p className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+            <span className="tone-ring grid h-16 w-16 place-items-center rounded-full bg-accent-light text-accent mb-4">
+              <Shuffle size={26} />
+            </span>
+            <p className="text-lg font-semibold text-text-primary">
               Ready to start matching?
             </p>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            <p className="mt-2 text-xs text-text-muted leading-relaxed">
               Tap the Start button in the bottom action bar to begin finding a random connection.
             </p>
           </>
@@ -812,12 +832,12 @@ function SafetyModal({ open, onClose, onAgree }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur">
-      <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="depth-panel w-full max-w-sm rounded-[24px] p-4">
-        <span className="tone-ring grid h-12 w-12 place-items-center rounded-2xl bg-mint/10 text-mint">
+      <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="surface-card w-full max-w-sm bg-surface p-5 shadow-elevated border border-border-default">
+        <span className="tone-ring grid h-12 w-12 place-items-center rounded-2xl bg-accent-light text-accent">
           <ShieldCheck size={23} />
         </span>
-        <h3 className="mt-4 text-lg font-semibold">Before you start</h3>
-        <div className="mt-3 space-y-2 text-sm leading-6 text-white/58">
+        <h3 className="mt-4 text-lg font-semibold text-text-primary">Before you start</h3>
+        <div className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
           <p>Keep random chat respectful. Adult, abusive, hateful, exploitative, or unsafe content is not allowed.</p>
           <p>Messages can be blocked by safety filters. Reports may restrict or ban accounts.</p>
         </div>
