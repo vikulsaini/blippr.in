@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'varta_sound_preferences';
+const STORAGE_KEY = 'blippr_sound_preferences';
 
 export const soundPack = [
   { id: 'pulse', name: 'Pulse', kind: 'tone' },
@@ -25,7 +25,7 @@ export function loadSoundPrefs() {
 export function saveSoundPrefs(nextPrefs) {
   const prefs = { ...loadSoundPrefs(), ...nextPrefs };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-  window.dispatchEvent(new CustomEvent('varta:sound-prefs', { detail: prefs }));
+  window.dispatchEvent(new CustomEvent('blippr:sound-prefs', { detail: prefs }));
   return prefs;
 }
 

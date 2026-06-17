@@ -68,7 +68,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
       message,
       action: () => {
         if (!window.isSecureContext && location.hostname !== 'localhost') {
-          setUploadError('Open Varta on HTTPS to allow mobile photos, media and files.');
+          setUploadError('Open Blippr on HTTPS to allow mobile photos, media and files.');
           return;
         }
         setFileAccept(accept);
@@ -237,7 +237,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
 
   return (
     <div data-no-tab-swipe className="flex h-full min-h-0 flex-col overflow-hidden bg-ink" style={viewportHeight ? { height: `${viewportHeight}px` } : undefined}>
-      <header className="shrink-0 border-b border-white/8 bg-slate-950/45 px-3 py-2.5 shadow-[0_12px_34px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+      <header className="shrink-0 border-b border-white/5 bg-ink px-3 py-2.5 shadow-nm-flat z-10">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
@@ -259,7 +259,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </div>
         </div>
         {searchOpen && (
-          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-white/8 bg-black/24 px-3 shadow-[inset_0_2px_8px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-white/5 bg-ink px-3 shadow-nm-inset-sm">
             <Search size={16} className="text-slate-400" />
             <input value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" placeholder="Search in conversation" />
             {messageSearch && <button onClick={() => setMessageSearch('')} type="button" className="rounded-full bg-white/10 p-1" aria-label="Clear search"><X size={13} /></button>}
@@ -284,7 +284,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         />
       </section>
 
-      <form onSubmit={onSend} className="shrink-0 border-t border-white/8 bg-slate-950/50 px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 backdrop-blur-xl">
+      <form onSubmit={onSend} className="shrink-0 border-t border-white/5 bg-ink px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-nm-flat z-10">
         {replyTo && (
           <div className="mb-2 flex items-center gap-2 rounded-xl border border-mint/20 bg-mint/10 px-3 py-2 text-sm">
             <Reply size={15} className="text-mint" />
@@ -303,7 +303,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.96 }}
-            className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-white/8 bg-panel p-2 shadow-glow"
+            className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-white/5 bg-ink p-2 shadow-nm-flat"
           >
             {composerEmojis.map((emoji, index) => (
               <motion.button
@@ -325,7 +325,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           <motion.div
             initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="mb-2 rounded-[22px] border border-white/8 bg-panel p-3 shadow-glow"
+            className="mb-2 rounded-[22px] border border-white/5 bg-ink p-3 shadow-nm-flat"
           >
             <p className="mb-2 px-1 text-xs font-semibold text-white/45">Share with this friend</p>
             <div className="grid grid-cols-4 gap-2">
@@ -334,13 +334,13 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
               <AttachButton icon={Camera} label="Camera" onClick={() => openPicker({ accept: 'image/*,video/*', capture: 'environment', title: 'Open camera?', message: 'We need camera access so you can take a photo or video to share.' })} />
               <AttachButton icon={MapPin} label="Location" onClick={shareCurrentLocation} />
             </div>
-            <button type="button" onClick={shareLiveLocation} className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/6 px-3 py-2 text-xs font-semibold text-white/62">
+            <button type="button" onClick={shareLiveLocation} className="btn-secondary mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-2 text-xs font-semibold">
               <Navigation size={14} />
               Share live location
             </button>
           </motion.div>
         )}
-        <div className="flex items-end gap-2 rounded-[20px] border border-white/8 bg-black/24 p-1.5 shadow-[inset_0_2px_10px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="flex items-end gap-2 rounded-[20px] border border-white/5 bg-ink p-1.5 shadow-nm-inset-sm">
           <input
             ref={fileInputRef}
             type="file"
@@ -417,8 +417,8 @@ function PermissionPrompt({ title, message, onCancel, onContinue }) {
 
 function AttachButton({ icon: Icon, label, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="grid min-h-20 place-items-center rounded-2xl border border-white/8 bg-white/6 px-2 py-3 text-[11px] font-semibold text-white/68">
-      <span className="grid h-9 w-9 place-items-center rounded-2xl bg-white/8 text-mint">
+    <button type="button" onClick={onClick} className="grid min-h-20 place-items-center rounded-2xl border border-white/5 bg-ink px-2 py-3 text-[11px] font-semibold text-white/68 shadow-nm-flat-sm hover:translate-y-[-1px] transition">
+      <span className="grid h-9 w-9 place-items-center rounded-2xl bg-ink shadow-nm-inset-sm text-mint">
         <Icon size={17} />
       </span>
       {label}

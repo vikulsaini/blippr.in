@@ -156,7 +156,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         onPointerUp={stopPress}
         onPointerCancel={stopPress}
         onPointerLeave={stopPress}
-        className={`max-w-[78%] touch-pan-y rounded-[20px] border px-3 py-2 text-sm shadow-[0_10px_26px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur ${mine ? 'rounded-br-md border-cyan-100/12 bg-[linear-gradient(135deg,#06b6d4,#14b8a6)] text-[#031014]' : 'rounded-bl-md border-white/8 bg-white/[0.055] text-slate-100'}`}
+        className={`max-w-[78%] touch-pan-y rounded-[20px] px-3 py-2 text-sm ${mine ? 'rounded-br-md border border-cyan-100/10 bg-gradient-to-r from-mint to-cyan-500 text-ink shadow-[3px_3px_10px_rgba(0,0,0,0.3)]' : 'rounded-bl-md border border-white/5 bg-ink text-slate-100 shadow-nm-flat-sm'}`}
       >
         {message.replyTo && (
           <div className={`mb-1.5 rounded-xl border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-ink/30 bg-ink/10 text-ink/70' : 'border-mint/50 bg-white/8 text-slate-300'}`}>
@@ -275,7 +275,7 @@ function CallHistoryItem({ call, currentUserId }) {
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
-      <div className={`flex max-w-[82%] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-[0_8px_20px_rgba(0,0,0,0.16)] backdrop-blur ${isMissed ? 'border-coral/18 bg-coral/10 text-coral' : 'border-white/8 bg-white/[0.045] text-slate-300'}`}>
+      <div className={`flex max-w-[82%] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-nm-flat-sm ${isMissed ? 'border-coral/18 bg-coral/10 text-coral' : 'border-white/5 bg-ink text-slate-300'}`}>
         <Icon size={13} />
         <span>{direction} {call.type} call</span>
         <span className="text-slate-500">-</span>
@@ -288,7 +288,7 @@ function CallHistoryItem({ call, currentUserId }) {
 function TypingBubble() {
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-      <div className="flex items-center gap-1 rounded-[20px] rounded-bl-md border border-white/8 bg-white/[0.055] px-3 py-2 shadow-[0_10px_26px_rgba(0,0,0,0.18)] backdrop-blur">
+      <div className="flex items-center gap-1 rounded-[20px] rounded-bl-md border border-white/5 bg-ink px-3 py-2 shadow-nm-flat-sm">
         {[0, 1, 2].map((dot) => (
           <motion.span
             key={dot}
@@ -317,7 +317,7 @@ function EmptyState({ name }) {
 function DateDivider({ value }) {
   return (
     <div className="my-4 flex justify-center">
-      <span className="rounded-full border border-white/8 bg-white/[0.045] px-3 py-1 text-[11px] font-medium text-slate-400 backdrop-blur">{formatDate(value)}</span>
+      <span className="rounded-full border border-white/5 bg-ink px-3 py-1 text-[11px] font-medium text-slate-400 shadow-nm-inset-sm">{formatDate(value)}</span>
     </div>
   );
 }

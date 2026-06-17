@@ -59,8 +59,8 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
               <p className={`mt-1 text-sm ${user.isOnline ? 'text-mint' : 'text-white/45'}`}>{presenceText(user)}</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full bg-white/10 p-2" aria-label="Close profile">
-            <X size={18} />
+          <button onClick={onClose} className="btn-icon h-9 w-9 rounded-full" aria-label="Close profile">
+            <X size={16} />
           </button>
         </div>
 
@@ -71,13 +71,13 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
           <Info label="Email" value={user.email || 'Not shared'} />
         </div>
 
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/8 p-4">
+        <div className="mt-4 rounded-2xl border border-white/5 bg-ink p-4 shadow-nm-inset-sm">
           <p className="text-xs uppercase tracking-wide text-white/40">Bio</p>
           <p className="mt-2 text-sm text-white/72">{user.bio || 'No bio added yet.'}</p>
         </div>
 
         {chat && (
-          <div className="mt-4 space-y-3 rounded-3xl border border-white/10 bg-white/8 p-4">
+          <div className="mt-4 space-y-3 rounded-3xl border border-white/5 bg-ink p-4 shadow-nm-inset">
             <div>
               <p className="text-xs uppercase tracking-wide text-white/40">Chat update</p>
               <div className="mt-2 flex gap-2">
@@ -99,7 +99,7 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-ink/30 p-3">
+            <div className="rounded-2xl border border-white/5 bg-ink p-3 shadow-nm-flat-sm">
               <div className="flex items-center gap-2">
                 <Music size={16} className="text-mint" />
                 <p className="text-sm font-semibold">Friend ringtone</p>
@@ -148,7 +148,7 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
               />
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-ink/30 p-3">
+            <div className="rounded-2xl border border-white/5 bg-ink p-3 shadow-nm-flat-sm">
               <label className="text-xs text-white/45" htmlFor="report-reason">Report reason</label>
               <input
                 id="report-reason"
@@ -177,7 +177,7 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/8 p-3">
+    <div className="rounded-2xl border border-white/5 bg-ink p-3 shadow-nm-inset-sm">
       <p className="text-xs text-white/40">{label}</p>
       <p className="mt-1 truncate text-white/78">{value}</p>
     </div>

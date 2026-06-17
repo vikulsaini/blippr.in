@@ -5,7 +5,7 @@ import { getMessageSenderId, getOtherMember, normalizeId } from '../lib/chat.js'
 import { getRealtimeSocket } from '../lib/realtime.js';
 import { playMessageSound } from '../lib/sounds.js';
 
-const RETRY_KEY = 'varta_message_retry_queue';
+const RETRY_KEY = 'blippr_message_retry_queue';
 
 function readRetryQueue() {
   try {
@@ -172,11 +172,11 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       flushRetryQueue().catch(() => {});
     }
     window.addEventListener('online', retry);
-    window.addEventListener('varta:socket-state', retry);
+    window.addEventListener('blippr:socket-state', retry);
     retry();
     return () => {
       window.removeEventListener('online', retry);
-      window.removeEventListener('varta:socket-state', retry);
+      window.removeEventListener('blippr:socket-state', retry);
     };
   }, [currentUserId]);
 

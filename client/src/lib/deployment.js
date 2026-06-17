@@ -1,20 +1,20 @@
 import { API_URL } from './config.js';
-import { clearVartaCache } from './cache.js';
+import { clearBlipprCache } from './cache.js';
 
-const API_HOST_KEY = 'varta_active_api_host';
+const API_HOST_KEY = 'blippr_active_api_host';
 
 export async function repairStaleDeploymentCache() {
   const previousHost = localStorage.getItem(API_HOST_KEY);
   if (previousHost === API_URL) return;
 
   localStorage.setItem(API_HOST_KEY, API_URL);
-  clearVartaCache();
+  clearBlipprCache();
 
   if ('caches' in window) {
     const keys = await caches.keys();
     await Promise.all(
       keys
-        .filter((key) => /workbox|precache|varta/i.test(key))
+        .filter((key) => /workbox|precache|blippr/i.test(key))
         .map((key) => caches.delete(key))
     );
   }

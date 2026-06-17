@@ -16,7 +16,7 @@ export async function sendOtpSms(phone, otp) {
   const body = new URLSearchParams({
     To: phone,
     From: process.env.TWILIO_FROM_NUMBER,
-    Body: `Your Varta OTP is ${otp}. It expires in 5 minutes.`
+    Body: `Your Blippr OTP is ${otp}. It expires in 5 minutes.`
   });
 
   const response = await fetch(url, {

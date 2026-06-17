@@ -17,16 +17,16 @@ app.set('io', io);
 registerSockets(io);
 
 async function boot() {
-  console.log('Starting Varta API');
+  console.log('Starting Blippr API');
   console.log(`Environment check: MONGO_URI=${process.env.MONGO_URI ? 'set' : 'missing'}, REDIS_URL=${process.env.REDIS_URL ? 'set' : 'missing'}`);
   await connectMongo();
   await connectRedis();
   server.listen(port, () => {
-    console.log(`Varta API listening on ${port}`);
+    console.log(`Blippr API listening on ${port}`);
   });
 }
 
 boot().catch((error) => {
-  console.error('Failed to start Varta', error);
+  console.error('Failed to start Blippr', error);
   process.exit(1);
 });

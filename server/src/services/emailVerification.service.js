@@ -71,7 +71,15 @@ export async function issueEmailVerification(email) {
   }
 
   const delivery = await sendVerificationEmail(email, code);
-  console.log(`Email verification issued for ${email}${process.env.NODE_ENV === 'production' && delivery.sent ? '' : `: ${code}`}`);
+  const maskEmail = (str) => {
+    const parts = str.split('@');
+    if (parts.length < 2) return '***';
+    const name = parts[0];
+    const domain = parts[1];
+    const maskedName = name.length > 2 ? name[0] + '*'.repeat(name.length - 2) + name[name.length - 1] : '*'.repeat(name.length);
+    return `${maskedName}@${domain}`;
+  };
+  console.log(`Email verification issued for ${maskEmail(email)}${process.env.NODE_ENV === 'production' && delivery.sent ? '' : `: ${code}`}`);
   return { code, delivery };
 }
 

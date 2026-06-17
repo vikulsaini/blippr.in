@@ -13,8 +13,8 @@ export default function SocketStateBanner() {
       }
     }
 
-    window.addEventListener('varta:socket-state', handleState);
-    return () => window.removeEventListener('varta:socket-state', handleState);
+    window.addEventListener('blippr:socket-state', handleState);
+    return () => window.removeEventListener('blippr:socket-state', handleState);
   }, []);
 
   if (!state || state === 'connected') return null;

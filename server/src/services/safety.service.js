@@ -9,7 +9,7 @@ export function assertTextAllowed(text = '') {
   const value = String(text || '');
   if (!value.trim()) return;
   if (restrictedTextPatterns.some((pattern) => pattern.test(value))) {
-    const error = new Error('This message violates Varta safety rules');
+    const error = new Error('This message violates Blippr safety rules');
     error.status = 400;
     error.code = 'SAFETY_VIOLATION';
     throw error;

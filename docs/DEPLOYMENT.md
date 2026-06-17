@@ -17,7 +17,7 @@ Use `render.yaml` or create a Web Service with root `server`.
 Required variables:
 
 - `NODE_ENV=production`
-- `CLIENT_URL=https://your-varta.vercel.app`
+- `CLIENT_URL=https://your-blippr.vercel.app`
 - `MONGO_URI`
 - `REDIS_URL`
 - `JWT_SECRET`

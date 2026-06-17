@@ -54,7 +54,7 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
   req.app.get('io')?.to(`user:${req.body.userId}`).emit('friend:request:new', { request });
   const { notification } = await notifyUser(req.body.userId, {
     title: 'New friend request',
-    body: `${req.user.name} wants to connect on Varta`,
+    body: `${req.user.name} wants to connect on Blippr`,
     url: '/app/profile',
     type: 'friend-request',
     requestId: request._id,
@@ -86,7 +86,7 @@ export const respondFriendRequest = asyncHandler(async (req, res) => {
   }
   if (request.status === 'accepted' && chat) {
     const populatedChat = await Chat.findById(chat._id)
-      .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+      .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
       .populate('lastMessage');
     const io = req.app.get('io');
     const acceptedBy = {

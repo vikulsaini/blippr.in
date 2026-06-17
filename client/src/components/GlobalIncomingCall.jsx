@@ -43,8 +43,8 @@ export default function GlobalIncomingCall() {
       }
       startRingtone(from);
       showNativeNotification({
-        title: `${fromUser?.name || 'Varta friend'} is calling`,
-        body: `${callType === 'video' ? 'Video' : 'Audio'} call on Varta`,
+        title: `${fromUser?.name || 'Blippr friend'} is calling`,
+        body: `${callType === 'video' ? 'Video' : 'Audio'} call on Blippr`,
         extra: { type: 'call', userId: from }
       }).catch(() => {});
       setMinimized(false);
@@ -53,7 +53,7 @@ export default function GlobalIncomingCall() {
         direction: 'incoming',
         type: callType,
         callId,
-        peerUser: fromUser || { _id: from, name: 'Varta friend' },
+        peerUser: fromUser || { _id: from, name: 'Blippr friend' },
         offer,
         muted: false,
         cameraOff: false,

@@ -14,8 +14,8 @@ export function avatarForGender(gender, seed) {
   return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}&backgroundType=gradientLinear`;
 }
 
-export async function createUniqueUsername(name = 'varta') {
-  const base = slugify(name) || 'varta';
+export async function createUniqueUsername(name = 'blippr') {
+  const base = slugify(name) || 'blippr';
 
   for (let index = 0; index < 8; index += 1) {
     const suffix = nanoid(5).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -24,7 +24,7 @@ export async function createUniqueUsername(name = 'varta') {
     if (!exists) return username;
   }
 
-  return `varta_${nanoid(10).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+  return `blippr_${nanoid(10).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 }
 
 export async function guestIdentity(gender) {

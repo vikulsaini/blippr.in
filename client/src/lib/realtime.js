@@ -4,7 +4,7 @@ let socket;
 
 export function getRealtimeSocket() {
   if (!socket) socket = createSocket();
-  socket.auth = { token: localStorage.getItem('varta_token') };
+  socket.auth = { token: localStorage.getItem('blippr_token') };
   if (!socket.connected) socket.connect();
   return socket;
 }

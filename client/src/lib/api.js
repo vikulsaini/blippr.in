@@ -1,6 +1,6 @@
 import { API_URL } from './config.js';
 
-const GUEST_EXPIRED_KEY = 'varta_guest_expired';
+const GUEST_EXPIRED_KEY = 'blippr_guest_expired';
 
 function isAuthEndpoint(path) {
   return path.startsWith('/api/auth/');
@@ -12,14 +12,14 @@ function isGuestRecoveryEndpoint(path) {
 
 function handleUnauthorized(path) {
   if (isAuthEndpoint(path)) return;
-  localStorage.removeItem('varta_token');
+  localStorage.removeItem('blippr_token');
   sessionStorage.removeItem(GUEST_EXPIRED_KEY);
-  window.dispatchEvent(new CustomEvent('varta:auth-invalid'));
+  window.dispatchEvent(new CustomEvent('blippr:auth-invalid'));
 }
 
 function markGuestExpired() {
   sessionStorage.setItem(GUEST_EXPIRED_KEY, 'true');
-  window.dispatchEvent(new CustomEvent('varta:guest-expired'));
+  window.dispatchEvent(new CustomEvent('blippr:guest-expired'));
 }
 
 function isGuestExpired() {
@@ -27,11 +27,11 @@ function isGuestExpired() {
 }
 
 export function getToken() {
-  return localStorage.getItem('varta_token');
+  return localStorage.getItem('blippr_token');
 }
 
 export function setToken(token) {
-  localStorage.setItem('varta_token', token);
+  localStorage.setItem('blippr_token', token);
   sessionStorage.removeItem(GUEST_EXPIRED_KEY);
 }
 

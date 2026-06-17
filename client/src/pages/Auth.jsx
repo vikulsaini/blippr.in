@@ -147,9 +147,9 @@ export default function Auth() {
     setError('');
     setLoading(true);
     try {
-      const { token } = await api('/api/auth/otp/verify', {
+       const { token } = await api('/api/auth/otp/verify', {
         method: 'POST',
-        body: JSON.stringify({ phone, otp, ...profilePayload(), name: profile.name || 'Varta User' })
+        body: JSON.stringify({ phone, otp, ...profilePayload(), name: profile.name || 'Blippr User' })
       });
       finishAuth(token);
     } catch (err) {
@@ -160,19 +160,19 @@ export default function Auth() {
   }
 
   return (
-    <main className="app-shell mx-auto grid min-h-screen w-full max-w-6xl items-center gap-6 px-5 py-8 text-white lg:grid-cols-[1fr_minmax(26rem,30rem)]">
+    <main className="app-shell mx-auto grid min-h-screen w-full max-w-6xl items-center gap-6 px-5 py-8 text-text-primary lg:grid-cols-[1fr_minmax(26rem,30rem)]">
       <section className="hidden lg:block">
         <BrandLogo />
-        <h1 className="mt-6 max-w-xl text-6xl font-semibold leading-tight">Start real conversations without the clutter.</h1>
-        <p className="mt-5 max-w-lg text-lg leading-8 text-white/58">Varta brings friends, random live rooms, calls, and safety into one responsive chat app for phones and desktops.</p>
+        <h1 className="mt-6 max-w-xl text-6xl font-bold leading-tight tracking-tight text-text-primary">Start real conversations without the clutter.</h1>
+        <p className="mt-5 max-w-lg text-lg leading-8 text-text-secondary">Blippr brings friends, random live rooms, calls, and safety into one responsive chat app for phones and desktops.</p>
       </section>
-      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="accent-card rounded-[22px] p-5">
+      <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="elevated-card rounded-3xl p-6">
         <div className="lg:hidden">
           <BrandLogo />
-          <p className="mt-2 text-sm text-white/58">Meet people, become friends, and keep conversations close.</p>
+          <p className="mt-2 text-sm text-text-secondary">Meet people, become friends, and keep conversations close.</p>
         </div>
 
-        <div className="mt-6 grid grid-cols-4 gap-1 rounded-[16px] border border-white/8 bg-ink/35 p-1 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="mt-6 grid grid-cols-4 gap-1 rounded-2xl border border-border-default bg-bg p-1 text-sm">
           <ModeButton active={mode === 'login'} onClick={() => switchMode('login')} label="Login" />
           <ModeButton active={mode === 'signup'} onClick={() => switchMode('signup')} label="Signup" />
           <ModeButton active={mode === 'guest'} onClick={() => switchMode('guest')} label="Guest" />
@@ -180,14 +180,14 @@ export default function Auth() {
         </div>
 
         {mode === 'login' && (
-          <AuthForm title="Welcome back" icon={Mail} onSubmit={submitEmail} action="Login" loading={loading}>
+          <AuthForm title="Welcome Back" icon={Mail} onSubmit={submitEmail} action="Login" loading={loading}>
             <TextInput value={email} onChange={setEmail} placeholder="Email" type="email" />
             <TextInput value={password} onChange={setPassword} placeholder="Password" type="password" />
           </AuthForm>
         )}
 
         {mode === 'signup' && (
-          <AuthForm title="Create account" icon={UserRound} onSubmit={submitEmail} action="Create account" loading={loading}>
+          <AuthForm title="Create Account" icon={UserRound} onSubmit={submitEmail} action="Create Account" loading={loading}>
             <TextInput value={profile.name} onChange={(value) => setProfile((current) => ({ ...current, name: value }))} placeholder="Full name" />
             <TextInput value={profile.username} onChange={(value) => setProfile((current) => ({ ...current, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} placeholder="Username" prefix="@" />
             <TextInput value={email} onChange={setEmail} placeholder="Email" type="email" />
@@ -197,13 +197,13 @@ export default function Auth() {
         )}
 
         {mode === 'guest' && (
-          <AuthForm title="Guest setup" icon={UserRound} onSubmit={continueAsGuest} action="Continue as guest" loading={loading}>
+          <AuthForm title="Guest Setup" icon={UserRound} onSubmit={continueAsGuest} action="Continue as Guest" loading={loading}>
             <ProfileSetup profile={profile} setProfile={setProfile} compact />
           </AuthForm>
         )}
 
         {mode === 'phone' && (
-          <AuthForm title="Phone login" icon={Phone} onSubmit={otpSent ? verifyOtp : requestOtp} action={otpSent ? 'Verify OTP' : 'Send OTP'} loading={loading}>
+          <AuthForm title="Phone Login" icon={Phone} onSubmit={otpSent ? verifyOtp : requestOtp} action={otpSent ? 'Verify OTP' : 'Send OTP'} loading={loading}>
             {otpSent && <TextInput value={profile.username} onChange={(value) => setProfile((current) => ({ ...current, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} placeholder="Username for new account" prefix="@" />}
             <TextInput value={phone} onChange={setPhone} placeholder="+91 98765 43210" type="tel" />
             {otpSent && <TextInput value={otp} onChange={setOtp} placeholder="6-digit OTP" inputMode="numeric" />}
@@ -213,24 +213,24 @@ export default function Auth() {
                 <ProfileSetup profile={profile} setProfile={setProfile} compact />
               </>
             )}
-            {otpHint && <p className="rounded-[14px] border border-mint/25 bg-mint/10 px-3 py-2 text-xs text-mint">{otpHint}</p>}
+            {otpHint && <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent">{otpHint}</p>}
           </AuthForm>
         )}
 
         {mode === 'verifyEmail' && (
-          <AuthForm title="Verify email" icon={ShieldCheck} onSubmit={verifyEmail} action="Verify and continue" loading={loading}>
-            <p className="rounded-[16px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/62">
-              Enter the 6-digit code sent to <span className="font-semibold text-white">{pendingEmail || email}</span>.
+          <AuthForm title="Verify Email" icon={ShieldCheck} onSubmit={verifyEmail} action="Verify and Continue" loading={loading}>
+            <p className="rounded-2xl border border-border-default bg-bg px-4 py-3 text-sm text-text-secondary">
+              Enter the 6-digit code sent to <span className="font-semibold text-text-primary">{pendingEmail || email}</span>.
             </p>
             <TextInput value={emailCode} onChange={setEmailCode} placeholder="6-digit code" inputMode="numeric" />
-            {emailHint && <p className="rounded-[14px] border border-mint/25 bg-mint/10 px-3 py-2 text-xs text-mint">{emailHint}</p>}
-            <button type="button" onClick={resendEmailCode} disabled={loading} className="w-full rounded-[16px] border border-white/10 bg-white/5 py-3 text-sm font-semibold text-white/76 transition hover:bg-white/10 disabled:opacity-55">
-              Resend code
+            {emailHint && <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent">{emailHint}</p>}
+            <button type="button" onClick={resendEmailCode} disabled={loading} className="btn-secondary w-full rounded-2xl py-3 text-sm font-semibold disabled:opacity-55">
+              Resend Code
             </button>
           </AuthForm>
         )}
 
-        {error && <p className="mt-4 rounded-[16px] border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p>}
+        {error && <p className="mt-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">{error}</p>}
       </motion.section>
     </main>
   );
@@ -238,7 +238,7 @@ export default function Auth() {
 
 function ModeButton({ active, onClick, label }) {
   return (
-    <button type="button" onClick={onClick} className={`rounded-[12px] px-2 py-2 font-medium transition ${active ? 'btn-primary' : 'text-white/62'}`}>
+    <button type="button" onClick={onClick} className={`rounded-xl px-2 py-2 font-medium transition-all duration-200 active:scale-[0.96] ${active ? 'bg-accent text-white shadow-accent-sm' : 'text-text-muted hover:text-text-primary'}`}>
       {label}
     </button>
   );
@@ -248,11 +248,11 @@ function AuthForm({ title, icon: Icon, onSubmit, action, children, loading = fal
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4">
       <div className="flex items-center gap-3">
-        <span className="rounded-[14px] border border-mint/18 bg-mint/10 p-3 text-mint"><Icon size={20} /></span>
-        <h2 className="text-xl font-semibold">{title}</h2>
+        <span className="rounded-xl bg-accent/10 p-3 text-accent"><Icon size={20} /></span>
+        <h2 className="text-xl font-bold text-text-primary">{title}</h2>
       </div>
       {children}
-      <button disabled={loading} className="btn-primary w-full rounded-[16px] py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-55">
+      <button disabled={loading} className="btn-primary w-full rounded-2xl py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-55">
         {loading ? 'Please wait...' : action}
       </button>
     </form>
@@ -261,12 +261,12 @@ function AuthForm({ title, icon: Icon, onSubmit, action, children, loading = fal
 
 function TextInput({ value, onChange, placeholder, type = 'text', inputMode, prefix }) {
   return (
-    <div className="flex items-center rounded-[16px] border border-white/8 bg-ink/35 px-4 focus-within:border-mint/35 focus-within:bg-mint/5">
-      {prefix && <span className="text-white/35">{prefix}</span>}
+    <div className="flex items-center rounded-2xl border border-border-default bg-surface px-4 transition focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
+      {prefix && <span className="text-text-faint">{prefix}</span>}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-w-0 flex-1 bg-transparent py-3 outline-none"
+        className="min-w-0 flex-1 bg-transparent py-3 text-sm text-text-primary outline-none placeholder:text-text-faint"
         placeholder={placeholder}
         type={type}
         inputMode={inputMode}
@@ -281,16 +281,16 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
   }
 
   return (
-    <div className="space-y-3 rounded-[18px] border border-white/8 bg-ink/30 p-3">
+    <div className="space-y-3 rounded-2xl border border-border-default bg-bg p-3">
       <div className="grid grid-cols-2 gap-3">
         <TextInput value={profile.age} onChange={(value) => update('age', value)} placeholder="Age 18+" type="number" />
-        <div className="grid grid-cols-2 gap-1 rounded-[16px] border border-white/8 bg-white/5 p-1 text-sm">
+        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border-default bg-surface p-1 text-sm">
           {['female', 'male'].map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`rounded-[12px] px-2 py-2 font-medium capitalize transition ${profile.gender === value ? 'btn-primary' : 'text-white/62'}`}
+              className={`rounded-xl px-2 py-2 font-medium capitalize transition-all duration-200 active:scale-[0.96] ${profile.gender === value ? 'bg-accent text-white shadow-accent-sm' : 'text-text-muted'}`}
             >
               {value}
             </button>
@@ -304,7 +304,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
         </div>
       )}
       {!compact && <TextInput value={profile.hobbies} onChange={(value) => update('hobbies', value)} placeholder="Hobbies, comma separated" />}
-      {!compact && <textarea value={profile.bio} onChange={(event) => update('bio', event.target.value)} className="min-h-20 w-full resize-none rounded-[16px] border border-white/8 bg-white/5 px-4 py-3 outline-none" placeholder="Short bio" maxLength={160} />}
+      {!compact && <textarea value={profile.bio} onChange={(event) => update('bio', event.target.value)} className="min-h-20 w-full resize-none rounded-2xl border border-border-default bg-surface px-4 py-3 text-sm text-text-primary outline-none placeholder:text-text-faint focus:border-accent focus:ring-2 focus:ring-accent/20" placeholder="Short bio" maxLength={160} />}
       {compact && <TextInput value={profile.bio} onChange={(value) => update('bio', value)} placeholder="Short bio" />}
     </div>
   );

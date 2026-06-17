@@ -1,8 +1,8 @@
 {
-  "name": "varta",
+  "name": "blippr",
   "version": "1.0.0",
   "private": true,
-  "description": "Varta - mobile-first real-time chat PWA with stranger matching, friends, calls, and media.",
+  "description": "Blippr - mobile-first real-time chat PWA with stranger matching, friends, calls, and media.",
   "workspaces": [
     "client",
     "server"

@@ -157,11 +157,17 @@ export default function NotificationBell() {
               <NotificationItem key={item._id} item={item} onRespond={respond} />
             ))}
             {!loading && !feed.length && (
-              <div className="py-8 text-center">
-                <Bell className="mx-auto text-white/35" size={24} />
-                <p className="mt-2 text-sm text-white/45">No important notifications yet.</p>
-                <p className="mx-auto mt-1 max-w-64 text-xs leading-5 text-white/35">Messages and call rings stay in their own chat/call surfaces so this screen stays clean.</p>
-                <button onClick={loadFeed} className="btn-secondary mt-4 rounded-full px-4 py-2 text-xs font-semibold">Refresh</button>
+              <div className="py-20 flex-1 flex flex-col items-center justify-center text-center">
+                <div className="relative mb-4">
+                  <Bell className="text-mint animate-bounce" size={36} />
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-mint opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-mint"></span>
+                  </span>
+                </div>
+                <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-200">No important notifications yet.</p>
+                <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-slate-500">Messages and call rings stay in their own chat/call surfaces so this screen stays clean.</p>
+                <button onClick={loadFeed} className="border border-mint text-mint bg-transparent hover:bg-mint/8 mt-4 rounded-full px-4 py-2 text-xs font-semibold transition-colors">Refresh</button>
               </div>
             )}
           </div>

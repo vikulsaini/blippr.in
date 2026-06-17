@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { trackUserActivity } from '../services/activity.service.js';
 import { readAuthCookie } from '../utils/authCookie.js';
+import { redis } from '../config/redis.js';
 
 export async function requireAuth(req, _res, next) {
   try {
@@ -9,6 +10,17 @@ export async function requireAuth(req, _res, next) {
     const token = header.startsWith('Bearer ') ? header.slice(7) : readAuthCookie(req);
     if (!token) {
       const error = new Error('Authentication required');
+      error.status = 401;
+      throw error;
+    }
+    let isBlacklisted = false;
+    try {
+      isBlacklisted = await redis.get(`jwt_blacklist:${token}`);
+    } catch (err) {
+      console.warn('Redis error during JWT blacklist check:', err.message);
+    }
+    if (isBlacklisted) {
+      const error = new Error('Session has expired. Please log in again.');
       error.status = 401;
       throw error;
     }

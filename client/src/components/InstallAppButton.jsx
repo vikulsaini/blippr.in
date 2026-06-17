@@ -20,7 +20,7 @@ export default function InstallAppButton() {
     function handleInstalled() {
       setInstalled(true);
       setInstallPrompt(null);
-      setMessage('Varta is installed');
+      setMessage('Blippr is installed');
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -33,7 +33,7 @@ export default function InstallAppButton() {
 
   async function installApp() {
     if (installed) {
-      setMessage('Varta is already installed');
+      setMessage('Blippr is already installed');
       return;
     }
 
@@ -45,22 +45,22 @@ export default function InstallAppButton() {
     await installPrompt.prompt();
     const choice = await installPrompt.userChoice;
     setInstallPrompt(null);
-    setMessage(choice.outcome === 'accepted' ? 'Installing Varta...' : 'Install cancelled');
+    setMessage(choice.outcome === 'accepted' ? 'Installing Blippr...' : 'Install cancelled');
   }
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/8 p-3">
+    <div className="surface-card rounded-3xl border border-slate-200 bg-white p-3">
       <button type="button" onClick={installApp} className="flex w-full items-center gap-3 text-left">
-        <span className="rounded-2xl bg-mint/15 p-3 text-mint">
+        <span className="rounded-2xl bg-accent-tint p-3 text-accent">
           {installed ? <Smartphone size={18} /> : <Download size={18} />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-medium">{installed ? 'Varta installed' : 'Install Varta'}</span>
-          <span className="block truncate text-xs text-white/45">Download from browser like an app</span>
+          <span className="block font-medium text-text-primary">{installed ? 'Blippr installed' : 'Install Blippr'}</span>
+          <span className="block truncate text-xs text-text-muted">Download from browser like an app</span>
         </span>
-        <span className="rounded-full bg-mint px-3 py-1 text-xs font-semibold text-ink">{installed ? 'Done' : 'Install'}</span>
+        <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white">{installed ? 'Done' : 'Install'}</span>
       </button>
-      {message && <p className="mt-3 rounded-2xl bg-ink/30 px-3 py-2 text-xs text-white/55">{message}</p>}
+      {message && <p className="mt-3 rounded-2xl bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-text-secondary">{message}</p>}
     </div>
   );
 }

@@ -9,7 +9,7 @@ let pushEnabled = Boolean(vapidPublicKey && vapidPrivateKey);
 if (pushEnabled) {
   try {
     webPush.setVapidDetails(
-      process.env.VAPID_SUBJECT || 'mailto:admin@varta.local',
+      process.env.VAPID_SUBJECT || 'mailto:admin@blippr.in',
       vapidPublicKey,
       vapidPrivateKey
     );

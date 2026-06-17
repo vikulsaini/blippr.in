@@ -12,7 +12,7 @@ const waitingLines = [
   'Keeping friends and blocked users out of this queue...'
 ];
 const FRIEND_UNLOCK_MS = 3 * 60 * 1000;
-const SAFETY_ACK_KEY = 'varta_random_safety_ack';
+const SAFETY_ACK_KEY = 'blippr_random_safety_ack';
 
 export default function Stranger() {
   const [session, setSession] = useState(null);
@@ -33,6 +33,7 @@ export default function Stranger() {
   const [now, setNow] = useState(() => Date.now());
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [videoChromeVisible, setVideoChromeVisible] = useState(true);
+  const [queueText, setQueueText] = useState('Connecting to closest node...');
   const pendingFindRef = useRef(false);
   const videoChromeTimerRef = useRef(null);
   const peerRef = useRef(null);
@@ -52,8 +53,7 @@ export default function Stranger() {
   const elapsedMs = sessionStartedAt ? Math.max(0, now - new Date(sessionStartedAt).getTime()) : 0;
   const friendUnlockMs = Math.max(0, FRIEND_UNLOCK_MS - elapsedMs);
   const friendUnlocked = !!peer && friendUnlockMs === 0;
-  const friendTimerLabel = formatCountdown(Math.min(elapsedMs, FRIEND_UNLOCK_MS));
-  const friendGateLabel = friendSent ? 'Sent' : friendUnlocked ? `Add ${friendTimerLabel}` : `Wait ${friendTimerLabel}`;
+  const friendGateLabel = friendSent ? 'Sent' : friendUnlocked ? 'Add Friend' : `Wait ${formatCountdown(friendUnlockMs)}`;
 
   useEffect(() => {
     sessionRef.current = session;
@@ -75,6 +75,22 @@ export default function Stranger() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!finding) return;
+    const queueTexts = [
+      'Connecting to closest node...',
+      'Applying matching filters...',
+      'Pairing you with an active match...'
+    ];
+    let idx = 0;
+    setQueueText(queueTexts[0]);
+    const timer = setInterval(() => {
+      idx = (idx + 1) % queueTexts.length;
+      setQueueText(queueTexts[idx]);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [finding]);
 
   useEffect(() => {
     if (!showVideo) return undefined;
@@ -448,7 +464,7 @@ export default function Stranger() {
           onPointerMove={revealVideoChrome}
           onPointerDown={revealVideoChrome}
           onTouchStart={revealVideoChrome}
-          className={`${focused ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[14px] border border-white/10 bg-black/35 shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:rounded-[16px]' : 'depth-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5'}`}
+          className={`${focused ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[14px] border border-white/5 bg-ink shadow-nm-flat sm:rounded-[16px]' : 'depth-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5'}`}
         >
           <div className="relative min-h-0 flex-1">
             <MainVideoStage
@@ -461,7 +477,7 @@ export default function Stranger() {
               chromeVisible={videoChromeVisible}
               onToggleFocus={() => setFocused((value) => !value)}
               onStart={() => requestFindStranger(false)}
-              emptyText={finding ? 'Waiting for a person...' : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
+              emptyText={finding ? queueText : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
               tipText={finding ? 'Tip: Stay for 3+ minutes to unlock friend request.' : ''}
               status={callState}
               modeTabs={<ModeTabs value={viewMode} onChange={switchMode} compact />}
@@ -483,7 +499,7 @@ export default function Stranger() {
 
       {showChat && (
         <aside className="depth-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px]">
-          <div className="space-y-2 border-b border-white/8 p-2 lg:p-3">
+          <div className="space-y-2 border-b border-white/5 p-2 lg:p-3">
             <div className="flex items-center justify-between gap-3">
               {peer ? (
                 <div className="flex min-w-0 items-center gap-3">
@@ -498,7 +514,7 @@ export default function Stranger() {
                 </div>
               ) : (
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[15px] bg-white/8 text-rose sm:h-11 sm:w-11 sm:rounded-2xl"><MessageCircle size={19} /></span>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[15px] bg-ink shadow-nm-inset-sm text-rose sm:h-11 sm:w-11 sm:rounded-2xl"><MessageCircle size={19} /></span>
                   <div className="min-w-0">
                     <p className="truncate font-semibold">Random chat</p>
                     <p className="truncate text-xs text-white/42">{status}</p>
@@ -511,13 +527,13 @@ export default function Stranger() {
 
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5 sm:p-3">
             {!session && (
-              <EmptyRandom finding={finding} onStart={() => requestFindStranger(false)} />
+              <EmptyRandom finding={finding} queueText={queueText} onStart={() => requestFindStranger(false)} />
             )}
             {messages.map((message) => {
               const mine = (message.sender?._id || message.sender) !== peer?._id;
               return (
                 <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] rounded-2xl border px-3 py-2 text-sm shadow-[0_10px_24px_rgba(0,0,0,0.18)] ${mine ? 'border-cyan-100/12 bg-[linear-gradient(135deg,#06b6d4,#14b8a6)] text-[#031014]' : 'border-white/8 bg-white/[0.055] text-slate-100'} ${message.pending ? 'opacity-70' : ''}`}>
+                <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${mine ? 'border border-cyan-100/10 bg-gradient-to-r from-mint to-cyan-500 text-ink shadow-[3px_3px_10px_rgba(0,0,0,0.3)]' : 'border border-white/5 bg-ink text-slate-100 shadow-nm-flat-sm'} ${message.pending ? 'opacity-70' : ''}`}>
                   {message.text}
                 </div>
                 </div>
@@ -526,26 +542,48 @@ export default function Stranger() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5 border-t border-white/8 p-2 lg:gap-2 lg:p-3">
-            <button
-              type="button"
-              onClick={handleRandomAction}
-              className="btn-secondary flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold sm:min-h-11 sm:rounded-2xl sm:text-sm"
-            >
-              {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
-              {randomActionLabel}
-            </button>
-            <button
-              type="button"
-              onClick={sendFriendRequest}
-              disabled={!peer || friendSent || !friendUnlocked}
-              className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent || friendUnlocked ? 'bg-mint text-ink' : 'btn-primary'}`}
-              title={friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request'}
-            >
-              {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
-              {friendGateLabel}
-            </button>
-          </div>
+          {session ? (
+            <div className="grid grid-cols-2 gap-1.5 border-t border-white/5 p-2 lg:gap-2 lg:p-3">
+              <button
+                type="button"
+                onClick={handleRandomAction}
+                className="btn-secondary flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold sm:min-h-11 sm:rounded-2xl sm:text-sm"
+              >
+                {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
+                {randomActionLabel}
+              </button>
+              <button
+                type="button"
+                onClick={sendFriendRequest}
+                disabled={!peer || friendSent || !friendUnlocked}
+                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent || friendUnlocked ? 'bg-mint text-ink' : 'btn-primary'}`}
+                title={friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request'}
+              >
+                {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
+                {friendGateLabel}
+              </button>
+            </div>
+          ) : (
+            <div className="border-t border-white/5 p-2 lg:p-3">
+              <button
+                type="button"
+                onClick={handleRandomAction}
+                className="btn-primary flex w-full min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-[0_8px_24px_rgba(0,201,177,0.2)]"
+              >
+                {finding ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    Cancel / Stop matching
+                  </>
+                ) : (
+                  <>
+                    <Shuffle size={18} />
+                    Start matching
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
           {peer && (
             <button type="button" onClick={reportPeer} className="mx-2 mb-2 rounded-2xl border border-rose/15 bg-rose/10 py-2 text-xs font-semibold text-rose">
@@ -553,18 +591,19 @@ export default function Stranger() {
             </button>
           )}
 
-          <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 border-t border-white/8 p-2 lg:gap-2 lg:p-3">
-            <input
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              disabled={!session}
-              className="min-w-0 flex-1 rounded-[15px] border border-white/8 bg-white/6 px-3 py-2.5 text-sm outline-none disabled:opacity-45 sm:rounded-2xl sm:px-4 sm:py-3"
-              placeholder={session ? 'Say something...' : 'Start a random chat first'}
-            />
-            <button disabled={!session || !text.trim()} className="btn-primary grid h-11 w-11 place-items-center rounded-[15px] disabled:opacity-40 sm:h-12 sm:w-12 sm:rounded-2xl" aria-label="Send">
-              <Send size={18} />
-            </button>
-          </form>
+          {session && (
+            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 border-t border-white/5 p-2 lg:gap-2 lg:p-3">
+              <input
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                className="min-w-0 flex-1 rounded-[15px] border border-white/5 bg-ink px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 shadow-nm-inset-sm text-slate-800 dark:text-slate-100"
+                placeholder="Say something..."
+              />
+              <button disabled={!text.trim()} className="btn-primary grid h-11 w-11 place-items-center rounded-[15px] disabled:opacity-40 sm:h-12 sm:w-12 sm:rounded-2xl" aria-label="Send">
+                <Send size={18} />
+              </button>
+            </form>
+          )}
         </aside>
       )}
 
@@ -588,7 +627,29 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
               <img src={peer.avatar} alt="" className="mx-auto h-20 w-20 rounded-[28px] border border-white/10 object-cover shadow-glow" />
             ) : (
               <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/8 text-white/50">
-                {finding ? <Loader2 className="animate-spin" size={25} /> : <Video size={25} />}
+                {finding ? (
+                  <svg viewBox="0 0 120 28" className="h-8 w-24 text-mint" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M10 14 Q 30 4, 50 14 T 90 14 T 110 14"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                    >
+                      <animate
+                        attributeName="d"
+                        dur="2.5s"
+                        repeatCount="indefinite"
+                        values="
+                          M10 14 Q 30 4, 50 14 T 90 14 T 110 14;
+                          M10 14 Q 30 24, 50 14 T 90 14 T 110 14;
+                          M10 14 Q 30 4, 50 14 T 90 14 T 110 14
+                        "
+                      />
+                    </path>
+                  </svg>
+                ) : (
+                  <Video size={25} />
+                )}
               </span>
             )}
             <p className="mt-3 text-base font-semibold">{peer?.name || 'Random live'}</p>
@@ -650,7 +711,7 @@ function ModeTabs({ value, onChange, compact = false }) {
           key={mode.value}
           type="button"
           onClick={() => onChange(mode.value)}
-          className={`rounded-full font-semibold transition ${compact ? 'px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs' : 'px-3 py-1.5 text-xs'} ${value === mode.value ? 'bg-gradient-to-r from-mint to-sky text-ink shadow-[0_10px_24px_rgba(20,184,166,0.24)]' : 'text-white/42 hover:text-white/75'}`}
+          className={`rounded-full font-semibold transition ${compact ? 'px-3.5 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm' : 'px-4 py-2 text-sm'} ${value === mode.value ? 'bg-gradient-to-r from-mint to-sky text-ink shadow-[0_10px_24px_rgba(20,184,166,0.24)]' : 'text-white/42 hover:text-white/75'}`}
         >
           {mode.label}
         </button>
@@ -699,19 +760,48 @@ function CircleControl({ icon: Icon, label, onClick, disabled, primary, danger }
   );
 }
 
-function EmptyRandom({ finding, onStart }) {
+function EmptyRandom({ finding, queueText }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid h-full min-h-0 place-items-center text-center">
-      <div>
-        <span className="tone-ring mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-rose/10 text-rose">
-          {finding ? <Loader2 className="animate-spin" size={24} /> : <Shuffle size={24} />}
-        </span>
-        <p className="mt-4 font-semibold">{finding ? 'Waiting for someone' : 'Start random chat'}</p>
-        {finding && <p className="mt-1 text-xs font-medium text-mint/80">Tip: Stay for 3+ minutes to unlock friend request.</p>}
-        {!finding && (
-          <button onClick={onStart} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold">
-            Start random
-          </button>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid h-full min-h-0 place-items-center text-center py-12 px-4">
+      <div className="surface rounded-[24px] border border-slate-300 dark:border-slate-800 p-6 max-w-sm shadow-nm-flat bg-white dark:bg-[#1A2230] border-slate-200 dark:border-slate-700/60">
+        {finding ? (
+          <div className="flex flex-col items-center">
+            {/* Elegant morphing wave SVG */}
+            <svg viewBox="0 0 120 28" className="h-10 w-28 text-accent mb-4" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M10 14 Q 30 4, 50 14 T 90 14 T 110 14"
+                stroke="currentColor"
+                strokeWidth="4"
+                strokeLinecap="round"
+              >
+                <animate
+                  attributeName="d"
+                  dur="2.5s"
+                  repeatCount="indefinite"
+                  values="
+                    M10 14 Q 30 4, 50 14 T 90 14 T 110 14;
+                    M10 14 Q 30 24, 50 14 T 90 14 T 110 14;
+                    M10 14 Q 30 4, 50 14 T 90 14 T 110 14
+                  "
+                />
+              </path>
+            </svg>
+            <p className="text-base font-semibold text-slate-800 dark:text-slate-200 min-h-[1.75rem] transition-all duration-300">
+              {queueText}
+            </p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Tip: Stay in the chat for 3+ minutes to unlock the friend request option.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+              Ready to start matching?
+            </p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Tap the Start button in the bottom action bar to begin finding a random connection.
+            </p>
+          </>
         )}
       </div>
     </motion.div>

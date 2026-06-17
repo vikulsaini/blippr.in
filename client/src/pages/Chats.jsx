@@ -246,7 +246,7 @@ export default function Chats() {
 
   return (
     <div className="h-full min-h-0 md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:gap-3 xl:grid-cols-[26rem_minmax(0,1fr)]">
-      <div className={`${activeChat ? 'hidden md:flex' : 'flex'} min-h-0 flex-col overflow-hidden md:rounded-[26px] md:border md:border-white/8 md:bg-ink/70`}>
+      <div className={`${activeChat ? 'hidden md:flex' : 'flex'} min-h-0 flex-col overflow-hidden md:rounded-3xl md:border md:border-border-default md:bg-surface md:shadow-card`}>
         <ChatList
           chats={chats}
           currentUserId={currentUserId}
@@ -266,7 +266,7 @@ export default function Chats() {
         />
       </div>
       {activeChat ? (
-        <div className="min-h-0 overflow-hidden md:rounded-[26px] md:border md:border-white/8">
+        <div className="min-h-0 overflow-hidden md:rounded-3xl md:border md:border-border-default md:shadow-card">
           <ChatWindow
             chat={activeChat}
             messages={messages}
@@ -292,17 +292,17 @@ export default function Chats() {
           />
         </div>
       ) : (
-        <div className="hidden min-h-0 place-items-center rounded-[26px] border border-white/8 bg-white/5 p-8 text-center md:grid">
+        <div className="hidden min-h-0 place-items-center rounded-3xl border border-border-default bg-surface p-8 text-center shadow-card md:grid">
           <div>
-            <p className="text-2xl font-semibold">Open a conversation</p>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-white/50">Select a friend from the list to chat, send media, or start a call.</p>
+            <p className="text-2xl font-bold text-text-primary">Open a Conversation</p>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-text-muted">Select a friend from the list to chat, send media, or start a call.</p>
           </div>
         </div>
       )}
 
       <ConfirmSheet
         open={!!pendingDelete}
-        title="Delete selected chats?"
+        title="Delete Selected Chats?"
         description={`This removes ${pendingDelete?.count || 0} chat${pendingDelete?.count === 1 ? '' : 's'} from your list only.`}
         confirmLabel="Delete"
         tone="danger"
@@ -312,7 +312,7 @@ export default function Chats() {
 
       <ConfirmSheet
         open={!!selectionError}
-        title="Action failed"
+        title="Action Failed"
         description={selectionError}
         confirmLabel="Okay"
         onCancel={clearSelectionError}

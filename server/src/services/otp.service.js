@@ -28,7 +28,8 @@ export async function issueOtp(phone) {
     .del(attemptsKeyFor(phone))
     .exec();
   const delivery = await sendOtpSms(phone, otp);
-  console.log(`OTP issued for ${phone}${process.env.NODE_ENV === 'production' && delivery.sent ? '' : `: ${otp}`}`);
+  const maskedPhone = phone.replace(/.(?=.{4})/g, '*');
+  console.log(`OTP issued for ${maskedPhone}${process.env.NODE_ENV === 'production' && delivery.sent ? '' : `: ${otp}`}`);
   return { otp, delivery };
 }
 

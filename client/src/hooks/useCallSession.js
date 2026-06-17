@@ -5,8 +5,8 @@ import { showNativeNotification } from '../lib/native.js';
 import { startCallSound, stopCallSound, vibrate as vibrateDevice } from '../lib/sounds.js';
 import { applyVideoSenderQuality, createPeer, getCallMediaStream, getRtcIceServers } from '../lib/webrtc.js';
 
-const AUDIO_ROUTE_KEY = 'varta_call_audio_route';
-const LOW_DATA_KEY = 'varta_call_low_data';
+const AUDIO_ROUTE_KEY = 'blippr_call_audio_route';
+const LOW_DATA_KEY = 'blippr_call_low_data';
 const RECONNECT_TIMEOUT_MS = 20000;
 
 function readBoolPreference(key, fallback = false) {
@@ -80,20 +80,20 @@ export function useCallSession({ activeChat, chats, currentUserId, mergeCall, se
 
   function showIncomingCallNotification(fromUser, callType) {
     showNativeNotification({
-      title: `${fromUser?.name || 'Varta friend'} is calling`,
-      body: `${callType === 'video' ? 'Video' : 'Audio'} call on Varta`,
+      title: `${fromUser?.name || 'Blippr friend'} is calling`,
+      body: `${callType === 'video' ? 'Video' : 'Audio'} call on Blippr`,
       extra: { type: 'call', userId: fromUser?._id }
     }).catch(() => {});
     if (!('Notification' in window) || Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
-    new Notification(`${fromUser?.name || 'Varta friend'} is calling`, {
-      body: `${callType === 'video' ? 'Video' : 'Audio'} call on Varta`,
+    new Notification(`${fromUser?.name || 'Blippr friend'} is calling`, {
+      body: `${callType === 'video' ? 'Video' : 'Audio'} call on Blippr`,
       icon: fromUser?.avatar || '/favicon.svg',
-      tag: `varta-call-${fromUser?._id || 'incoming'}`
+      tag: `blippr-call-${fromUser?._id || 'incoming'}`
     });
   }
 
   function findUserById(userId, fallback) {
-    return chats.flatMap((chat) => chat.members || []).find((member) => member._id === userId) || fallback || { _id: userId, name: 'Varta friend' };
+    return chats.flatMap((chat) => chat.members || []).find((member) => member._id === userId) || fallback || { _id: userId, name: 'Blippr friend' };
   }
 
   useEffect(() => {

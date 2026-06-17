@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, select: false },
     googleId: { type: String, sparse: true, index: true },
     isGuest: { type: Boolean, default: false },
-    name: { type: String, default: 'Varta User', trim: true },
+    name: { type: String, default: 'Blippr User', trim: true },
     username: { type: String, lowercase: true, trim: true, sparse: true, unique: true, index: true },
     age: { type: Number, min: 18, max: 120 },
     dob: Date,

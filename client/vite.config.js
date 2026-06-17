@@ -15,11 +15,11 @@ export default defineConfig({
       },
       manifest: {
         id: '/',
-        name: 'Varta',
-        short_name: 'Varta',
+        name: 'Blippr',
+        short_name: 'Blippr',
         description: 'Real-time chat, stranger matching, friends, and calls.',
-        theme_color: '#07070a',
-        background_color: '#07070a',
+        theme_color: '#F8F9FA',
+        background_color: '#F8F9FA',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -27,8 +27,8 @@ export default defineConfig({
         categories: ['social', 'communication'],
         icons: [
           { src: '/favicon.svg', sizes: '64x64', type: 'image/svg+xml', purpose: 'any' },
-          { src: '/icons/varta-icon.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
-          { src: '/icons/varta-icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+          { src: '/icons/blippr-icon.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
+          { src: '/icons/blippr-icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
         ]
       }
     })

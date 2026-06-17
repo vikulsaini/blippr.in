@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { getToken } from './lib/api.js';
-import { clearVartaCache } from './lib/cache.js';
+import { clearBlipprCache } from './lib/cache.js';
 
 const Shell = lazy(() => import('./components/Shell.jsx'));
 const Auth = lazy(() => import('./pages/Auth.jsx'));
@@ -53,10 +53,10 @@ export default function App() {
 
 function RouteFallback() {
   return (
-    <div className="grid h-dvh place-items-center bg-ink px-6 text-center text-white">
+    <div className="grid h-dvh place-items-center bg-bg px-6 text-center">
       <div>
-        <div className="mx-auto h-10 w-10 animate-pulse rounded-[18px] border border-cyan-200/20 bg-cyan-300/12 shadow-glow" />
-        <p className="mt-4 text-sm font-semibold text-slate-200">Loading Varta</p>
+        <div className="mx-auto h-10 w-10 rounded-2xl border border-border-default bg-accent/10 shadow-glow skeleton" />
+        <p className="mt-4 text-sm font-semibold text-text-secondary">Loading Blippr</p>
       </div>
     </div>
   );
@@ -65,11 +65,11 @@ function RouteFallback() {
 function useAuthInvalidRedirect() {
   useEffect(() => {
     function handleInvalidAuth() {
-      clearVartaCache();
+      clearBlipprCache();
       if (window.location.pathname !== '/auth') window.location.replace('/auth');
     }
 
-    window.addEventListener('varta:auth-invalid', handleInvalidAuth);
-    return () => window.removeEventListener('varta:auth-invalid', handleInvalidAuth);
+    window.addEventListener('blippr:auth-invalid', handleInvalidAuth);
+    return () => window.removeEventListener('blippr:auth-invalid', handleInvalidAuth);
   }, []);
 }

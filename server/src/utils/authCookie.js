@@ -1,4 +1,4 @@
-const COOKIE_NAME = 'varta_token';
+const COOKIE_NAME = 'blippr_token';
 
 export function readAuthCookie(req) {
   const raw = req.headers.cookie || '';
@@ -14,7 +14,7 @@ export function setAuthCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure,
-    sameSite: secure ? 'none' : 'lax',
+    sameSite: 'lax',
     maxAge: Number(process.env.JWT_COOKIE_MAX_AGE_MS || 7 * 24 * 60 * 60 * 1000),
     path: '/'
   });
@@ -25,7 +25,7 @@ export function clearAuthCookie(res) {
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     secure,
-    sameSite: secure ? 'none' : 'lax',
+    sameSite: 'lax',
     path: '/'
   });
 }

@@ -15,10 +15,10 @@ export function createSocket() {
     timeout: 20000
   });
 
-  socket.on('connect', () => window.dispatchEvent(new CustomEvent('varta:socket-state', { detail: { state: 'connected' } })));
-  socket.io.on('reconnect_attempt', () => window.dispatchEvent(new CustomEvent('varta:socket-state', { detail: { state: 'connecting' } })));
-  socket.io.on('reconnect', () => window.dispatchEvent(new CustomEvent('varta:socket-state', { detail: { state: 'reconnected' } })));
-  socket.on('disconnect', () => window.dispatchEvent(new CustomEvent('varta:socket-state', { detail: { state: 'connecting' } })));
+  socket.on('connect', () => window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connected' } })));
+  socket.io.on('reconnect_attempt', () => window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connecting' } })));
+  socket.io.on('reconnect', () => window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'reconnected' } })));
+  socket.on('disconnect', () => window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connecting' } })));
 
   return socket;
 }

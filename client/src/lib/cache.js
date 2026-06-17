@@ -1,4 +1,4 @@
-const PREFIX = 'varta_cache';
+const PREFIX = 'blippr_cache';
 const DEFAULT_TTL = 7 * 24 * 60 * 60 * 1000;
 
 function key(name, userId = 'global') {
@@ -34,9 +34,9 @@ export function writeCache(name, value, userId, ttl = DEFAULT_TTL) {
   }
 }
 
-export function clearVartaCache() {
+export function clearBlipprCache() {
   Object.keys(localStorage)
     .filter((itemKey) => itemKey.startsWith(`${PREFIX}:`))
     .forEach((itemKey) => localStorage.removeItem(itemKey));
-  sessionStorage.removeItem('varta_guest_expired');
+  sessionStorage.removeItem('blippr_guest_expired');
 }

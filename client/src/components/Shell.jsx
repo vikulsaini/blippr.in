@@ -44,8 +44,8 @@ export default function Shell() {
       setSocketState(event.detail?.state || 'connected');
     }
 
-    window.addEventListener('varta:socket-state', handleSocketState);
-    return () => window.removeEventListener('varta:socket-state', handleSocketState);
+    window.addEventListener('blippr:socket-state', handleSocketState);
+    return () => window.removeEventListener('blippr:socket-state', handleSocketState);
   }, []);
 
   useEffect(() => {
@@ -106,12 +106,12 @@ export default function Shell() {
   return (
     <main
       data-random-route={isRandom ? 'true' : undefined}
-      className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-white md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'}`}
+      className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-text-primary md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'}`}
     >
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
       <div className="flex min-h-0 flex-col overflow-hidden">
         {showMainHeader && (
-          <header className="mb-2 flex items-center justify-between rounded-[22px] border border-cyan-200/10 bg-slate-950/28 px-3 py-2 shadow-[0_16px_44px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl md:mb-3 md:px-4 md:py-3">
+          <header className="mb-2 flex items-center justify-between rounded-2xl border border-border-default bg-surface px-3 py-2 shadow-card md:mb-3 md:px-4 md:py-3">
             <BrandLogo compactTitle />
             <NotificationBell />
           </header>
@@ -131,26 +131,26 @@ export default function Shell() {
       {!isChats && <GlobalIncomingCall />}
       <GuestUpgradeModal />
       {!navHidden && (
-        <nav className="safe-bottom premium-nav fixed inset-x-3 bottom-2 z-20 mx-auto max-w-[22rem] rounded-[24px] border border-white/8 px-2 pt-1 backdrop-blur md:hidden">
+        <nav className="safe-bottom premium-nav fixed inset-x-3 bottom-2 z-20 mx-auto max-w-[22rem] rounded-3xl px-2 pt-1 backdrop-blur-sm md:hidden">
           <div className="grid grid-cols-4">
-            {tabs.map(({ to, label, icon: Icon }, index) => (
+            {tabs.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={to === '/app'}
                 className={({ isActive }) =>
-                  `group relative flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-[18px] px-1 py-1 text-xs transition ${
-                    isActive ? 'text-white' : 'text-white/42 hover:text-white/78'
+                  `group relative flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 text-xs transition-all duration-200 active:scale-[0.96] ${
+                    isActive ? 'text-accent' : 'text-text-faint hover:text-text-secondary'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <span className={`absolute top-0.5 h-0.5 w-5 rounded-full transition ${isActive ? navAccent(index) : 'bg-transparent'}`} />
-                    <span className={`grid h-7 w-7 place-items-center rounded-[14px] transition ${isActive ? `${navGlow(index)} scale-105 text-ink` : 'bg-white/6 text-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'}`}>
+                    <span className={`absolute top-0.5 h-0.5 w-5 rounded-full transition-all duration-300 ${isActive ? 'bg-accent opacity-100' : 'bg-transparent opacity-0'}`} />
+                    <span className={`grid h-7 w-7 place-items-center rounded-xl transition-all duration-200 ${isActive ? 'bg-accent text-white shadow-accent-sm' : 'bg-transparent'}`}>
                       <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
                     </span>
-                    <span className={`text-[9px] font-semibold leading-none ${isActive ? 'text-white' : 'text-white/36'}`}>{label}</span>
+                    <span className={`text-[9px] font-semibold leading-none ${isActive ? 'text-accent' : 'text-text-faint'}`}>{label}</span>
                   </>
                 )}
               </NavLink>
@@ -165,9 +165,9 @@ export default function Shell() {
 function DesktopNav({ locationPath, socketState, clock }) {
   const connected = socketState === 'connected' || socketState === 'reconnected';
   return (
-    <aside className="premium-nav hidden min-h-0 rounded-[28px] border border-white/8 p-2 md:flex md:flex-col">
+    <aside className="premium-nav hidden min-h-0 rounded-3xl p-2 md:flex md:flex-col">
       <nav className="mt-2 grid gap-2">
-        {tabs.map(({ to, label, icon: Icon }, index) => {
+        {tabs.map(({ to, label, icon: Icon }) => {
           const active = to === '/app' ? locationPath === '/app' : locationPath === to;
           return (
             <NavLink
@@ -176,34 +176,21 @@ function DesktopNav({ locationPath, socketState, clock }) {
               end={to === '/app'}
               title={label}
               aria-label={label}
-              className={`group flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold transition ${
-                active ? 'bg-white text-ink' : 'text-white/52 hover:bg-white/8 hover:text-white'
+              className={`group flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.96] ${
+                active ? 'bg-accent-tint text-accent' : 'text-text-faint hover:bg-surface-hover hover:text-text-secondary'
               }`}
             >
-              <span className={`grid h-9 w-9 place-items-center rounded-2xl ${active ? navGlow(index) : 'bg-white/7'}`}>
+              <span className={`grid h-9 w-9 place-items-center rounded-2xl transition-all duration-200 ${active ? 'bg-accent text-white shadow-accent-sm' : 'bg-transparent'}`}>
                 <Icon size={20} />
               </span>
             </NavLink>
           );
         })}
       </nav>
-      <div className="mt-auto grid justify-items-center gap-3 rounded-[22px] border border-cyan-200/10 bg-white/5 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
-        <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-mint text-mint' : 'bg-gold text-gold'}`} />
-        <span className="h-1.5 w-6 rounded-full bg-white/14" />
+      <div className="mt-auto grid justify-items-center gap-3 rounded-2xl border border-border-default bg-bg p-3" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
+        <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-success text-success' : 'bg-gold text-gold'}`} />
+        <span className="h-1.5 w-6 rounded-full bg-border-default" />
       </div>
     </aside>
   );
-}
-
-function navAccent(index) {
-  return ['bg-mint', 'bg-rose', 'bg-sky', 'bg-gold'][index] || 'bg-mint';
-}
-
-function navGlow(index) {
-  return [
-    'bg-mint shadow-[0_8px_24px_rgba(20,184,166,0.30)]',
-    'bg-rose shadow-[0_8px_24px_rgba(255,138,168,0.22)]',
-    'bg-sky shadow-[0_8px_24px_rgba(6,182,212,0.26)]',
-    'bg-gold shadow-[0_8px_22px_rgba(240,189,72,0.18)]'
-  ][index] || 'bg-mint';
 }

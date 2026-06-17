@@ -19,13 +19,13 @@ export default function GuestUpgradeModal() {
 
   useEffect(() => {
     const show = () => setOpen(true);
-    window.addEventListener('varta:guest-expired', show);
+    window.addEventListener('blippr:guest-expired', show);
     api('/api/users/me')
       .then(({ user }) => {
         if (user?.isGuest && user.guestExpiresAt && new Date(user.guestExpiresAt).getTime() < Date.now()) setOpen(true);
       })
       .catch(() => {});
-    return () => window.removeEventListener('varta:guest-expired', show);
+    return () => window.removeEventListener('blippr:guest-expired', show);
   }, []);
 
   if (!open) return null;
@@ -74,13 +74,13 @@ export default function GuestUpgradeModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-end bg-black/70 px-4 pb-4 sm:place-items-center">
-      <form onSubmit={submit} className="glass max-h-[92vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 shadow-glow">
+    <div className="fixed inset-0 z-[80] grid place-items-end bg-black/40 backdrop-blur-md px-4 pb-4 sm:place-items-center">
+      <form onSubmit={submit} className="elevated-card max-h-[92vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 border border-slate-200 bg-white">
         <div className="flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-mint text-ink"><LockKeyhole size={21} /></span>
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-tint text-accent"><LockKeyhole size={21} /></span>
           <div>
-            <h2 className="text-xl font-semibold">Create account to continue</h2>
-            <p className="text-sm text-white/52">Guest access is limited. Register to unlock full Varta.</p>
+            <h2 className="text-xl font-semibold text-text-primary">Create account to continue</h2>
+            <p className="text-sm text-text-secondary">Guest access is limited. Register to unlock full Blippr.</p>
           </div>
         </div>
         <div className="mt-5 space-y-3">
@@ -91,18 +91,24 @@ export default function GuestUpgradeModal() {
             <Field label="Date of birth" value={form.dob} onChange={(value) => update('dob', value)} type="date" />
             <Field label="Contact" value={form.contact} onChange={(value) => update('contact', value)} />
           </div>
-          <div className="grid grid-cols-2 gap-2 rounded-[16px] border border-white/8 bg-white/5 p-1">
-            {['female', 'male'].map((gender) => (
-              <button key={gender} type="button" onClick={() => update('gender', gender)} className={`rounded-[12px] py-2 text-sm font-semibold capitalize ${form.gender === gender ? 'btn-primary' : 'text-white/58'}`}>
-                {gender}
-              </button>
-            ))}
+          <div>
+            <span className="text-xs text-slate-500">Gender</span>
+            <div className="mt-1.5 grid grid-cols-2 gap-2 rounded-[16px] border border-slate-300 dark:border-slate-700/80 bg-ink p-1 shadow-nm-inset-sm">
+              {['female', 'male'].map((gender) => (
+                <button key={gender} type="button" onClick={() => update('gender', gender)} className={`rounded-[12px] py-2 text-sm font-semibold capitalize ${form.gender === gender ? 'btn-primary' : 'text-slate-500'}`}>
+                  {gender}
+                </button>
+              ))}
+            </div>
           </div>
           <Field label="Hobbies, comma separated" value={form.hobbies} onChange={(value) => update('hobbies', value)} />
-          <textarea value={form.bio} onChange={(event) => update('bio', event.target.value)} className="min-h-20 w-full resize-none rounded-[16px] border border-white/8 bg-white/5 px-4 py-3 outline-none" placeholder="Short bio" maxLength={160} />
+          <label className="block">
+            <span className="text-xs text-slate-500">Short bio</span>
+            <textarea value={form.bio} onChange={(event) => update('bio', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[16px] border border-slate-300 dark:border-slate-700/80 bg-ink px-4 py-3 outline-none text-slate-800 dark:text-slate-100 text-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent-ring transition" placeholder="Tell people about you" maxLength={160} />
+          </label>
         </div>
         {message && <p className="mt-3 rounded-[14px] border border-coral/25 bg-coral/10 px-3 py-2 text-sm text-coral">{message}</p>}
-        <button disabled={loading} className="btn-primary mt-4 flex w-full items-center justify-center gap-2 rounded-[16px] py-3 font-semibold disabled:opacity-55">
+        <button disabled={loading} className="btn-primary mt-5 flex w-full items-center justify-center gap-2 rounded-[16px] py-3 font-semibold disabled:opacity-55">
           <Save size={18} />
           {loading ? 'Creating account...' : 'Register and continue'}
         </button>
@@ -114,10 +120,10 @@ export default function GuestUpgradeModal() {
 function Field({ label, value, onChange, type = 'text', icon: Icon }) {
   return (
     <label className="block">
-      <span className="text-xs text-white/42">{label}</span>
-      <div className="mt-1.5 flex items-center gap-2 rounded-[16px] border border-white/8 bg-white/5 px-4">
-        {Icon && <Icon size={16} className="text-white/35" />}
-        <input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" type={type} />
+      <span className="text-xs text-slate-500">{label}</span>
+      <div className="mt-1.5 flex items-center gap-2 rounded-[16px] border border-slate-300 dark:border-slate-700/80 bg-ink px-4 shadow-nm-inset-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent-ring transition">
+        {Icon && <Icon size={16} className="text-slate-400" />}
+        <input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400" type={type} />
       </div>
     </label>
   );

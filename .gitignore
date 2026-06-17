@@ -9,3 +9,5 @@ client/dist
 .DS_Store
 coverage
 npm-debug.log*
+.agent
+.agent/

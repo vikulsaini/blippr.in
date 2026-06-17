@@ -1,6 +1,6 @@
-# Varta
+# Blippr
 
-Varta is a mobile-first real-time chat PWA with friends, Omegle-style random rooms, profile safety tools, push notifications, and WebRTC audio/video calling.
+Blippr is a mobile-first real-time chat PWA with friends, Omegle-style random rooms, profile safety tools, push notifications, and WebRTC audio/video calling.
 
 ## Features
 
@@ -63,7 +63,7 @@ Important values:
 - `REDIS_URL`
 - `JWT_SECRET`
 - `CLIENT_URL`
-- `PUBLIC_API_URL` - your backend URL, for example `https://varta-api-2k6p.onrender.com`, used for Mongo-stored media URLs.
+- `PUBLIC_API_URL` - your backend URL, for example `https://blippr-api-2k6p.onrender.com`, used for Mongo-stored media URLs.
 - `OTP_TTL_SECONDS`
 - `OTP_COOLDOWN_SECONDS`
 - `OTP_MAX_ATTEMPTS`
@@ -104,7 +104,7 @@ Important values:
 
 For WebRTC calls, STUN is enough only on some networks. Use a TURN provider for production so audio/video can connect through strict NATs, carrier networks, and office Wi-Fi.
 
-The API also sets an httpOnly `varta_token` cookie on login/signup/guest auth. The frontend still keeps the JWT for compatibility with Socket.IO auth, but REST requests include credentials and the backend can authenticate from the cookie when no bearer token is sent.
+The API also sets an httpOnly `blippr_token` cookie on login/signup/guest auth. The frontend still keeps the JWT for compatibility with Socket.IO auth, but REST requests include credentials and the backend can authenticate from the cookie when no bearer token is sent.
 
 OTP and email verification require real providers in production. Configure Twilio for phone OTP and Resend for email verification, or temporarily set `EXPOSE_OTP_IN_RESPONSE=true` / `EXPOSE_EMAIL_CODE_IN_RESPONSE=true` only for private testing.
 
@@ -128,9 +128,9 @@ npm run build --workspace client
 
 ## Browser Install
 
-Varta is configured as an installable PWA. Open the app in a supported browser, then go to:
+Blippr is configured as an installable PWA. Open the app in a supported browser, then go to:
 
-`Profile > App > Install Varta`
+`Profile > App > Install Blippr`
 
 On Android Chrome/Edge this opens the native browser install prompt. If the prompt is not available, use the browser menu and choose `Install app` or `Add to home screen`.
 

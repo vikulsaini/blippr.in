@@ -6,6 +6,10 @@ import Message from '../models/Message.js';
 import Notification from '../models/Notification.js';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
+import Call from '../models/Call.js';
+import NotificationSubscription from '../models/NotificationSubscription.js';
+import { deleteMediaByUrl } from '../services/media.service.js';
+import { clearAuthCookie } from '../utils/authCookie.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const updateProfileSchema = Joi.object({
@@ -110,13 +114,48 @@ export const exportAccountData = asyncHandler(async (req, res) => {
 });
 
 export const deleteAccount = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  // 1. Gather all message media urls to delete
+  const messagesWithMedia = await Message.find({
+    sender: userId,
+    media: { $ne: null }
+  }).select('media').lean();
+  
+  const mediaUrls = messagesWithMedia.map(m => m.media?.url).filter(Boolean);
+  
+  // 2. Gather reports screenshots
+  const reportsWithMedia = await Report.find({
+    $or: [{ reporter: userId }, { reported: userId }],
+    screenshots: { $exists: true, $not: { $size: 0 } }
+  }).select('screenshots').lean();
+  
+  const reportUrls = reportsWithMedia.flatMap(r => r.screenshots || []).filter(Boolean);
+
+  // 3. User avatar
+  if (req.user.avatar) {
+    mediaUrls.push(req.user.avatar);
+  }
+
+  // 4. Trigger media deletion
+  const allUrls = [...new Set([...mediaUrls, ...reportUrls])];
+  for (const url of allUrls) {
+    deleteMediaByUrl(url).catch(err => console.warn(`Media deletion error: ${err.message}`));
+  }
+
+  // 5. Cascade delete documents
   await Promise.all([
-    Chat.updateMany({ members: req.user._id }, { $pull: { members: req.user._id } }),
-    Message.updateMany({ sender: req.user._id }, { $set: { text: '', deletedAt: new Date() } }),
-    Notification.deleteMany({ user: req.user._id }),
-    FriendRequest.deleteMany({ $or: [{ from: req.user._id }, { to: req.user._id }] })
+    Chat.updateMany({ members: userId }, { $pull: { members: userId } }),
+    Message.deleteMany({ sender: userId }),
+    Notification.deleteMany({ user: userId }),
+    FriendRequest.deleteMany({ $or: [{ from: userId }, { to: userId }] }),
+    Call.deleteMany({ $or: [{ caller: userId }, { receiver: userId }] }),
+    NotificationSubscription.deleteMany({ user: userId }),
+    Report.deleteMany({ $or: [{ reporter: userId }, { reported: userId }] })
   ]);
-  await User.deleteOne({ _id: req.user._id });
+  
+  await User.deleteOne({ _id: userId });
+  clearAuthCookie(res);
   res.json({ ok: true, message: 'Account deleted' });
 });
 

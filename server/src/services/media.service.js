@@ -11,7 +11,7 @@ export function uploadBuffer(file, baseUrl = '') {
   if (!cloudinaryReady()) return uploadToGridFs(file, urlBase);
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: 'varta', resource_type: 'auto' },
+      { folder: 'blippr', resource_type: 'auto' },
       (error, result) => {
         if (error) reject(error);
         else resolve(result);
@@ -28,7 +28,7 @@ function bucket() {
     error.code = 'MEDIA_STORAGE_MISSING';
     throw error;
   }
-  return new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'varta_media' });
+  return new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'blippr_media' });
 }
 
 function uploadToGridFs(file, baseUrl) {
@@ -70,4 +70,32 @@ function resourceTypeFor(mimeType = '') {
   if (mimeType.startsWith('video/')) return 'video';
   if (mimeType.startsWith('audio/')) return 'audio';
   return 'raw';
+}
+
+export async function deleteMediaByUrl(url) {
+  if (!url) return;
+  try {
+    if (url.includes('/api/media/files/')) {
+      const parts = url.split('/api/media/files/');
+      const id = parts[parts.length - 1];
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        await bucket().delete(new mongoose.Types.ObjectId(id));
+      }
+    } else if (cloudinaryReady() && url.includes('cloudinary.com')) {
+      const publicId = extractCloudinaryPublicId(url);
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId);
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to delete media at URL ${url}: ${err.message}`);
+  }
+}
+
+function extractCloudinaryPublicId(url) {
+  const parts = url.split('/upload/');
+  if (parts.length < 2) return null;
+  const path = parts[1].replace(/^v\d+\//, '');
+  const lastDot = path.lastIndexOf('.');
+  return lastDot > -1 ? path.substring(0, lastDot) : path;
 }

@@ -1,6 +1,8 @@
 import Joi from 'joi';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
+import { redis } from '../config/redis.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { signJwt } from '../utils/tokens.js';
@@ -9,7 +11,7 @@ import { getClientIp } from '../utils/clientIp.js';
 import { canExposeOtp, issueOtp, verifyOtp } from '../services/otp.service.js';
 import { canExposeEmailCode, issueEmailVerification, verifyEmailCode } from '../services/emailVerification.service.js';
 import { notifyUser } from '../services/notification.service.js';
-import { clearAuthCookie, setAuthCookie } from '../utils/authCookie.js';
+import { clearAuthCookie, setAuthCookie, readAuthCookie } from '../utils/authCookie.js';
 
 export const requestOtpSchema = Joi.object({
   phone: Joi.string().min(8).max(18).required()
@@ -56,7 +58,7 @@ async function recordLogin(req, user) {
   if (isNewLocation) {
     const { notification } = await notifyUser(user._id, {
       title: 'New login detected',
-      body: 'Your Varta account was used on another device or network.',
+      body: 'Your Blippr account was used on another device or network.',
       url: '/app/profile',
       type: 'login',
       actor: user._id
@@ -404,7 +406,22 @@ export const googleLogin = asyncHandler(async (req, res) => {
   return sendAuth(res, signJwt(user), user);
 });
 
-export const logout = asyncHandler(async (_req, res) => {
+export const logout = asyncHandler(async (req, res) => {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : readAuthCookie(req);
+  if (token) {
+    try {
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.exp) {
+        const remaining = decoded.exp - Math.floor(Date.now() / 1000);
+        if (remaining > 0) {
+          await redis.set(`jwt_blacklist:${token}`, '1', 'EX', remaining);
+        }
+      }
+    } catch (err) {
+      console.warn('JWT blacklist error on logout:', err.message);
+    }
+  }
   clearAuthCookie(res);
   res.json({ ok: true });
 });

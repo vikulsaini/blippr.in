@@ -21,8 +21,8 @@ export async function sendVerificationEmail(email, code) {
     body: JSON.stringify({
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Verify your Varta email',
-      text: `Your Varta verification code is ${code}. It expires in 10 minutes.`
+      subject: 'Verify your Blippr email',
+      text: `Your Blippr verification code is ${code}. It expires in 10 minutes.`
     })
   });
 

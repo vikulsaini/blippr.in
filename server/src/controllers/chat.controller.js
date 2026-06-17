@@ -120,7 +120,7 @@ async function updateChatPreference(req, res, field) {
   else chat[field].pull(req.user._id);
   await chat.save();
   const populatedChat = await Chat.findById(chat._id)
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
     .populate('lastMessage')
     .populate('lastCall');
   const decorated = withUnreadCount(populatedChat, req.user._id);
@@ -152,7 +152,7 @@ export const listChats = asyncHandler(async (req, res) => {
     ]
   };
   const chats = await Chat.find(filter)
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
     .populate('lastMessage')
     .populate('lastCall')
     .sort('-updatedAt')
@@ -299,7 +299,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   }
   await chat.save();
   const populatedChat = await Chat.findById(chat._id)
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
     .populate('lastMessage')
     .populate('lastCall');
   for (const memberId of chat.members) {
@@ -452,7 +452,7 @@ export const updateNickname = asyncHandler(async (req, res) => {
   await chat.save();
 
   const populatedChat = await Chat.findById(chat._id)
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
     .populate('lastMessage')
     .populate('lastCall');
   req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:updated', {

@@ -28,7 +28,7 @@ async function findStrangerChatBetween(chatId, userId, peerId) {
 
 async function populateChat(chatId) {
   return Chat.findById(chatId)
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
     .populate('lastMessage');
 }
 
@@ -67,7 +67,7 @@ async function emitCallChatUpdate(io, call) {
   if (!call?.chat) return;
   const chatId = call.chat._id || call.chat;
   const chat = await Chat.findByIdAndUpdate(chatId, { lastCall: call._id }, { new: true })
-    .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+    .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
     .populate('lastMessage')
     .populate('lastCall');
   if (!chat) return;
@@ -121,6 +121,21 @@ async function markMissedCallIfStillRinging(io, callId) {
 export function registerSockets(io) {
   io.use(socketAuth);
 
+  io.use(async (socket, next) => {
+    try {
+      const userId = socket.user?._id?.toString();
+      if (userId) {
+        const activeSockets = await io.in(`user:${userId}`).fetchSockets();
+        if (activeSockets.length >= 5) {
+          return next(new Error('Connection limit exceeded. Please close some tabs.'));
+        }
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
+
   io.on('connection', async (socket) => {
     const userId = socket.user._id.toString();
     const typingState = new Map();
@@ -171,7 +186,7 @@ export function registerSockets(io) {
         }
         await chat.save();
         const populatedChat = await Chat.findById(chat._id)
-          .populate('members', 'name username avatar bio age gender phone email isOnline lastSeenAt')
+          .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
           .populate('lastMessage');
         io.to(`chat:${chatId}`).emit('message:new', { message });
         for (const memberId of chat.members) {
@@ -338,7 +353,7 @@ export function registerSockets(io) {
       });
       const { notification } = await notifyUser(to, {
         title: `${socket.user.name} is calling`,
-        body: `${call.type === 'video' ? 'Video' : 'Audio'} call on Varta`,
+        body: `${call.type === 'video' ? 'Video' : 'Audio'} call on Blippr`,
         url: `/app?chat=${chat._id}`,
         type: 'call',
         chatId: chat._id,

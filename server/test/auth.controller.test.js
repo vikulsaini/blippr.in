@@ -71,7 +71,7 @@ test('email signup creates a user, token, and httpOnly auth cookie', async () =>
   assert.equal(res.statusCode, 201);
   assert.equal(res.body.user.username, 'asha_22');
   assert.ok(res.body.token);
-  assert.equal(res.cookies[0].name, 'varta_token');
+  assert.equal(res.cookies[0].name, 'blippr_token');
   assert.equal(res.cookies[0].options.httpOnly, true);
 });
 

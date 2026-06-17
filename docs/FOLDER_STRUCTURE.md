@@ -1,7 +1,7 @@
 # Folder Structure
 
 ```text
-varta/
+blippr/
   client/
     src/
       components/       Reusable UI, chat and call surfaces
@@ -24,6 +24,6 @@ varta/
 
 ## Mobile Install
 
-The current repo is web/PWA focused. Users can install Varta from supported browsers with `Install app` / `Add to home screen`.
+The current repo is web/PWA focused. Users can install Blippr from supported browsers with `Install app` / `Add to home screen`.
 
 For a store APK/AAB later, add a fresh native wrapper around the deployed Vercel URL.

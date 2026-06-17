@@ -50,12 +50,12 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
       <motion.div
         initial={{ opacity: 0, y: -12, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="fixed inset-x-3 top-3 z-50 mx-auto max-w-md rounded-[22px] border border-white/12 bg-ink/92 p-3 text-white shadow-glow backdrop-blur"
+        className="fixed inset-x-3 top-3 z-50 mx-auto max-w-md rounded-[22px] border border-white/5 bg-ink p-3 text-white shadow-nm-flat"
       >
         <div className="flex items-center gap-3">
-          <img src={call.peerUser?.avatar} alt="" className="h-11 w-11 rounded-2xl bg-white/8 object-cover" />
+          <img src={call.peerUser?.avatar} alt="" className="h-11 w-11 rounded-2xl bg-ink object-cover shadow-nm-inset-sm" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{call.peerUser?.name || 'Varta friend'}</p>
+            <p className="truncate text-sm font-semibold">{call.peerUser?.name || 'Blippr friend'}</p>
             <p className="truncate text-xs text-white/45">{title} - {qualityLabel}</p>
           </div>
           {call.status === 'incoming' ? (
@@ -66,7 +66,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
           ) : (
             <button onClick={onEnd} className="grid h-10 w-10 place-items-center rounded-full bg-coral text-ink" aria-label="End call"><PhoneOff size={17} /></button>
           )}
-          <button onClick={onExpand} className="grid h-10 w-10 place-items-center rounded-full bg-white/10" aria-label="Open call"><Maximize2 size={17} /></button>
+          <button onClick={onExpand} className="btn-icon h-10 w-10" aria-label="Open call"><Maximize2 size={17} /></button>
         </div>
       </motion.div>
     );
@@ -98,7 +98,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
         animate={{ opacity: 1, y: 0, scale: 1 }}
         className="relative h-dvh overflow-hidden p-1 sm:p-1.5"
       >
-        <div className="relative h-full overflow-hidden rounded-[16px] border border-white/10 bg-black/82 shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:rounded-[20px]">
+        <div className="relative h-full overflow-hidden rounded-[16px] border border-white/5 bg-ink shadow-nm-inset sm:rounded-[20px]">
           {!isVideo && <audio ref={remoteAudioRef} autoPlay playsInline />}
           {isVideo && call.remoteStream ? (
             <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-contain" />
@@ -107,9 +107,9 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
               <div>
                 <div className="relative mx-auto h-28 w-28">
                   <span className="absolute inset-0 animate-ping rounded-full bg-mint/15" />
-                  <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-white/8 object-cover shadow-glow" />
+                  <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-ink object-cover shadow-nm-flat border border-white/5" />
                 </div>
-                <p className="mt-5 text-base font-semibold">{call.peerUser?.name || 'Varta friend'}</p>
+                <p className="mt-5 text-base font-semibold">{call.peerUser?.name || 'Blippr friend'}</p>
                 <p className="mt-2 text-sm text-white/52">{call.status === 'reconnecting' ? 'Trying to restore connection...' : call.status === 'connected' ? 'Voice connected' : 'Waiting for answer'}</p>
               </div>
             </div>
@@ -118,7 +118,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
           <div className={`absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/76 via-black/24 to-transparent p-2 transition duration-300 sm:p-3 ${chromeClass}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 rounded-[14px] border border-white/10 bg-black/40 px-2.5 py-1.5 text-left backdrop-blur-md sm:rounded-2xl sm:px-3">
-                <p className="truncate text-[11px] font-semibold text-white sm:text-sm">{call.peerUser?.name || 'Varta friend'}</p>
+                <p className="truncate text-[11px] font-semibold text-white sm:text-sm">{call.peerUser?.name || 'Blippr friend'}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-semibold text-white/52 sm:text-[11px]">
                   <span>{title}</span>
                   <span>{routeLabel}</span>

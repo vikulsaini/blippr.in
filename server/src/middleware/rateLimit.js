@@ -13,7 +13,7 @@ export const authLimiter = rateLimit({
   limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true,
+  skipSuccessfulRequests: false,
   message: { ok: false, message: 'Too many login attempts. Please wait a few minutes and try again.' }
 });
 
