@@ -545,7 +545,7 @@ export default function Auth() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-8 py-3.5 flex items-center gap-2.5 font-bold shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="btn-primary rounded-full px-8 py-3.5 flex items-center gap-2.5 font-bold transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                       {loading ? 'Please wait...' : mode === 'signup' ? (signupStep === 1 ? 'Sign Up' : 'Complete Setup') : mode === 'login' ? 'Sign In' : mode === 'phone' ? (otpSent ? 'Verify OTP' : 'Send OTP') : mode === 'guest' ? 'Enter Cafe' : 'Verify'}
                       <ChevronRight size={18} />
@@ -652,7 +652,7 @@ export default function Auth() {
           {/* Wave Background using custom SVGs */}
           <div className="absolute inset-0 overflow-hidden">
             {/* Gradient Base */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#3B82F6] via-[#4F46E5] to-[#8B5CF6] opacity-95" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#0F766E] via-[#0D9488] to-[#14B8A6] opacity-95" />
             {/* Wave overlay 1 */}
             <svg className="absolute bottom-0 left-0 w-full h-[65%] opacity-15" viewBox="0 0 1440 800" fill="none" preserveAspectRatio="none">
               <path d="M0,280 C360,380 520,200 780,250 C1040,300 1200,450 1440,370 L1440,800 L0,800 Z" fill="#FFFFFF" />
@@ -681,7 +681,7 @@ export default function Auth() {
                 <path 
                   d="M0,32 Q15,8 30,25 T60,6 T90,28 L100,12" 
                   fill="none" 
-                  stroke="#4F46E5" 
+                  stroke="#0D9488" 
                   strokeWidth="3.5" 
                   strokeLinecap="round" 
                 />
@@ -692,8 +692,8 @@ export default function Auth() {
                 />
                 <defs>
                   <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4F46E5" />
-                    <stop offset="100%" stopColor="#4F46E5" stopOpacity="0" />
+                    <stop offset="0%" stopColor="#0D9488" />
+                    <stop offset="100%" stopColor="#0D9488" stopOpacity="0" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -876,7 +876,7 @@ function FacebookIcon() {
 
 function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMode, prefix, icon: Icon, suffix, isValid }) {
   return (
-    <div className="flex items-center border-b border-slate-100 dark:border-slate-800 transition-all duration-200 focus-within:border-indigo-600 focus-within:scale-[1.01] w-full py-1">
+    <div className="flex items-center border-b border-slate-100 dark:border-slate-800 transition-all duration-200 focus-within:border-accent focus-within:scale-[1.01] w-full py-1">
       {Icon && <span className="text-slate-400 mr-3.5"><Icon size={18} /></span>}
       {prefix && <span className="text-slate-400 mr-1 text-sm font-semibold">{prefix}</span>}
       <input
@@ -940,7 +940,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${profile.gender === value ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+              className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${profile.gender === value ? 'bg-accent text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
             >
               {value}
             </button>
@@ -982,7 +982,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
         <textarea 
           value={profile.bio} 
           onChange={(event) => update('bio', event.target.value)} 
-          className="min-h-20 w-full resize-none rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface px-4 py-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 font-semibold" 
+          className="min-h-20 w-full resize-none rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface px-4 py-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
           placeholder="Write a short bio..." 
           maxLength={160} 
         />
