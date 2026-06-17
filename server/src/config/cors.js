@@ -1,5 +1,7 @@
 const defaultOrigins = [
   'http://localhost:5173',
+  'https://blippr.in',
+  'https://www.blippr.in',
   'https://client-bice-one-x6xfheue7f.vercel.app'
 ];
 
