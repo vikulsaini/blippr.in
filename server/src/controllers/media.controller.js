@@ -4,7 +4,7 @@ import { findMediaFile, openMediaDownloadStream, uploadBuffer } from '../service
 
 export const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter(_req, file, cb) {
     const allowed =
       file.mimetype.startsWith('image/') ||
@@ -32,6 +32,16 @@ export const uploadMedia = asyncHandler(async (req, res) => {
     error.status = 422;
     throw error;
   }
+
+  const isImage = req.file.mimetype.startsWith('image/');
+  const maxAllowedSize = isImage ? 5 * 1024 * 1024 : 25 * 1024 * 1024;
+  if (req.file.size > maxAllowedSize) {
+    const error = new Error(isImage ? 'Image file size must be under 5 MB.' : 'File size must be under 25 MB.');
+    error.status = 413;
+    error.code = 'FILE_TOO_LARGE';
+    throw error;
+  }
+
   const result = await uploadBuffer(req.file, `${req.protocol}://${req.get('host')}`);
   res.status(201).json({
     ok: true,

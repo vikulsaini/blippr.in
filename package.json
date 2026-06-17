@@ -15,6 +15,9 @@
     "start": "npm run start --workspace server",
     "lint": "npm run lint --workspace client && npm run lint --workspace server"
   },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
   "engines": {
     "node": ">=20.0.0"
   }

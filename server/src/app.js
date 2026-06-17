@@ -21,7 +21,11 @@ import configRoutes from './routes/config.routes.js';
 const app = express();
 
 app.set('trust proxy', 1);
-app.use(helmet());
+app.use(
+  helmet({
+    frameguard: { action: 'deny' }
+  })
+);
 app.use(compression());
 app.use(cors(corsOptions));
 app.use(requestContext);

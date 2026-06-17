@@ -1,12 +1,13 @@
 const defaultOrigins = [
   'http://localhost:5173',
+  'http://localhost:4173',
   'https://blippr.in',
   'https://www.blippr.in',
   'https://client-bice-one-x6xfheue7f.vercel.app'
 ];
 
 const configuredOrigins = [...defaultOrigins, ...(process.env.CLIENT_URL || '').split(',')]
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/$/, ''))
   .filter(Boolean);
 
 function isLocalDevOrigin(origin) {
@@ -16,13 +17,14 @@ function isLocalDevOrigin(origin) {
 
 export function isAllowedOrigin(origin) {
   if (!origin) return true;
-  return configuredOrigins.includes(origin) || isLocalDevOrigin(origin);
+  const normalizedOrigin = origin.trim().replace(/\/$/, '');
+  return configuredOrigins.includes(normalizedOrigin) || isLocalDevOrigin(normalizedOrigin);
 }
 
 export const corsOptions = {
   origin(origin, callback) {
     if (isAllowedOrigin(origin)) return callback(null, true);
-    return callback(new Error(`CORS blocked origin: ${origin}`));
+    return callback(null, false);
   },
   credentials: true
 };
@@ -30,7 +32,7 @@ export const corsOptions = {
 export const socketCorsOptions = {
   origin(origin, callback) {
     if (isAllowedOrigin(origin)) return callback(null, true);
-    return callback(new Error(`CORS blocked origin: ${origin}`));
+    return callback(null, false);
   },
   credentials: true
 };

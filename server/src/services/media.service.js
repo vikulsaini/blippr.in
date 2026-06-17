@@ -1,4 +1,6 @@
 import { Readable } from 'node:stream';
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 import mongoose from 'mongoose';
 import { cloudinary } from '../config/cloudinary.js';
 
@@ -32,10 +34,13 @@ function bucket() {
 }
 
 function uploadToGridFs(file, baseUrl) {
+  const ext = path.extname(file.originalname || '');
+  const secureFilename = `${randomUUID()}${ext}`;
   return new Promise((resolve, reject) => {
-    const stream = bucket().openUploadStream(file.originalname || `media-${Date.now()}`, {
+    const stream = bucket().openUploadStream(secureFilename, {
       contentType: file.mimetype,
       metadata: {
+        originalName: file.originalname,
         size: file.size,
         uploadedAt: new Date()
       }
