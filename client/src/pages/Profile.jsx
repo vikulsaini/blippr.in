@@ -81,11 +81,14 @@ export default function Profile() {
                 className="transition-all duration-700"
               />
             </svg>
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/30 via-sky-400/20 to-violet-300/15 p-[3px] shadow-float overflow-hidden flex items-center justify-center" style={{ transform: 'translateZ(0)' }}>
+            <div 
+              className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/30 via-sky-400/20 to-violet-300/15 p-[3px] shadow-float flex items-center justify-center" 
+              style={{ transform: 'translateZ(0)', overflow: 'hidden', isolation: 'isolate' }}
+            >
               {user?.avatar ? (
-                <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover bg-surface" />
+                <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover bg-surface animate-fadeIn" style={{ overflow: 'hidden', borderRadius: '50%' }} />
               ) : (
-                <div className="grid h-full w-full place-items-center rounded-full bg-bg text-text-faint">
+                <div className="grid h-full w-full place-items-center rounded-full bg-bg text-text-faint" style={{ overflow: 'hidden', borderRadius: '50%' }}>
                   <UserRound size={34} />
                 </div>
               )}

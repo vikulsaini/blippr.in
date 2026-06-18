@@ -1002,3 +1002,73 @@ select:focus-visible {
 .shadow-brutal-md { box-shadow: var(--shadow-card-hover); }
 .shadow-brutal-lg { box-shadow: var(--shadow-float); }
 .shadow-brutal-xl { box-shadow: var(--shadow-elevated); }
+
+/* ═══════════════════════════════════════════
+   PREMIUM MOTION & COMPONENT OVERRIDES (ui-ux-pro-max)
+   ═══════════════════════════════════════════ */
+
+/* Premium Search Container Pill & focus state */
+.search-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  padding: 10px 18px !important;
+  box-shadow: var(--shadow-card) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.search-container:focus-within {
+  border-color: var(--accent) !important;
+  box-shadow: var(--shadow-glow) !important;
+  transform: scale(1.015) !important;
+}
+
+.search-container input {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: auto !important;
+  line-height: 1.25rem !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Ensure placeholder text contrast matches WCAG AA */
+.search-container input::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.85 !important;
+}
+
+/* Tactile Spring Lifts */
+.btn-primary, .btn-secondary, .btn-icon, .btn-ghost, .btn-brutal, .surface-card, .interactive-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-primary:hover, .btn-brutal:hover, .btn-secondary:hover, .btn-icon:hover {
+  transform: scale(1.02) !important;
+}
+
+.btn-primary:active, .btn-brutal:active, .btn-secondary:active, .btn-icon:active {
+  transform: scale(0.97) !important;
+}
+
+.interactive-card:hover {
+  transform: scale(1.02) translateY(-2px) !important;
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+.interactive-card:active {
+  transform: scale(0.98) translateY(0) !important;
+}
+

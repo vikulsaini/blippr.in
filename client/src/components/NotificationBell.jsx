@@ -132,60 +132,87 @@ export default function NotificationBell() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen((value) => !value)} className="btn-icon relative h-11 w-11 rounded-[16px]" aria-label="Notifications">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-[20px] h-[20px] text-text-primary">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 18.5a2 2 0 0 1-3.46 0" />
-        </svg>
+      <button 
+        onClick={() => setOpen((value) => !value)} 
+        className="btn-icon relative h-11 w-11 rounded-[16px] flex items-center justify-center transition active:scale-95" 
+        aria-label="Notifications"
+      >
+        <Bell size={20} className="text-text-primary" />
         {count > 0 && (
-          <span className="absolute top-2.5 right-2.5 h-2.5 w-2.5 rounded-full bg-accent ring-[2px] ring-surface" />
+          <span className="absolute top-[8px] right-[8px] h-2.5 w-2.5 rounded-full bg-accent ring-[2px] ring-surface badge-pulse z-10" />
         )}
       </button>
       <AnimatePresence>
         {open && (
-          <motion.section
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed inset-0 z-[110] flex h-[100dvh] flex-col bg-surface px-3 pb-[calc(env(safe-area-inset-bottom)+0.85rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)] text-text-primary shadow-elevated backdrop-blur-xl sm:p-5 md:inset-4 md:rounded-[30px] md:border md:border-border-default"
-          >
-            <div className="border-b border-border-default pb-4">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-bold md:text-2xl text-text-primary">Notifications</h2>
-                <button onClick={() => setOpen(false)} className="btn-icon h-10 w-10 rounded-full shrink-0" aria-label="Close notifications">
-                  <X size={17} />
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-text-secondary font-medium">Friend requests, accepted requests, login alerts and important updates</p>
-            </div>
-            {message && <p className="mt-2 text-sm font-medium text-accent">{message}</p>}
-            <div className="mx-auto mt-4 flex w-full max-w-3xl flex-1 flex-col space-y-2 overflow-y-auto overscroll-contain scrollbar-thin pr-1">
-              {loading && <NotificationSkeleton />}
-              {!loading && feed.map((item, index) => (
-                <motion.div
-                  key={item._id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04, duration: 0.2 }}
-                >
-                  <NotificationItem item={item} onRespond={respond} />
-                </motion.div>
-              ))}
-              {!loading && !feed.length && (
-                <div className="py-20 flex-1 flex flex-col items-center justify-center text-center">
-                  <div className="relative mb-4">
-                    <span className="tone-ring grid h-16 w-16 place-items-center rounded-2xl bg-accent/10 text-accent">
-                      <Bell size={28} />
-                    </span>
+          <>
+            {/* Backdrop Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-[105] bg-black/40 backdrop-blur-sm"
+            />
+            {/* Side Drawer Panel */}
+            <motion.section
+              initial={{ x: '100%', opacity: 0.95 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0.95 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 250 }}
+              className="fixed inset-y-0 right-0 z-[110] flex h-[100dvh] w-full max-w-md flex-col bg-surface px-5 pb-[calc(env(safe-area-inset-bottom)+0.85rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)] text-text-primary shadow-elevated border-l border-border-default"
+            >
+              <div className="border-b border-border-default pb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col min-w-0">
+                    <h2 className="text-xl font-bold md:text-2xl text-text-primary leading-tight">Notifications</h2>
+                    <p className="mt-1 text-xs text-text-secondary font-medium leading-relaxed">
+                      Friend requests, login alerts and updates
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm font-semibold text-text-primary">No important notifications yet.</p>
-                  <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-text-secondary font-medium">Messages and call rings stay in their own chat/call surfaces so this screen stays clean.</p>
-                  <button onClick={loadFeed} className="btn-secondary mx-auto mt-4 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold">Refresh</button>
+                  <button 
+                    onClick={() => setOpen(false)} 
+                    className="h-10 w-10 rounded-full bg-surface-hover border border-border-default text-text-primary flex items-center justify-center transition-all duration-300 ease-out hover:scale-110 hover:bg-border-default active:scale-95 shrink-0" 
+                    aria-label="Close notifications"
+                  >
+                    <X size={17} />
+                  </button>
                 </div>
-              )}
-            </div>
-          </motion.section>
+              </div>
+              {message && <p className="mt-2 text-sm font-semibold text-accent">{message}</p>}
+              <div className="mx-auto mt-4 flex w-full flex-1 flex-col space-y-2.5 overflow-y-auto overscroll-contain scrollbar-thin pr-1">
+                {loading && <NotificationSkeleton />}
+                {!loading && feed.map((item, index) => (
+                  <motion.div
+                    key={item._id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04, duration: 0.2 }}
+                  >
+                    <NotificationItem item={item} onRespond={respond} />
+                  </motion.div>
+                ))}
+                {!loading && !feed.length && (
+                  <div className="py-20 flex-1 flex flex-col items-center justify-center text-center">
+                    <div className="relative mb-4">
+                      <span className="tone-ring grid h-16 w-16 place-items-center rounded-2xl bg-accent/10 text-accent">
+                        <Bell size={28} />
+                      </span>
+                    </div>
+                    <p className="mt-2 text-base font-bold text-text-primary">No important notifications yet.</p>
+                    <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-text-secondary font-semibold">
+                      Messages and call rings stay in their own chat/call surfaces so this screen stays clean.
+                    </p>
+                    <button 
+                      onClick={loadFeed} 
+                      className="btn-secondary mx-auto mt-5 flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold shadow-sm"
+                    >
+                      Refresh Feed
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.section>
+          </>
         )}
       </AnimatePresence>
     </div>
