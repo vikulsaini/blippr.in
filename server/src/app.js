@@ -27,6 +27,10 @@ app.use(
     crossOriginResourcePolicy: false
   })
 );
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
 app.use(compression());
 app.use(cors(corsOptions));
 app.use(requestContext);
