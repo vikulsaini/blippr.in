@@ -76,3 +76,12 @@ export async function api(path, options = {}) {
   }
   return body;
 }
+
+export const checkAppConfig = () => api('/config/app');
+
+// Admin
+export const claimAdmin = (secret) => api('/admin/claim', { method: 'POST', body: JSON.stringify({ secret }) });
+export const getAdminStats = () => api('/admin/stats');
+export const searchAdminUsers = (q) => api(`/admin/users?q=${encodeURIComponent(q || '')}`);
+export const updateAdminUserStatus = (id, action, value) => api(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ action, value }) });
+export const sendAdminBroadcast = (message) => api('/admin/broadcast', { method: 'POST', body: JSON.stringify({ message }) });

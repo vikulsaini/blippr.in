@@ -13,6 +13,7 @@ const SettingsPage = lazy(() => import('./pages/Settings.jsx'));
 const Landing = lazy(() => import('./pages/Landing.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const Terms = lazy(() => import('./pages/Terms.jsx'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'));
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/auth" replace />;
@@ -42,6 +43,14 @@ export default function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute>
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
         <Route path="/stranger" element={<Navigate to="/app/stranger" replace />} />
         <Route path="/discover" element={<Navigate to="/app/discover" replace />} />
         <Route path="/profile" element={<Navigate to="/app/profile" replace />} />

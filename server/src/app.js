@@ -17,6 +17,7 @@ import mediaRoutes from './routes/media.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import callRoutes from './routes/call.routes.js';
 import configRoutes from './routes/config.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/calls', callRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/admin', adminRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
