@@ -32,8 +32,10 @@ export default function SettingsPage() {
     localStorage.setItem('blippr_theme', nextTheme);
     if (nextTheme === 'dark') {
       document.documentElement.classList.add('dark-theme');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0B1120');
     } else {
       document.documentElement.classList.remove('dark-theme');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#F8FAFC');
     }
   }
 

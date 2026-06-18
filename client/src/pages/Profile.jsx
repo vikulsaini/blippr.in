@@ -61,7 +61,7 @@ export default function Profile() {
         transition={{ duration: 0.4 }}
         className="elevated-card relative overflow-hidden rounded-3xl p-4 lg:min-h-[28rem] lg:p-6"
       >
-        <div className="pointer-events-none absolute left-1/2 top-4 h-40 w-40 -translate-x-[58%] rounded-full bg-[radial-gradient(circle,rgba(13,148,136,0.08),rgba(14,165,233,0.04)_42%,transparent_72%)] blur-2xl" />
+        <div className="pointer-events-none absolute left-1/2 top-4 h-40 w-40 -translate-x-[58%] rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.08),rgba(124,58,237,0.04)_42%,transparent_72%)] blur-2xl" />
         <div className="absolute right-4 top-4 z-10">
           <button onClick={() => navigate('/app/settings')} className="btn-icon h-12 w-12" aria-label="Open settings">
             <Settings size={20} />

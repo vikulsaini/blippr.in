@@ -1,7 +1,7 @@
 export default function BrandLogo({ compact = false, compactTitle = false, className = '' }) {
   return (
     <div className={`flex items-center ${compact ? 'gap-2' : 'gap-2.5'} ${className} group`}>
-      <span className={`relative grid place-items-center rounded-2xl bg-white border border-border-default shadow-card transition-all duration-200 group-hover:shadow-glow group-hover:scale-[1.03] ${compact || compactTitle ? 'h-9 w-9 p-1' : 'h-11 w-11 p-1.5'}`}>
+      <span className={`relative grid place-items-center rounded-2xl bg-surface border border-border-default shadow-card transition-all duration-200 group-hover:shadow-glow group-hover:scale-[1.03] ${compact || compactTitle ? 'h-9 w-9 p-1' : 'h-11 w-11 p-1.5'}`}>
         <svg viewBox="0 0 100 100" className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Arch/Roof */}
           <path d="M 32 36 A 22 22 0 0 1 68 36" stroke="url(#logo-grad)" strokeWidth="7.5" strokeLinecap="round" />
@@ -20,16 +20,16 @@ export default function BrandLogo({ compact = false, compactTitle = false, class
           
           <defs>
             <linearGradient id="logo-grad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#0EA5E9" />
-              <stop offset="100%" stopColor="#10B981" />
+              <stop offset="0%" stopColor="#2563EB" />
+              <stop offset="100%" stopColor="#7C3AED" />
             </linearGradient>
             <linearGradient id="left-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0EA5E9" />
-              <stop offset="100%" stopColor="#3B82F6" />
+              <stop offset="0%" stopColor="#60A5FA" />
+              <stop offset="100%" stopColor="#2563EB" />
             </linearGradient>
             <linearGradient id="right-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10B981" />
-              <stop offset="100%" stopColor="#14B8A6" />
+              <stop offset="0%" stopColor="#A78BFA" />
+              <stop offset="100%" stopColor="#7C3AED" />
             </linearGradient>
           </defs>
         </svg>

@@ -8,35 +8,45 @@ export default {
       },
       colors: {
         accent: {
-          DEFAULT: '#0D9488',
-          hover: '#0F766E',
-          tint: 'rgba(13, 148, 136, 0.05)',
-          light: 'rgba(13, 148, 136, 0.10)',
-          ring: 'rgba(13, 148, 136, 0.25)'
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          tint: 'var(--accent-tint)',
+          light: 'var(--accent-light)',
+          ring: 'var(--accent-ring)',
+          glow: 'var(--accent-glow)'
         },
-        bg: '#F8F9FA',
-        surface: '#FFFFFF',
-        'surface-hover': '#F1F5F9',
-        'border-default': '#E2E8F0',
-        'border-hover': '#CBD5E1',
-        'text-primary': '#1E293B',
-        'text-secondary': '#334155',
-        'text-muted': '#64748B',
-        'text-faint': '#94A3B8',
-        danger: '#EF4444',
-        success: '#10B981',
+        primary: '#2563EB',
+        'primary-soft': '#60A5FA',
+        bg: 'var(--bg)',
+        surface: 'var(--surface)',
+        'surface-hover': 'var(--surface-hover)',
+        'surface-glass': 'var(--surface-glass)',
+        'border-default': 'var(--border)',
+        'border-hover': 'var(--border-hover)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-muted': 'var(--text-muted)',
+        'text-faint': 'var(--text-faint)',
+        danger: 'var(--danger)',
+        success: 'var(--success)',
         coral: '#EF4444',
         gold: '#F59E0B',
-        mint: '#0D9488'
+        mint: '#10B981'
       },
       boxShadow: {
-        card: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
-        'card-hover': '0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04)',
-        float: '0 8px 28px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
-        elevated: '0 12px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05)',
-        glow: '0 0 0 1px rgba(13, 148, 136, 0.25), 0 4px 16px rgba(13, 148, 136, 0.12)',
-        'accent-sm': '0 2px 8px rgba(13, 148, 136, 0.2)',
-        'accent-md': '0 4px 14px rgba(13, 148, 136, 0.25)'
+        card: 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
+        float: 'var(--shadow-float)',
+        elevated: 'var(--shadow-elevated)',
+        glow: 'var(--shadow-glow)',
+        'accent-sm': '0 2px 8px var(--accent-glow)',
+        'accent-md': '0 4px 18px var(--accent-glow)',
+        /* Brutal aliases → clean shadows */
+        'brutal-sm': 'var(--shadow-card)',
+        'brutal-md': 'var(--shadow-card-hover)',
+        'brutal-lg': 'var(--shadow-float)',
+        'brutal-xl': 'var(--shadow-elevated)',
+        glass: '0 8px 32px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
       },
       borderRadius: {
         '2xl': '16px',
@@ -45,7 +55,11 @@ export default {
       },
       animation: {
         'fade-slide-up': 'fadeSlideUp 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards',
-        'badge-pulse': 'badgePulse 2s ease-in-out infinite'
+        'badge-pulse': 'badgePulse 2s ease-in-out infinite',
+        'gradient-shift': 'gradientShift 6s ease infinite',
+        'float': 'floatGlow 3s ease-in-out infinite',
+        'breathe': 'breathe 4s ease-in-out infinite',
+        'fadeIn': 'fadeSlideUp 0.25s ease forwards'
       },
       keyframes: {
         fadeSlideUp: {
@@ -53,8 +67,21 @@ export default {
           to: { opacity: '1', transform: 'translateY(0)' }
         },
         badgePulse: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(13, 148, 136, 0.4)' },
-          '50%': { boxShadow: '0 0 0 4px rgba(13, 148, 136, 0)' }
+          '0%, 100%': { boxShadow: '0 0 0 0 var(--accent-glow)' },
+          '50%': { boxShadow: '0 0 0 6px transparent' }
+        },
+        gradientShift: {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' }
+        },
+        floatGlow: {
+          '0%, 100%': { transform: 'translateY(0)', boxShadow: '0 4px 16px var(--accent-glow)' },
+          '50%': { transform: 'translateY(-6px)', boxShadow: '0 8px 28px var(--accent-glow)' }
+        },
+        breathe: {
+          '0%, 100%': { opacity: '0.6', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.02)' }
         }
       },
       transitionTimingFunction: {

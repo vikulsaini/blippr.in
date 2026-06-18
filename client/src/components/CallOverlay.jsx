@@ -50,21 +50,21 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
       <motion.div
         initial={{ opacity: 0, y: -12, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="fixed inset-x-3 top-3 z-50 mx-auto max-w-md rounded-[22px] border border-white/5 bg-ink p-3 text-white shadow-nm-flat"
+        className="fixed inset-x-3 top-3 z-50 mx-auto max-w-md rounded-[22px] border border-white/5 bg-slate-950 p-3 text-white shadow-float"
       >
         <div className="flex items-center gap-3">
-          <img src={call.peerUser?.avatar} alt="" className="h-11 w-11 rounded-2xl bg-ink object-cover shadow-nm-inset-sm" />
+          <img src={call.peerUser?.avatar} alt="" className="h-11 w-11 rounded-2xl bg-slate-800 object-cover shadow-sm" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{call.peerUser?.name || 'Blippr friend'}</p>
             <p className="truncate text-xs text-white/45">{title} - {qualityLabel}</p>
           </div>
           {call.status === 'incoming' ? (
             <>
-              <button onClick={onReject} className="grid h-10 w-10 place-items-center rounded-full bg-coral text-ink" aria-label="Reject call"><PhoneOff size={17} /></button>
-              <button onClick={onAccept} className="grid h-10 w-10 place-items-center rounded-full bg-mint text-ink" aria-label="Accept call"><Phone size={17} /></button>
+              <button onClick={onReject} className="grid h-10 w-10 place-items-center rounded-full bg-danger text-white" aria-label="Reject call"><PhoneOff size={17} /></button>
+              <button onClick={onAccept} className="grid h-10 w-10 place-items-center rounded-full bg-success text-white" aria-label="Accept call"><Phone size={17} /></button>
             </>
           ) : (
-            <button onClick={onEnd} className="grid h-10 w-10 place-items-center rounded-full bg-coral text-ink" aria-label="End call"><PhoneOff size={17} /></button>
+            <button onClick={onEnd} className="grid h-10 w-10 place-items-center rounded-full bg-danger text-white" aria-label="End call"><PhoneOff size={17} /></button>
           )}
           <button onClick={onExpand} className="btn-icon h-10 w-10" aria-label="Open call"><Maximize2 size={17} /></button>
         </div>
@@ -89,7 +89,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink text-white">
+    <div className="fixed inset-0 z-50 bg-slate-950 text-white">
       <motion.section
         onPointerDown={revealChrome}
         onPointerMove={revealChrome}
@@ -98,7 +98,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
         animate={{ opacity: 1, y: 0, scale: 1 }}
         className="relative h-dvh overflow-hidden p-1 sm:p-1.5"
       >
-        <div className="relative h-full overflow-hidden rounded-[16px] border border-white/5 bg-ink shadow-nm-inset sm:rounded-[20px]">
+        <div className="relative h-full overflow-hidden rounded-[16px] border border-white/5 bg-slate-900 shadow-inner sm:rounded-[20px]">
           {!isVideo && <audio ref={remoteAudioRef} autoPlay playsInline />}
           {isVideo && call.remoteStream ? (
             <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-contain" />
@@ -106,8 +106,8 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
             <div className="grid h-full place-items-center p-6 text-center">
               <div>
                 <div className="relative mx-auto h-28 w-28">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-mint/15" />
-                  <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-ink object-cover shadow-nm-flat border border-white/5" />
+                  <span className="absolute inset-0 animate-ping rounded-full bg-success/15" />
+                  <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-slate-800 object-cover shadow-md border border-white/5" />
                 </div>
                 <p className="mt-5 text-base font-semibold">{call.peerUser?.name || 'Blippr friend'}</p>
                 <p className="mt-2 text-sm text-white/52">{call.status === 'reconnecting' ? 'Trying to restore connection...' : call.status === 'connected' ? 'Voice connected' : 'Waiting for answer'}</p>
@@ -122,7 +122,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-semibold text-white/52 sm:text-[11px]">
                   <span>{title}</span>
                   <span>{routeLabel}</span>
-                  <span className={`inline-flex items-center gap-1 ${call.quality === 'poor' ? 'text-coral' : call.quality === 'reconnecting' ? 'text-white/55' : 'text-mint'}`}>
+                  <span className={`inline-flex items-center gap-1 ${call.quality === 'poor' ? 'text-danger' : call.quality === 'reconnecting' ? 'text-white/55' : 'text-success'}`}>
                     <QualityIcon size={12} />
                     {qualityLabel}
                   </span>
@@ -135,7 +135,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
           </div>
 
           {isVideo && call.localStream && (
-            <div className="absolute right-2 top-16 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-ink shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:right-4 sm:top-20 sm:h-28 sm:w-24">
+            <div className="absolute right-2 top-16 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:right-4 sm:top-20 sm:h-28 sm:w-24">
               {call.cameraOff ? (
                 <div className="grid h-full place-items-center text-white/45"><VideoOff size={22} /></div>
               ) : (
@@ -176,7 +176,7 @@ async function setAudioOutput(audioElement, speakerOn, callType) {
 function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = false, active = false }) {
   const tones = {
     neutral: active ? 'btn-primary' : 'btn-secondary',
-    danger: 'bg-coral text-ink',
+    danger: 'bg-danger text-white',
     mint: 'btn-primary'
   };
 

@@ -92,10 +92,10 @@ export default function GuestUpgradeModal() {
             <Field label="Contact" value={form.contact} onChange={(value) => update('contact', value)} />
           </div>
           <div>
-            <span className="text-xs text-slate-500">Gender</span>
-            <div className="mt-1.5 grid grid-cols-2 gap-2 rounded-[16px] border border-slate-300 dark:border-slate-700/80 bg-ink p-1 shadow-nm-inset-sm">
+            <span className="text-xs text-text-muted">Gender</span>
+            <div className="mt-1.5 grid grid-cols-2 gap-2 rounded-[16px] border border-border-default bg-bg p-1">
               {['female', 'male'].map((gender) => (
-                <button key={gender} type="button" onClick={() => update('gender', gender)} className={`rounded-[12px] py-2 text-sm font-semibold capitalize ${form.gender === gender ? 'btn-primary' : 'text-slate-500'}`}>
+                <button key={gender} type="button" onClick={() => update('gender', gender)} className={`rounded-[12px] py-2 text-sm font-semibold capitalize ${form.gender === gender ? 'btn-primary' : 'text-text-muted'}`}>
                   {gender}
                 </button>
               ))}
@@ -103,11 +103,11 @@ export default function GuestUpgradeModal() {
           </div>
           <Field label="Hobbies, comma separated" value={form.hobbies} onChange={(value) => update('hobbies', value)} />
           <label className="block">
-            <span className="text-xs text-slate-500">Short bio</span>
-            <textarea value={form.bio} onChange={(event) => update('bio', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[16px] border border-slate-300 dark:border-slate-700/80 bg-ink px-4 py-3 outline-none text-slate-800 dark:text-slate-100 text-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent-ring transition" placeholder="Tell people about you" maxLength={160} />
+            <span className="text-xs text-text-muted">Short bio</span>
+            <textarea value={form.bio} onChange={(event) => update('bio', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[16px] px-4 py-3 outline-none text-sm transition" placeholder="Tell people about you" maxLength={160} />
           </label>
         </div>
-        {message && <p className="mt-3 rounded-[14px] border border-coral/25 bg-coral/10 px-3 py-2 text-sm text-coral">{message}</p>}
+        {message && <p className="mt-3 rounded-[14px] border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{message}</p>}
         <button disabled={loading} className="btn-primary mt-5 flex w-full items-center justify-center gap-2 rounded-[16px] py-3 font-semibold disabled:opacity-55">
           <Save size={18} />
           {loading ? 'Creating account...' : 'Register and continue'}
@@ -120,10 +120,10 @@ export default function GuestUpgradeModal() {
 function Field({ label, value, onChange, type = 'text', icon: Icon }) {
   return (
     <label className="block">
-      <span className="text-xs text-slate-500">{label}</span>
-      <div className="mt-1.5 flex items-center gap-2 rounded-[16px] border border-slate-300 dark:border-slate-700/80 bg-ink px-4 shadow-nm-inset-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent-ring transition">
-        {Icon && <Icon size={16} className="text-slate-400" />}
-        <input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400" type={type} />
+      <span className="text-xs text-text-muted">{label}</span>
+      <div className="mt-1.5 flex items-center gap-2 rounded-[16px] px-4 transition">
+        {Icon && <Icon size={16} className="text-text-faint" />}
+        <input value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-text-faint" type={type} />
       </div>
     </label>
   );

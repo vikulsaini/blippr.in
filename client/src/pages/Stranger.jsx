@@ -736,7 +736,7 @@ function LocalPreview({ stream, videoRef, cameraOff, chromeVisible }) {
   }, [stream, videoRef, cameraOff]);
 
   return (
-    <div className={`absolute right-2 top-14 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-ink shadow-[0_18px_42px_rgba(0,0,0,0.45)] transition duration-300 sm:right-4 sm:top-20 sm:h-28 sm:w-24 lg:h-28 lg:w-24 ${chromeVisible ? 'opacity-100' : 'opacity-45'}`}>
+    <div className={`absolute right-2 top-14 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] transition duration-300 sm:right-4 sm:top-20 sm:h-28 sm:w-24 lg:h-28 lg:w-24 ${chromeVisible ? 'opacity-100' : 'opacity-45'}`}>
       {stream && !cameraOff ? (
         <video ref={videoRef} autoPlay playsInline muted className="h-full w-full scale-x-[-1] object-cover" />
       ) : (

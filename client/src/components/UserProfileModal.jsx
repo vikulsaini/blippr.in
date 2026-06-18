@@ -49,14 +49,14 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
 
   return (
     <div onClick={onClose} className="fixed inset-0 z-40 grid place-items-end bg-black/55 px-4 pb-4 sm:place-items-center">
-      <section onClick={(event) => event.stopPropagation()} className="glass max-h-[92vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 shadow-glow">
+      <section onClick={(event) => event.stopPropagation()} className="surface-card max-h-[92vh] w-full max-w-md overflow-y-auto rounded-[24px] p-5 shadow-elevated bg-surface border border-border-default">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <img src={user.avatar} alt="" className="h-20 w-20 rounded-3xl bg-white/10 object-cover" />
+            <img src={user.avatar} alt="" className="h-20 w-20 rounded-[20px] bg-bg object-cover border border-border-default" />
             <div className="min-w-0">
-              <h2 className="truncate text-2xl font-semibold">{nickname || user.name}</h2>
-              <p className="text-sm text-white/55">@{user.username}</p>
-              <p className={`mt-1 text-sm ${user.isOnline ? 'text-mint' : 'text-white/45'}`}>{presenceText(user)}</p>
+              <h2 className="truncate text-2xl font-bold text-text-primary">{nickname || user.name}</h2>
+              <p className="text-sm text-text-muted">@{user.username}</p>
+              <p className={`mt-1 text-sm font-semibold ${user.isOnline ? 'text-accent' : 'text-text-faint'}`}>{presenceText(user)}</p>
             </div>
           </div>
           <button onClick={onClose} className="btn-icon h-9 w-9 rounded-full" aria-label="Close profile">
@@ -71,27 +71,27 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
           <Info label="Email" value={user.email || 'Not shared'} />
         </div>
 
-        <div className="mt-4 rounded-2xl border border-white/5 bg-ink p-4 shadow-nm-inset-sm">
-          <p className="text-xs uppercase tracking-wide text-white/40">Bio</p>
-          <p className="mt-2 text-sm text-white/72">{user.bio || 'No bio added yet.'}</p>
+        <div className="mt-4 rounded-2xl border border-border-default bg-bg p-4">
+          <p className="text-xs uppercase tracking-wide text-text-faint font-semibold">Bio</p>
+          <p className="mt-2 text-sm text-text-secondary">{user.bio || 'No bio added yet.'}</p>
         </div>
 
         {chat && (
-          <div className="mt-4 space-y-3 rounded-3xl border border-white/5 bg-ink p-4 shadow-nm-inset">
+          <div className="mt-4 space-y-3 rounded-[20px] border border-border-default bg-bg p-4">
             <div>
-              <p className="text-xs uppercase tracking-wide text-white/40">Chat update</p>
+              <p className="text-xs uppercase tracking-wide text-text-faint font-semibold">Chat update</p>
               <div className="mt-2 flex gap-2">
                 <input
                   value={nickname}
                   onChange={(event) => setNickname(event.target.value)}
-                  className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-ink/40 px-3 py-2 text-sm outline-none"
+                  className="min-w-0 flex-1 rounded-2xl border border-border-default bg-surface px-3 py-2 text-sm outline-none text-text-primary font-medium"
                   maxLength={40}
                   placeholder={`Nickname for ${user.name}`}
                 />
                 <button
                   onClick={() => runAction('nickname', () => onNickname?.(chat._id, user._id, nickname))}
                   disabled={busyAction === 'nickname'}
-                  className="grid h-10 w-10 place-items-center rounded-2xl bg-mint text-ink disabled:opacity-50"
+                  className="grid h-10 w-10 place-items-center rounded-2xl btn-primary disabled:opacity-50"
                   aria-label="Save nickname"
                 >
                   <Save size={17} />
@@ -99,10 +99,10 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/5 bg-ink p-3 shadow-nm-flat-sm">
+            <div className="rounded-2xl border border-border-default bg-surface p-3 shadow-card">
               <div className="flex items-center gap-2">
-                <Music size={16} className="text-mint" />
-                <p className="text-sm font-semibold">Friend ringtone</p>
+                <Music size={16} className="text-accent" />
+                <p className="text-sm font-semibold text-text-primary">Friend ringtone</p>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {soundPack.map((sound) => (
@@ -113,23 +113,23 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
                       setFriendRingtone(user._id, next);
                       setFriendTone(next);
                     }}
-                    className={`rounded-2xl px-3 py-2 text-xs font-semibold ${friendTone?.type === 'pack' && friendTone.id === sound.id ? 'btn-primary' : 'bg-white/8 text-white/68'}`}
+                    className={`rounded-2xl px-3 py-2 text-xs font-semibold ${friendTone?.type === 'pack' && friendTone.id === sound.id ? 'btn-primary' : 'bg-bg text-text-secondary border border-border-default hover:bg-surface-hover'}`}
                   >
                     {sound.name}
                   </button>
                 ))}
               </div>
               <div className="mt-3 flex gap-2">
-                <label className="flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-white/8 px-3 py-2 text-xs font-semibold text-white/75">
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl btn-secondary px-3 py-2 text-xs font-semibold">
                   <Music size={15} />
                   Upload audio
                   <input type="file" accept="audio/*" className="hidden" onChange={(event) => uploadFriendTone(event.target.files?.[0])} />
                 </label>
-                <button onClick={() => previewSound(friendTone, 'call')} className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10" aria-label="Preview friend ringtone">
+                <button onClick={() => previewSound(friendTone, 'call')} className="btn-icon h-10 w-10" aria-label="Preview friend ringtone">
                   <Volume2 size={16} />
                 </button>
               </div>
-              <p className="mt-2 truncate text-xs text-white/42">{friendTone?.name || 'Default ringtone'}</p>
+              <p className="mt-2 truncate text-xs text-text-muted">{friendTone?.name || 'Default ringtone'}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -148,26 +148,26 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
               />
             </div>
 
-            <div className="rounded-2xl border border-white/5 bg-ink p-3 shadow-nm-flat-sm">
-              <label className="text-xs text-white/45" htmlFor="report-reason">Report reason</label>
+            <div className="rounded-2xl border border-border-default bg-surface p-3 shadow-card">
+              <label className="text-xs text-text-muted" htmlFor="report-reason">Report reason</label>
               <input
                 id="report-reason"
                 value={reportReason}
                 onChange={(event) => setReportReason(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/8 px-3 py-2 text-sm outline-none"
+                className="mt-2 w-full rounded-2xl border border-border-default bg-bg px-3 py-2 text-sm outline-none text-text-primary"
                 maxLength={120}
               />
               <button
                 onClick={() => runAction('report', () => onReport?.(user._id, reportReason))}
                 disabled={busyAction === 'report' || reportReason.trim().length < 3}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-coral px-3 py-2 text-sm font-semibold text-ink disabled:opacity-50"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-danger hover:bg-red-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50 transition cursor-pointer"
               >
                 <Flag size={16} />
                 Report user
               </button>
             </div>
 
-            {notice && <p className="text-center text-xs text-white/55">{notice}</p>}
+            {notice && <p className="text-center text-xs text-text-muted font-medium">{notice}</p>}
           </div>
         )}
       </section>
@@ -177,9 +177,9 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-ink p-3 shadow-nm-inset-sm">
-      <p className="text-xs text-white/40">{label}</p>
-      <p className="mt-1 truncate text-white/78">{value}</p>
+    <div className="rounded-2xl border border-border-default bg-bg p-3">
+      <p className="text-xs text-text-faint font-semibold">{label}</p>
+      <p className="mt-1 truncate text-text-secondary font-medium">{value}</p>
     </div>
   );
 }
@@ -189,7 +189,7 @@ function ActionButton({ label, icon: Icon, onClick, disabled, danger = false }) 
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold disabled:opacity-50 ${danger ? 'bg-coral/90 text-ink' : 'bg-white/10 text-white/78'}`}
+      className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold disabled:opacity-50 transition cursor-pointer ${danger ? 'bg-danger/10 text-danger border border-danger/20 hover:bg-danger/18' : 'btn-secondary'}`}
     >
       <Icon size={16} />
       {label}

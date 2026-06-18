@@ -305,8 +305,8 @@ export default function Auth() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl flex items-center justify-center p-4">
-      {/* Unified Dribbble-style card structure */}
-      <div className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 shadow-[0_24px_70px_rgba(0,0,0,0.08)] rounded-[2.5rem] p-5 lg:p-7 grid lg:grid-cols-[1.12fr_0.88fr] gap-12 items-stretch min-h-[640px] overflow-hidden">
+      {/* Clean elevated card */}
+      <div className="w-full bg-surface border border-border-default shadow-elevated rounded-[2.5rem] p-5 lg:p-7 grid lg:grid-cols-[1.12fr_0.88fr] gap-12 items-stretch min-h-[640px] overflow-hidden transition-colors duration-[350ms]">
         
         {/* Left Column: Form Content */}
         <div className="flex flex-col justify-between p-4 lg:p-7 space-y-8">
@@ -328,7 +328,7 @@ export default function Auth() {
               >
                 {/* Form Headline */}
                 <div className="space-y-1">
-                  <h2 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  <h2 className="text-4xl font-extrabold tracking-tight text-text-primary">
                     {mode === 'signup' && signupStep === 1 ? 'Sign Up' : ''}
                     {mode === 'signup' && signupStep === 2 ? 'Profile Details' : ''}
                     {mode === 'login' ? 'Sign In' : ''}
@@ -336,7 +336,7 @@ export default function Auth() {
                     {mode === 'guest' ? 'Guest Setup' : ''}
                     {mode === 'verifyEmail' ? 'Verify Email' : ''}
                   </h2>
-                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest">
                     {mode === 'signup' && signupStep === 1 && 'Secure Your Communications with Blippr'}
                     {mode === 'signup' && signupStep === 2 && 'Step 2: Tell us a bit about yourself'}
                     {mode === 'login' && 'Welcome back to your private cafe'}
@@ -391,7 +391,7 @@ export default function Auth() {
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition p-1"
+                              className="text-text-faint hover:text-text-secondary transition p-1"
                             >
                               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
@@ -407,7 +407,7 @@ export default function Auth() {
                           {password.length > 0 && (
                             <div className="mt-2 flex gap-1">
                               {[hasMinLength, hasNumOrSymbol, hasMixedCase].map((met, i) => (
-                                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-border-default'}`} />
                               ))}
                             </div>
                           )}
@@ -422,7 +422,7 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setSignupStep(1)}
-                        className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-bold hover:text-slate-700 transition"
+                        className="flex items-center gap-1.5 text-xs text-text-faint font-bold hover:text-text-secondary transition"
                       >
                         <ArrowLeft size={13} /> Back to account credentials
                       </button>
@@ -451,7 +451,7 @@ export default function Auth() {
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="text-slate-400 hover:text-slate-600 transition p-1"
+                            className="text-text-faint hover:text-text-secondary transition p-1"
                           >
                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
@@ -522,8 +522,8 @@ export default function Auth() {
                   {/* EMAIL VERIFICATION FIELDS */}
                   {mode === 'verifyEmail' && (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-xs font-semibold text-slate-500 leading-relaxed dark:bg-slate-800/40 dark:border-slate-800">
-                        Verification code sent to <span className="font-bold text-slate-800 dark:text-slate-200">{pendingEmail || email}</span>. Enter code:
+                      <div className="rounded-2xl border border-border-default bg-bg p-4 text-xs font-semibold text-text-muted leading-relaxed transition-colors duration-[350ms]">
+                        Verification code sent to <span className="font-bold text-text-primary">{pendingEmail || email}</span>. Enter code:
                       </div>
                       <UnderlinedInput 
                         value={emailCode} 
@@ -556,7 +556,7 @@ export default function Auth() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="btn-primary rounded-full px-8 py-3.5 flex items-center gap-2.5 font-bold transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="btn-primary rounded-xl px-8 py-3.5 flex items-center gap-2.5 font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                       {loading ? 'Please wait...' : mode === 'signup' ? (signupStep === 1 ? 'Sign Up' : 'Complete Setup') : mode === 'login' ? 'Sign In' : mode === 'phone' ? (otpSent ? 'Verify OTP' : 'Send OTP') : mode === 'guest' ? 'Enter Cafe' : 'Verify'}
                       <ChevronRight size={18} />
@@ -564,13 +564,13 @@ export default function Auth() {
 
                     {(mode === 'login' || (mode === 'signup' && signupStep === 1)) && (
                       <>
-                        <span className="text-slate-400 text-sm font-semibold">Or</span>
+                        <span className="text-text-muted text-sm font-semibold">Or</span>
                         <div className="flex items-center gap-2.5">
                           {/* Facebook circular button */}
                           <button
                             type="button"
                             onClick={() => setSocialModal('Facebook')}
-                            className="h-11 w-11 rounded-full border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 flex items-center justify-center transition active:scale-95 text-[#1877F2]"
+                            className="h-11 w-11 rounded-xl border border-border-default hover:border-accent hover:bg-accent-tint flex items-center justify-center transition active:scale-95 text-[#1877F2] shadow-card bg-surface"
                           >
                             <FacebookIcon />
                           </button>
@@ -578,7 +578,7 @@ export default function Auth() {
                           <button
                             type="button"
                             onClick={() => setSocialModal('Google')}
-                            className="h-11 w-11 rounded-full border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 flex items-center justify-center transition active:scale-95"
+                            className="h-11 w-11 rounded-xl border border-border-default hover:border-accent hover:bg-accent-tint flex items-center justify-center transition active:scale-95 shadow-card bg-surface"
                           >
                             <GoogleIcon />
                           </button>
@@ -592,9 +592,9 @@ export default function Auth() {
           </div>
 
           {/* Footer switches & Language Selector */}
-          <div className="pt-6 border-t border-slate-100 dark:border-slate-800/40 space-y-5">
+          <div className="pt-6 border-t border-border-default space-y-5">
             {/* Unified Mode switches */}
-            <div className="text-xs text-slate-400 dark:text-slate-600 font-bold space-y-2.5">
+            <div className="text-xs text-text-faint font-bold space-y-2.5">
               {mode === 'login' && (
                 <>
                   <p>
@@ -628,7 +628,7 @@ export default function Auth() {
                 </>
               )}
               {(mode === 'phone' || mode === 'guest' || mode === 'verifyEmail') && (
-                <p className="flex items-center gap-2 flex-wrap text-slate-400 font-bold">
+                <p className="flex items-center gap-2 flex-wrap text-text-faint font-bold">
                   <button type="button" onClick={() => switchMode('login')} className="text-accent hover:underline">Email Login</button>
                   <span>•</span>
                   <button type="button" onClick={() => switchMode('signup')} className="text-accent hover:underline">Email Signup</button>
@@ -649,7 +649,7 @@ export default function Auth() {
             </div>
 
             {/* Language Selector at bottom left */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold cursor-pointer hover:text-slate-600 transition w-fit select-none">
+            <div className="flex items-center gap-1.5 text-xs text-text-faint font-bold cursor-pointer hover:text-text-secondary transition w-fit select-none">
               <Globe size={14} />
               <span>ENG</span>
               <ChevronDown size={12} />
@@ -657,20 +657,26 @@ export default function Auth() {
           </div>
         </div>
 
-        {/* Right Column: Wave Visual Panel (matches Dribbble Reference) */}
+        {/* Right Column: Modern Visual Panel */}
         <div className="hidden lg:flex relative rounded-[2rem] overflow-hidden p-8 flex-col justify-between items-stretch">
           
-          {/* Wave Background using custom SVGs */}
+          {/* Animated Gradient Background */}
           <div className="absolute inset-0 overflow-hidden">
-            {/* Gradient Base */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#0F766E] via-[#0D9488] to-[#14B8A6] opacity-95" />
-            {/* Wave overlay 1 */}
-            <svg className="absolute bottom-0 left-0 w-full h-[65%] opacity-15" viewBox="0 0 1440 800" fill="none" preserveAspectRatio="none">
-              <path d="M0,280 C360,380 520,200 780,250 C1040,300 1200,450 1440,370 L1440,800 L0,800 Z" fill="#FFFFFF" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB] via-[#7C3AED] to-[#EC4899] opacity-90" />
+            {/* Animated mesh overlay */}
+            <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="auth-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M40 0 L0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#auth-grid)" />
             </svg>
-            {/* Wave overlay 2 */}
-            <svg className="absolute bottom-0 left-0 w-full h-[48%] opacity-20" viewBox="0 0 1440 800" fill="none" preserveAspectRatio="none">
-              <path d="M0,380 C420,480 680,280 940,330 C1200,380 1320,480 1440,430 L1440,800 L0,800 Z" fill="#FFFFFF" />
+            {/* Animated wave */}
+            <svg className="absolute bottom-0 left-0 w-full h-[50%] opacity-15" viewBox="0 0 1440 800" fill="none" preserveAspectRatio="none">
+              <path d="M0,280 C360,380 520,200 780,250 C1040,300 1200,450 1440,370 L1440,800 L0,800 Z" fill="#FFFFFF">
+                <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,280 C360,380 520,200 780,250 C1040,300 1200,450 1440,370 L1440,800 L0,800 Z;M0,320 C300,240 560,380 780,290 C1000,200 1260,360 1440,310 L1440,800 L0,800 Z;M0,280 C360,380 520,200 780,250 C1040,300 1200,450 1440,370 L1440,800 L0,800 Z" />
+              </path>
             </svg>
           </div>
 
@@ -679,11 +685,11 @@ export default function Auth() {
             initial={{ opacity: 0, x: 25, y: 15 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ delay: 0.3, type: "spring", stiffness: 80 }}
-            className="relative z-10 bg-white/95 dark:bg-slate-900/90 rounded-3xl p-5 shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-white/20 w-[85%] ml-auto mt-6"
+            className="relative z-10 rounded-3xl p-5 w-[85%] ml-auto mt-6 backdrop-blur-md bg-white/90 border border-white/30 shadow-elevated"
           >
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Inbox</span>
-              <span className="text-xs font-bold text-slate-400">176,18</span>
+              <span className="text-[10px] font-extrabold text-text-muted uppercase tracking-widest">Inbox</span>
+              <span className="text-xs font-bold text-text-muted">176,18</span>
             </div>
             
             {/* Beautiful Mini Line Chart */}
@@ -692,24 +698,23 @@ export default function Auth() {
                 <path 
                   d="M0,32 Q15,8 30,25 T60,6 T90,28 L100,12" 
                   fill="none" 
-                  stroke="#0D9488" 
+                  stroke="#2563EB" 
                   strokeWidth="3.5" 
                   strokeLinecap="round" 
                 />
                 <path 
                   d="M0,32 Q15,8 30,25 T60,6 T90,28 L100,12 L100,40 L0,40 Z" 
-                  fill="url(#chart-gradient)" 
+                  fill="url(#chart-gradient-auth)" 
                   opacity="0.12" 
                 />
                 <defs>
-                  <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0D9488" />
-                    <stop offset="100%" stopColor="#0D9488" stopOpacity="0" />
+                  <linearGradient id="chart-gradient-auth" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2563EB" />
+                    <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
                   </linearGradient>
                 </defs>
               </svg>
-              {/* Floating dark badge with unread count */}
-              <div className="absolute top-1.5 right-12 h-6 w-6 rounded-full bg-slate-950 text-white font-extrabold text-[10px] flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-md">
+              <div className="absolute top-1.5 right-12 h-6 w-6 rounded-full bg-accent text-white font-extrabold text-[10px] flex items-center justify-center shadow-accent-sm">
                 45
               </div>
             </div>
@@ -720,35 +725,46 @@ export default function Auth() {
             initial={{ opacity: 0, x: -25, y: -15 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ delay: 0.45, type: "spring", stiffness: 80 }}
-            className="relative z-10 bg-white/95 dark:bg-slate-900/90 rounded-3xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-white/20 w-[90%] mr-auto mt-6"
+            className="relative z-10 rounded-3xl p-6 w-[90%] mr-auto mt-6 backdrop-blur-md bg-white/90 border border-white/30 shadow-elevated"
           >
             <div className="flex gap-4 items-start">
-              {/* Key badge */}
-              <span className="flex-shrink-0 grid place-items-center h-11 w-11 rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-[#FF9800]">
+              <span className="flex-shrink-0 grid place-items-center h-11 w-11 rounded-2xl bg-amber-50 text-[#FF9800]">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25z" />
                 </svg>
               </span>
               
               <div className="space-y-1">
-                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Your data, your rules</h4>
-                <p className="text-[11px] leading-relaxed text-slate-400 dark:text-slate-500 font-medium">
+                <h4 className="text-sm font-extrabold text-text-primary">Your data, your rules</h4>
+                <p className="text-[11px] leading-relaxed text-text-muted font-medium">
                   Your data belongs to you, and our encryption ensures that your chat tunnels remain completely private.
                 </p>
               </div>
             </div>
           </motion.div>
 
-          {/* Social Icons floating on background waves */}
-          <div className="absolute top-[32%] right-[10%] z-10 h-10 w-10 rounded-full bg-white shadow-card flex items-center justify-center border border-border-default">
+          {/* Floating accent orbs */}
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+            className="absolute top-[32%] right-[10%] z-10 h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-float"
+          >
             <Music size={16} className="text-accent" />
-          </div>
-          <div className="absolute top-[18%] left-[8%] z-10 h-11 w-11 rounded-full bg-white shadow-card flex items-center justify-center border border-border-default">
+          </motion.div>
+          <motion.div
+            animate={{ y: [0, 6, 0] }}
+            transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut', delay: 1 }}
+            className="absolute top-[18%] left-[8%] z-10 h-11 w-11 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-float"
+          >
             <Camera size={18} className="text-accent" />
-          </div>
-          <div className="absolute bottom-[8%] right-[18%] z-10 h-9 w-9 rounded-full bg-white shadow-card flex items-center justify-center border border-border-default">
+          </motion.div>
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ repeat: Infinity, duration: 3.5, ease: 'easeInOut', delay: 0.5 }}
+            className="absolute bottom-[8%] right-[18%] z-10 h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-float"
+          >
             <MessageCircle size={14} className="text-accent" />
-          </div>
+          </motion.div>
 
         </div>
 
@@ -764,7 +780,7 @@ export default function Auth() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !connectingSocial && setSocialModal(null)}
-              className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
 
             {/* Modal Box */}
@@ -772,13 +788,13 @@ export default function Auth() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-elevated p-6 z-10"
+              className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border-default bg-surface shadow-elevated p-6 z-10 transition-colors duration-[350ms]"
             >
               {/* Close Button */}
               {!connectingSocial && (
                 <button
                   onClick={() => setSocialModal(null)}
-                  className="absolute top-4 right-4 rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  className="absolute top-4 right-4 rounded-xl p-1.5 text-text-faint hover:bg-surface-hover transition"
                 >
                   <X size={18} />
                 </button>
@@ -789,11 +805,11 @@ export default function Auth() {
                   {/* Spinner */}
                   <div className="mx-auto h-12 w-12 rounded-full border-4 border-accent/25 border-t-accent animate-spin" />
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-slate-800 dark:text-white">Connecting to {socialModal}...</p>
-                    <p className="text-xs text-slate-400">Simulating secure OAuth authentication handshake</p>
+                    <p className="text-sm font-bold text-text-primary">Connecting to {socialModal}...</p>
+                    <p className="text-xs text-text-faint">Simulating secure OAuth authentication handshake</p>
                   </div>
                   {selectedSocialProfile && (
-                    <div className="flex items-center justify-center gap-2 pt-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="flex items-center justify-center gap-2 pt-2 text-xs font-semibold text-text-secondary">
                       <img src={selectedSocialProfile.avatar} className="h-6 w-6 rounded-full border" alt="" />
                       <span>{selectedSocialProfile.name}</span>
                     </div>
@@ -803,9 +819,9 @@ export default function Auth() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-accent">
                     <Sparkles size={20} />
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Connect with {socialModal}</h3>
+                    <h3 className="text-lg font-bold text-text-primary">Connect with {socialModal}</h3>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+                  <p className="text-xs text-text-muted leading-relaxed font-semibold">
                     This is a development sandboxed environment. Choose a mock {socialModal} account below to authenticate immediately:
                   </p>
 
@@ -814,18 +830,18 @@ export default function Auth() {
                       <button
                         key={index}
                         onClick={() => triggerSocialLogin(profileOpt)}
-                        className="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent hover:bg-accent/5 dark:hover:bg-accent/10 transition group"
+                        className="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl border border-border-default hover:border-accent hover:bg-accent/5 transition group"
                       >
                         <img 
                           src={profileOpt.avatar} 
-                          className="h-10 w-10 rounded-full border border-slate-200/80 bg-white shadow-sm"
+                          className="h-10 w-10 rounded-full border border-border-default bg-surface shadow-sm"
                           alt="" 
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-800 dark:text-white group-hover:text-accent transition">{profileOpt.name}</p>
-                          <p className="text-xs text-slate-400 truncate font-semibold">{profileOpt.email}</p>
+                          <p className="text-sm font-bold text-text-primary group-hover:text-accent transition">{profileOpt.name}</p>
+                          <p className="text-xs text-text-faint truncate font-semibold">{profileOpt.email}</p>
                         </div>
-                        <div className="text-right text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-100 dark:border-slate-700">
+                        <div className="text-right text-[10px] font-bold text-text-faint bg-bg px-2.5 py-1 rounded-full border border-border-default">
                           {profileOpt.age} • {profileOpt.gender}
                         </div>
                       </button>
@@ -887,13 +903,13 @@ function FacebookIcon() {
 
 function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMode, prefix, icon: Icon, suffix, isValid }) {
   return (
-    <div className="flex items-center border-b border-slate-100 dark:border-slate-800 transition-all duration-200 focus-within:border-accent focus-within:scale-[1.01] w-full py-1">
-      {Icon && <span className="text-slate-400 mr-3.5"><Icon size={18} /></span>}
-      {prefix && <span className="text-slate-400 mr-1 text-sm font-semibold">{prefix}</span>}
+    <div className="flex items-center border-b border-border-default transition-all duration-200 focus-within:border-accent focus-within:scale-[1.01] w-full py-1">
+      {Icon && <span className="text-text-faint mr-3.5"><Icon size={18} /></span>}
+      {prefix && <span className="text-text-faint mr-1 text-sm font-semibold">{prefix}</span>}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-w-0 flex-1 bg-transparent py-3 text-sm text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 font-semibold"
+        className="min-w-0 flex-1 bg-transparent py-3 text-sm text-text-primary outline-none placeholder:text-text-faint font-semibold"
         placeholder={placeholder}
         type={type}
         inputMode={inputMode}
@@ -920,9 +936,9 @@ function PasswordRule({ met, text }) {
           </svg>
         </span>
       ) : (
-        <span className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-700 ml-1 mr-1" />
+        <span className="h-1.5 w-1.5 rounded-full bg-border-default ml-1 mr-1" />
       )}
-      <span className={met ? "text-emerald-600 dark:text-emerald-500" : "text-slate-400 dark:text-slate-500"}>
+      <span className={met ? "text-emerald-600" : "text-text-faint"}>
         {text}
       </span>
     </div>
@@ -935,7 +951,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4">
+    <div className="space-y-4 rounded-2xl border border-border-default bg-bg p-4 transition-colors duration-[350ms]">
       <div className="grid grid-cols-2 gap-3.5">
         <UnderlinedInput 
           value={profile.age} 
@@ -945,13 +961,13 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
           icon={UserRound}
           isValid={Number(profile.age) >= 18}
         />
-        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface p-1 text-xs">
+        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border-default bg-surface p-1 text-xs">
           {['female', 'male'].map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${profile.gender === value ? 'bg-accent text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+              className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${profile.gender === value ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
             >
               {value}
             </button>
@@ -993,7 +1009,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
         <textarea 
           value={profile.bio} 
           onChange={(event) => update('bio', event.target.value)} 
-          className="min-h-20 w-full resize-none rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface px-4 py-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
+          className="min-h-20 w-full resize-none rounded-2xl border border-border-default bg-surface px-4 py-3.5 text-xs text-text-primary outline-none placeholder:text-text-faint focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
           placeholder="Write a short bio..." 
           maxLength={160} 
         />
