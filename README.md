@@ -26,7 +26,7 @@ Blippr is a mobile-first real-time chat PWA with friends, Omegle-style random ro
 - Auth: JWT, httpOnly auth cookie support, email/password, guest, phone OTP, Google token hook.
 - Calling: WebRTC with Socket.IO signaling, STUN/TURN, and browser media device routing where supported.
 - Media/storage: Cloudinary-ready backend utilities.
-- Deployment targets: Vercel frontend, Render backend.
+- Deployment targets: Vercel frontend, Railway backend.
 
 ## Quick Start
 
@@ -63,7 +63,7 @@ Important values:
 - `REDIS_URL`
 - `JWT_SECRET`
 - `CLIENT_URL`
-- `PUBLIC_API_URL` - your backend URL, for example `https://blippr-api-2k6p.onrender.com`, used for Mongo-stored media URLs.
+- `PUBLIC_API_URL` - your backend URL, for example `https://api.blippr.in`, used for Mongo-stored media URLs.
 - `OTP_TTL_SECONDS`
 - `OTP_COOLDOWN_SECONDS`
 - `OTP_MAX_ATTEMPTS`
