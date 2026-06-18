@@ -90,6 +90,7 @@ export default function Profile() {
                 </div>
               )}
             </div>
+            <span className="absolute bottom-2 right-2 z-10 h-[18px] w-[18px] rounded-full border-2 border-surface live-dot bg-success text-success" />
           </div>
 
           <div className="mx-auto mt-4 max-w-sm rounded-[24px] border border-border-default bg-surface px-4 py-3 shadow-card">
@@ -102,6 +103,11 @@ export default function Profile() {
                 <Copy size={14} />
               </button>
             )}
+          </div>
+
+          <div className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-accent/20 bg-accent/8 px-4 py-1.5 text-xs font-semibold shadow-sm transition mx-auto text-accent">
+            <span className="h-2 w-2 rounded-full bg-success badge-pulse" />
+            Active now
           </div>
 
           <div className="mx-auto mt-3 flex max-w-md items-center justify-between gap-3 rounded-[20px] border border-border-default bg-bg px-3 py-2">
