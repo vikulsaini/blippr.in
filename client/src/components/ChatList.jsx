@@ -123,18 +123,9 @@ export default function ChatList({
           />
         ) : (
           <div className="flex shrink-0 items-center justify-between px-4 py-2">
-            <div className="flex items-center gap-3">
-              {me?.avatar ? (
-                <img src={me.avatar} alt="" className="h-9 w-9 rounded-full border border-border-default object-cover shadow-sm" />
-              ) : (
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-accent/10 font-bold text-accent text-sm">
-                  BC
-                </div>
-              )}
-              <div className="flex items-center gap-1">
-                <h2 className="text-lg font-bold tracking-tight text-text-primary">Blippr Chat</h2>
-                <ChevronDown size={15} className="text-text-muted mt-0.5" />
-              </div>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-lg font-bold tracking-tight text-text-primary">Blippr Chat</h2>
+              <ChevronDown size={15} className="text-text-muted mt-0.5" />
             </div>
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -175,26 +166,7 @@ export default function ChatList({
       </div>
 
       <div data-chat-feed className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin px-4 space-y-4">
-        {showThreadsPromo && (
-          <div className="flex items-center justify-between rounded-2xl border border-accent/20 bg-accent-tint p-3.5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
-                <Mail size={18} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-bold text-text-primary">Threads</h4>
-                <p className="text-[11px] text-text-muted truncate">You have unread design threads</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowThreadsPromo(false)}
-              className="rounded-full p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary transition shrink-0"
-              aria-label="Dismiss threads"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
+
 
         {loading ? (
           <ChatSkeleton />
@@ -369,12 +341,22 @@ function ToolbarButton({ icon: Icon, label, onClick, danger = false }) {
   );
 }
 
-function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, other, onOpen, onProfile, onSelect, onSetChatPreference }) {
+function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, other, onOpen, onSelect, onSetChatPreference }) {
   const x = useMotionValue(0);
-  const archiveOpacity = useTransform(x, [0, 80], [0.4, 1]);
-  const archiveScale = useTransform(x, [0, 80], [0.9, 1.05]);
-  const muteOpacity = useTransform(x, [-80, 0], [1, 0.4]);
-  const muteScale = useTransform(x, [-80, 0], [1.05, 0.9]);
+  const [activeAction, setActiveAction] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = x.on('change', (latest) => {
+      if (latest > 86) {
+        setActiveAction('archive');
+      } else if (latest < -86) {
+        setActiveAction('mute');
+      } else {
+        setActiveAction(null);
+      }
+    });
+    return () => unsubscribe();
+  }, [x]);
 
   function handleSwipeEnd(_, info) {
     if (info.offset.x > 86) {
@@ -391,44 +373,49 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
       variants={itemVariants}
       className="relative mb-1.5 overflow-hidden rounded-2xl bg-bg"
     >
-      <motion.div
-        style={{ opacity: archiveOpacity, scale: archiveScale }}
-        className="absolute inset-y-0 left-0 flex items-center gap-2 pl-4 text-xs font-semibold text-accent"
+      {/* Archive Slide Action Background */}
+      <div
+        className={`absolute inset-y-0 left-0 w-1/2 flex items-center justify-start pl-4 gap-2 text-xs font-bold transition-all duration-200 rounded-l-2xl ${
+          activeAction === 'archive' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-400'
+        }`}
       >
-        <Archive size={17} />
-        Archive
-      </motion.div>
-      <motion.div
-        style={{ opacity: muteOpacity, scale: muteScale }}
-        className="absolute inset-y-0 right-0 flex items-center gap-2 pr-4 text-xs font-semibold text-danger"
+        <motion.div
+          animate={activeAction === 'archive' ? { scale: 1.12 } : { scale: 1 }}
+          className="flex items-center gap-2"
+        >
+          <Archive size={17} />
+          <span>{activeAction === 'archive' ? 'Release to Archive' : 'Archive'}</span>
+        </motion.div>
+      </div>
+
+      {/* Mute Slide Action Background */}
+      <div
+        className={`absolute inset-y-0 right-0 w-1/2 flex items-center justify-end pr-4 gap-2 text-xs font-bold transition-all duration-200 rounded-r-2xl ${
+          activeAction === 'mute' ? 'bg-amber-500 text-white' : 'bg-amber-500/10 text-amber-400'
+        }`}
       >
-        <BellOff size={17} />
-        Mute
-      </motion.div>
+        <motion.div
+          animate={activeAction === 'mute' ? { scale: 1.12 } : { scale: 1 }}
+          className="flex items-center gap-2"
+        >
+          <BellOff size={17} />
+          <span>{activeAction === 'mute' ? 'Release to Mute' : 'Mute'}</span>
+        </motion.div>
+      </div>
+
       <motion.article
         drag="x"
         style={{ x }}
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.18}
+        dragElastic={0.22}
         onDragEnd={handleSwipeEnd}
         onContextMenu={(event) => {
           event.preventDefault();
           event.stopPropagation();
           onSelect();
         }}
-        className={`interactive-card relative flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left md:px-3 ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : ''}`}
+        className={`interactive-card relative flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : ''}`}
       >
-        <button
-          className="relative"
-          onClick={(event) => {
-            event.stopPropagation();
-            onProfile();
-          }}
-          aria-label={`View ${displayName || 'friend'} profile`}
-        >
-          {other?.avatar ? <img src={other.avatar} alt="" className="h-10 w-10 rounded-full border border-border-default object-cover shadow-card" /> : <div className="h-10 w-10 rounded-full border border-border-default bg-bg" />}
-          {other?.isOnline && <span className="absolute bottom-0 right-0 status-dot online" />}
-        </button>
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center justify-between gap-3">
             <p className="truncate font-semibold text-text-primary">{displayName || 'Friend'}</p>
@@ -440,7 +427,7 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
               <span className={`status-dot ${other?.isOnline ? 'online' : 'offline'}`} />
             </span>
           </div>
-          <div className="mt-1 flex items-center justify-between gap-3">
+          <div className="mt-1.5 flex items-center justify-between gap-3">
             <p className={`truncate text-xs ${typing ? 'font-semibold text-accent' : chat.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
               {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
             </p>

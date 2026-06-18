@@ -348,7 +348,7 @@ export default function Auth() {
                         <button
                           type="button"
                           onClick={() => setSocialModal('Google')}
-                          className="h-14 px-6 rounded-full border border-white/10 hover:border-blue-500/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white"
+                          className="h-14 px-6 rounded-full border border-white/10 hover:border-accent/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white"
                         >
                           <GoogleIcon />
                           <span>Google</span>
@@ -358,7 +358,7 @@ export default function Auth() {
                         <button
                           type="button"
                           onClick={() => alert('Apple Sign-in is coming soon!')}
-                          className="h-14 px-6 rounded-full border border-white/10 hover:border-blue-500/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white"
+                          className="h-14 px-6 rounded-full border border-white/10 hover:border-accent/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white"
                         >
                           <AppleIcon />
                           <span>Apple</span>
@@ -514,7 +514,7 @@ export default function Auth() {
                               {profile.gender === value && (
                                 <motion.span
                                   layoutId="guest-gender-pill"
-                                  className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 -z-10 shadow-md"
+                                  className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
                                   transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                                 />
                               )}
@@ -629,7 +629,7 @@ export default function Auth() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full h-14 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-full shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
+                      className="w-full h-14 bg-gradient-to-r from-accent via-accent-hover to-success hover:from-accent-hover hover:to-success text-white font-bold rounded-full shadow-lg shadow-accent/20 flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
                     >
                       {loading ? 'Please wait...' : mode === 'signup' ? (signupStep === 1 ? 'Continue' : 'Complete Setup') : mode === 'login' ? 'Log In' : mode === 'guest' ? 'Enter Cafe' : mode === 'forgotPassword' ? 'Send Reset Code' : mode === 'resetPassword' ? 'Update Password' : 'Verify'}
                       <ChevronRight size={18} />
@@ -640,7 +640,7 @@ export default function Auth() {
                       {mode === 'login' && (
                         <p className="text-sm text-zinc-400">
                           Create an account?{' '}
-                          <button type="button" onClick={() => switchMode('signup')} className="text-cyan-400 font-bold hover:underline">
+                          <button type="button" onClick={() => switchMode('signup')} className="text-accent font-bold hover:underline">
                             Sign Up
                           </button>
                         </p>
@@ -705,7 +705,7 @@ export default function Auth() {
 
           {/* Central Globe illustration */}
           <div className="flex-1 flex items-center justify-center py-6 relative">
-            <div className="absolute w-72 h-72 bg-blue-500/15 rounded-full blur-[80px] z-0" />
+            <div className="absolute w-72 h-72 bg-accent/15 rounded-full blur-[80px] z-0" />
             <img 
               src="/auth_globe.png" 
               alt="Glowing Earth Globe" 
@@ -715,9 +715,9 @@ export default function Auth() {
 
           {/* Onboarding Typography */}
           <div className="space-y-4">
-            <span className="text-xs font-bold text-cyan-400 uppercase tracking-[0.2em] select-none">Connect Instantly</span>
+            <span className="text-xs font-bold text-accent uppercase tracking-[0.2em] select-none">Connect Instantly</span>
             <h3 className="text-3xl font-extrabold leading-tight text-white select-none">
-              Share <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Moment</span><br />
+              Share <span className="bg-gradient-to-r from-accent to-success bg-clip-text text-transparent">Moment</span><br />
               Around You!
             </h3>
           </div>
@@ -730,7 +730,7 @@ export default function Auth() {
                 <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80" alt="User 1" />
                 <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80" alt="User 2" />
                 <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80" alt="User 3" />
-                <div className="w-8 h-8 rounded-full border border-[#030508] bg-gradient-to-r from-blue-600 to-cyan-500 flex items-center justify-center text-[10px] font-bold text-white">
+                <div className="w-8 h-8 rounded-full border border-[#030508] bg-gradient-to-r from-accent to-accent-hover flex items-center justify-center text-[10px] font-bold text-white">
                   +17M
                 </div>
               </div>
@@ -751,7 +751,7 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-                className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 active:scale-95 transition"
+                className="w-12 h-12 rounded-full bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent flex items-center justify-center text-white shadow-lg shadow-accent/25 active:scale-95 transition"
               >
                 <ChevronRight size={20} />
               </button>
@@ -829,7 +829,7 @@ export default function Auth() {
                             {googleGender === value && (
                               <motion.span
                                 layoutId="google-gender-pill"
-                                className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 -z-10 shadow-md"
+                                className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
                                 transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                               />
                             )}
@@ -842,7 +842,7 @@ export default function Auth() {
                     <textarea 
                       value={googleBio} 
                       onChange={(event) => setGoogleBio(event.target.value)} 
-                      className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-500 focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 font-semibold" 
+                      className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-500 focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
                       placeholder="Write a short bio (optional)..." 
                       maxLength={160} 
                     />
@@ -921,7 +921,7 @@ function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMod
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={`w-full bg-[#111827]/40 border border-white/10 rounded-full py-4 ${prefix ? 'pl-11' : 'px-6'} pr-12 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 font-semibold`}
+        className={`w-full bg-[#111827]/40 border border-white/10 rounded-full py-4 ${prefix ? 'pl-11' : 'px-6'} pr-12 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold`}
         placeholder={placeholder}
         type={type}
         inputMode={inputMode}
@@ -983,7 +983,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
               {profile.gender === value && (
                 <motion.span
                   layoutId="signup-gender-pill"
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 -z-10 shadow-md"
+                  className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
                   transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                 />
               )}
@@ -1024,7 +1024,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
         <textarea 
           value={profile.bio} 
           onChange={(event) => update('bio', event.target.value)} 
-          className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-500 focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 font-semibold" 
+          className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-500 focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
           placeholder="Write a short bio..." 
           maxLength={160} 
         />

@@ -278,20 +278,13 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
-            {chat?.isMock && chat?.type === 'channel' ? (
-              <button onClick={() => onProfile?.()} className="relative" aria-label={`View ${chat.name} info`}>
-                <div className="h-10 w-10 rounded-xl bg-accent-light text-accent border border-border-default flex items-center justify-center shrink-0">
-                  <Hash size={19} />
-                </div>
-              </button>
-            ) : otherMember?.avatar ? (
-              <button onClick={() => onProfile?.(otherMember)} className="relative" aria-label={`View ${displayName} profile`}>
-                <img src={otherMember.avatar} alt="" className="h-10 w-10 rounded-full object-cover border border-border-default" />
-                <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface ${otherMember.isOnline ? 'bg-success' : 'bg-border-default'}`} />
-              </button>
-            ) : null}
             <button onClick={() => (chat?.isMock ? onProfile?.() : (otherMember && onProfile?.(otherMember)))} className="min-w-0 text-left">
-              <p className="truncate font-semibold text-text-primary">{chat?.isMock ? chat.name : (displayName || 'Select a chat')}</p>
+              <p className="truncate font-semibold text-text-primary flex items-center gap-1.5">
+                {chat?.isMock ? chat.name : (displayName || 'Select a chat')}
+                {!chat?.isMock && otherMember && (
+                  <span className={`h-2 w-2 rounded-full ${otherMember.isOnline ? 'bg-success animate-pulse' : 'bg-zinc-600'}`} />
+                )}
+              </p>
               <p className={`truncate text-xs font-medium ${isTyping || (chat?.isMock ? isTyping : otherMember?.isOnline) ? 'text-accent' : 'text-text-muted'}`}>
                 {isTyping ? 'typing...' : chat?.isMock ? '3 members • 2 online' : otherMember ? presenceText(otherMember) : 'No active conversation'}
               </p>

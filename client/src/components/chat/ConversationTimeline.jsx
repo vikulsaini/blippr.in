@@ -175,7 +175,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         onPointerUp={stopPress}
         onPointerCancel={stopPress}
         onPointerLeave={stopPress}
-        className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-blue-500 text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'}`}
+        className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-accent-hover text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'}`}
       >
         {message.replyTo && (
           <div className={`mb-1.5 rounded-xl border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-white/40 bg-white/10 text-white/90' : 'border-accent/40 bg-bg text-text-secondary'}`}>
