@@ -284,17 +284,20 @@ export default function Auth() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-6xl flex items-center justify-center p-4">
-      {/* Clean elevated card */}
-      <div className="w-full bg-surface border border-border-default shadow-elevated rounded-[2.5rem] p-5 lg:p-7 grid lg:grid-cols-[1.12fr_0.88fr] gap-12 items-stretch min-h-[640px] overflow-hidden transition-colors duration-[350ms]">
+    <main className="relative min-h-screen w-full bg-[#030508] text-white flex items-center justify-center p-4 md:p-8 overflow-hidden font-sans">
+      {/* Top Ambient Glow Orb */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[450px] bg-gradient-to-b from-[#1d4ed8]/35 via-[#2563eb]/10 to-transparent rounded-full blur-[120px] pointer-events-none z-0" />
+
+      {/* Main Container */}
+      <div className="relative z-10 w-full max-w-6xl grid lg:grid-cols-[1.1fr_0.9fr] gap-8 xl:gap-16 items-stretch min-h-[700px]">
         
         {/* Left Column: Form Content */}
-        <div className="flex flex-col justify-between p-4 lg:p-7 space-y-8">
+        <div className="flex flex-col justify-between bg-black/30 backdrop-blur-2xl border border-white/5 shadow-2xl rounded-[2.5rem] p-6 sm:p-10 lg:p-12 space-y-8 relative overflow-hidden">
           
-          {/* Header section */}
+          {/* Header/Logo section */}
           <div>
-            <div className="flex items-center justify-between mb-8">
-              <BrandLogo compactTitle />
+            <div className="flex justify-center mb-8">
+              <BrandLogo className="text-white [&_.text-text-primary]:text-white [&_.text-text-muted]:text-zinc-500 [&_span.bg-surface]:bg-[#111827]/80 [&_span.border-border-default]:border-white/10" />
             </div>
 
             <AnimatePresence mode="wait">
@@ -307,24 +310,24 @@ export default function Auth() {
                 className="space-y-6"
               >
                 {/* Form Headline */}
-                <div className="space-y-1">
-                  <h2 className="text-4xl font-extrabold tracking-tight text-text-primary">
-                    {mode === 'signup' && signupStep === 1 ? 'Sign Up' : ''}
+                <div className="space-y-2 text-center">
+                  <h2 className="text-3xl font-extrabold tracking-tight text-white animate-fadeIn">
+                    {mode === 'signup' && signupStep === 1 ? 'Create an Account' : ''}
                     {mode === 'signup' && signupStep === 2 ? 'Profile Details' : ''}
-                    {mode === 'login' ? 'Sign In' : ''}
+                    {mode === 'login' ? 'Hi There!' : ''}
                     {mode === 'guest' ? 'Guest Setup' : ''}
                     {mode === 'verifyEmail' ? 'Verify Email' : ''}
                     {mode === 'forgotPassword' ? 'Reset Password' : ''}
                     {mode === 'resetPassword' ? 'New Password' : ''}
                   </h2>
-                  <p className="text-xs font-bold text-text-muted uppercase tracking-widest">
-                    {mode === 'signup' && signupStep === 1 && 'Secure Your Communications with Blippr'}
+                  <p className="text-xs font-semibold text-zinc-400 max-w-md mx-auto leading-relaxed animate-fadeIn">
+                    {mode === 'signup' && signupStep === 1 && 'To create an account provide details verify email and set a password.'}
                     {mode === 'signup' && signupStep === 2 && 'Step 2: Tell us a bit about yourself'}
-                    {mode === 'login' && 'Welcome back to your private cafe'}
-                    {mode === 'guest' && 'Enter instantly without an email address'}
-                    {mode === 'verifyEmail' && 'Secure authentication checkpoint'}
-                    {mode === 'forgotPassword' && 'Enter your email to receive a reset code'}
-                    {mode === 'resetPassword' && 'Enter the 6-digit code and your new password'}
+                    {mode === 'login' && 'Please enter required details.'}
+                    {mode === 'guest' && 'Enter instantly without an email address.'}
+                    {mode === 'verifyEmail' && 'Secure authentication checkpoint.'}
+                    {mode === 'forgotPassword' && 'Enter your email to receive a reset code.'}
+                    {mode === 'resetPassword' && 'Enter the 6-digit code and your new password.'}
                   </p>
                 </div>
 
@@ -337,30 +340,61 @@ export default function Auth() {
                   verifyEmail
                 } className="space-y-5 pt-2">
                   
+                  {/* Social Login Buttons (Google & Apple) */}
+                  {(mode === 'login' || (mode === 'signup' && signupStep === 1)) && (
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Google button */}
+                        <button
+                          type="button"
+                          onClick={() => setSocialModal('Google')}
+                          className="h-14 px-6 rounded-full border border-white/10 hover:border-blue-500/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white"
+                        >
+                          <GoogleIcon />
+                          <span>Google</span>
+                        </button>
+                        
+                        {/* Apple button (mock) */}
+                        <button
+                          type="button"
+                          onClick={() => alert('Apple Sign-in is coming soon!')}
+                          className="h-14 px-6 rounded-full border border-white/10 hover:border-blue-500/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white"
+                        >
+                          <AppleIcon />
+                          <span>Apple</span>
+                        </button>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="flex items-center gap-4 py-2">
+                        <div className="h-[1px] flex-1 bg-white/10" />
+                        <span className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">Or</span>
+                        <div className="h-[1px] flex-1 bg-white/10" />
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* SIGNUP STEP 1 FIELDS */}
                   {mode === 'signup' && signupStep === 1 && (
                     <>
                       <UnderlinedInput 
                         value={profile.name} 
                         onChange={(value) => setProfile((c) => ({ ...c, name: value }))} 
-                        placeholder="Daniel Ahmadi" 
-                        icon={UserRound}
+                        placeholder="Full Name" 
                         isValid={isNameValid}
                       />
                       <UnderlinedInput 
                         value={profile.username} 
                         onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
-                        placeholder="11danielahmadi" 
+                        placeholder="Username" 
                         prefix="@"
-                        icon={UserRound}
                         isValid={isUsernameValid}
                       />
                       <UnderlinedInput 
                         value={email} 
                         onChange={setEmail} 
-                        placeholder="11danielahmadi@gmail.com" 
+                        placeholder="Email Address" 
                         type="email" 
-                        icon={Mail}
                         isValid={isEmailValid}
                       />
                       <div className="space-y-3">
@@ -369,12 +403,11 @@ export default function Auth() {
                           onChange={setPassword} 
                           placeholder="Password" 
                           type={showPassword ? 'text' : 'password'} 
-                          icon={Lock}
                           suffix={
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="text-text-faint hover:text-text-secondary transition p-1"
+                              className="text-zinc-500 hover:text-zinc-300 transition p-1"
                             >
                               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
@@ -390,7 +423,7 @@ export default function Auth() {
                           {password.length > 0 && (
                             <div className="mt-2 flex gap-1">
                               {[hasMinLength, hasNumOrSymbol, hasMixedCase].map((met, i) => (
-                                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-border-default'}`} />
+                                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-white/10'}`} />
                               ))}
                             </div>
                           )}
@@ -405,7 +438,7 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setSignupStep(1)}
-                        className="flex items-center gap-1.5 text-xs text-text-faint font-bold hover:text-text-secondary transition"
+                        className="flex items-center gap-1.5 text-xs text-zinc-500 font-bold hover:text-zinc-300 transition"
                       >
                         <ArrowLeft size={13} /> Back to account credentials
                       </button>
@@ -421,7 +454,6 @@ export default function Auth() {
                         onChange={setEmail} 
                         placeholder="Email Address" 
                         type="email" 
-                        icon={Mail}
                         isValid={isEmailValid}
                       />
                       <div className="space-y-2">
@@ -430,12 +462,11 @@ export default function Auth() {
                           onChange={setPassword} 
                           placeholder="Password" 
                           type={showPassword ? 'text' : 'password'} 
-                          icon={Lock}
                           suffix={
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="text-text-faint hover:text-text-secondary transition p-1"
+                              className="text-zinc-500 hover:text-zinc-300 transition p-1"
                             >
                               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
@@ -443,12 +474,12 @@ export default function Auth() {
                           isValid={password.length >= 6}
                         />
                         <div className="flex justify-end">
-                          <button type="button" onClick={() => switchMode('forgotPassword')} className="text-[11px] font-bold text-accent hover:underline">Forgot password?</button>
+                          <button type="button" onClick={() => switchMode('forgotPassword')} className="text-[11px] font-bold text-cyan-400 hover:underline">Forgot password?</button>
                         </div>
                       </div>
                       
                       {emailHint && (
-                        <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
+                        <p className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs text-cyan-400 font-semibold leading-relaxed">
                           {emailHint}
                         </p>
                       )}
@@ -457,12 +488,11 @@ export default function Auth() {
 
                   {/* GUEST FIELDS */}
                   {mode === 'guest' && (
-                    <div className="space-y-4 rounded-2xl border border-border-default bg-bg p-4 transition-colors duration-[350ms]">
+                    <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-4 transition-colors duration-[350ms]">
                       <UnderlinedInput 
                         value={profile.name} 
                         onChange={(value) => setProfile((c) => ({ ...c, name: value }))} 
                         placeholder="Profile Name" 
-                        icon={UserRound}
                         isValid={profile.name.trim().length >= 2}
                       />
                       <div className="grid grid-cols-2 gap-3.5">
@@ -471,21 +501,20 @@ export default function Auth() {
                           onChange={(value) => setProfile((c) => ({ ...c, age: value }))} 
                           placeholder="Age (18+)" 
                           type="number" 
-                          icon={UserRound}
                           isValid={Number(profile.age) >= 18}
                         />
-                        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border-default bg-surface p-1 text-xs">
+                        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
                           {['female', 'male'].map((value) => (
                             <button
                               key={value}
                               type="button"
                               onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                              className={`group relative rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-text-muted hover:text-text-primary'}`}
+                              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
                             >
                               {profile.gender === value && (
                                 <motion.span
                                   layoutId="guest-gender-pill"
-                                  className="absolute inset-0 rounded-xl bg-accent -z-10 shadow-sm"
+                                  className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 -z-10 shadow-md"
                                   transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                                 />
                               )}
@@ -500,10 +529,10 @@ export default function Auth() {
                           type="checkbox"
                           checked={guestTermsAccepted}
                           onChange={(e) => setGuestTermsAccepted(e.target.checked)}
-                          className="mt-1 h-4 w-4 rounded border-border-default text-accent focus:ring-accent"
+                          className="mt-1 h-4 w-4 rounded border-white/10 text-cyan-400 focus:ring-cyan-400/25 bg-black/20"
                         />
-                        <label htmlFor="guest-terms" className="text-xs text-text-secondary leading-normal font-semibold cursor-pointer">
-                          I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Privacy Policy</a>, and I certify that I am 18 years of age or older.
+                        <label htmlFor="guest-terms" className="text-xs text-zinc-400 leading-normal font-semibold cursor-pointer">
+                          I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Privacy Policy</a>, and I certify that I am 18 years of age or older.
                         </label>
                       </div>
                     </div>
@@ -517,7 +546,6 @@ export default function Auth() {
                         onChange={setEmail} 
                         placeholder="Email Address" 
                         type="email" 
-                        icon={Mail}
                         isValid={isEmailValid}
                       />
                     </div>
@@ -526,15 +554,14 @@ export default function Auth() {
                   {/* RESET PASSWORD FIELDS */}
                   {mode === 'resetPassword' && (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-border-default bg-bg p-4 text-xs font-semibold text-text-muted leading-relaxed transition-colors duration-[350ms]">
-                        Reset code sent to <span className="font-bold text-text-primary">{email}</span>. Enter code:
+                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-xs font-semibold text-zinc-400 leading-relaxed transition-colors duration-[350ms]">
+                        Reset code sent to <span className="font-bold text-white">{email}</span>. Enter code:
                       </div>
                       <UnderlinedInput 
                         value={emailCode} 
                         onChange={setEmailCode} 
                         placeholder="6-digit code" 
                         inputMode="numeric" 
-                        icon={ShieldCheck} 
                         isValid={emailCode.length === 6}
                       />
                       <UnderlinedInput 
@@ -542,12 +569,11 @@ export default function Auth() {
                         onChange={setPassword} 
                         placeholder="New Password" 
                         type={showPassword ? 'text' : 'password'} 
-                        icon={Lock}
                         suffix={
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="text-text-faint hover:text-text-secondary transition p-1"
+                            className="text-zinc-500 hover:text-zinc-300 transition p-1"
                           >
                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
@@ -560,7 +586,7 @@ export default function Auth() {
                         <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
                       </div>
                       {emailHint && (
-                        <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
+                        <p className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs text-cyan-400 font-semibold leading-relaxed">
                           {emailHint}
                         </p>
                       )}
@@ -570,19 +596,18 @@ export default function Auth() {
                   {/* EMAIL VERIFICATION FIELDS */}
                   {mode === 'verifyEmail' && (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-border-default bg-bg p-4 text-xs font-semibold text-text-muted leading-relaxed transition-colors duration-[350ms]">
-                        Verification code sent to <span className="font-bold text-text-primary">{pendingEmail || email}</span>. Enter code:
+                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-xs font-semibold text-zinc-400 leading-relaxed transition-colors duration-[350ms]">
+                        Verification code sent to <span className="font-bold text-white">{pendingEmail || email}</span>. Enter code:
                       </div>
                       <UnderlinedInput 
                         value={emailCode} 
                         onChange={setEmailCode} 
                         placeholder="6-digit code" 
                         inputMode="numeric" 
-                        icon={ShieldCheck} 
                         isValid={emailCode.length === 6}
                       />
                       {emailHint && (
-                        <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
+                        <p className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs text-cyan-400 font-semibold leading-relaxed">
                           {emailHint}
                         </p>
                       )}
@@ -593,38 +618,62 @@ export default function Auth() {
                     <motion.p 
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-xs font-semibold text-danger bg-danger/5 border border-danger/10 p-3 rounded-2xl"
+                      className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-2xl animate-fadeIn"
                     >
                       {error}
                     </motion.p>
                   )}
 
                   {/* Actions Row: Submit Pill & Social Circles */}
-                  <div className="flex items-center gap-4 mt-8 flex-wrap pt-2">
+                  <div className="space-y-4 mt-8 pt-2">
                     <button
                       type="submit"
                       disabled={loading}
-                      className="btn-primary rounded-xl px-8 py-3.5 flex items-center gap-2.5 font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="w-full h-14 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-full shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
                     >
-                      {loading ? 'Please wait...' : mode === 'signup' ? (signupStep === 1 ? 'Sign Up' : 'Complete Setup') : mode === 'login' ? 'Sign In' : mode === 'guest' ? 'Enter Cafe' : mode === 'forgotPassword' ? 'Send Reset Code' : mode === 'resetPassword' ? 'Update Password' : 'Verify'}
+                      {loading ? 'Please wait...' : mode === 'signup' ? (signupStep === 1 ? 'Continue' : 'Complete Setup') : mode === 'login' ? 'Log In' : mode === 'guest' ? 'Enter Cafe' : mode === 'forgotPassword' ? 'Send Reset Code' : mode === 'resetPassword' ? 'Update Password' : 'Verify'}
                       <ChevronRight size={18} />
                     </button>
 
-                    {(mode === 'login' || (mode === 'signup' && signupStep === 1)) && (
-                      <>
-                        <span className="text-text-muted text-sm font-semibold">Or</span>
-                        <div className="flex items-center gap-2.5">
-                          {/* Google login button */}
-                          <button
-                            type="button"
-                            onClick={() => setSocialModal('Google')}
-                            className="h-11 px-4 rounded-xl border border-border-default hover:border-accent hover:bg-accent-tint flex items-center gap-2 justify-center transition active:scale-95 shadow-card bg-surface font-bold text-xs text-text-secondary"
-                          >
-                            <GoogleIcon />
-                            <span>Google</span>
+                    {/* Action Links */}
+                    <div className="text-center pt-2">
+                      {mode === 'login' && (
+                        <p className="text-sm text-zinc-400">
+                          Create an account?{' '}
+                          <button type="button" onClick={() => switchMode('signup')} className="text-cyan-400 font-bold hover:underline">
+                            Sign Up
                           </button>
+                        </p>
+                      )}
+                      {mode === 'signup' && (
+                        <p className="text-sm text-zinc-400">
+                          Have an account?{' '}
+                          <button type="button" onClick={() => switchMode('login')} className="text-cyan-400 font-bold hover:underline">
+                            Log In
+                          </button>
+                        </p>
+                      )}
+                      {(mode === 'guest' || mode === 'verifyEmail' || mode === 'forgotPassword' || mode === 'resetPassword') && (
+                        <div className="flex items-center justify-center gap-3 text-xs text-zinc-500 font-bold">
+                          <button type="button" onClick={() => switchMode('login')} className="text-cyan-400 hover:underline">Email Login</button>
+                          <span>•</span>
+                          <button type="button" onClick={() => switchMode('signup')} className="text-cyan-400 hover:underline">Email Signup</button>
+                          {mode !== 'guest' && (
+                            <>
+                              <span>•</span>
+                              <button type="button" onClick={() => switchMode('guest')} className="text-cyan-400 hover:underline">Guest Session</button>
+                            </>
+                          )}
                         </div>
-                      </>
+                      )}
+                    </div>
+
+                    {(mode === 'login' || mode === 'signup') && (
+                      <div className="text-center">
+                        <button type="button" onClick={() => switchMode('guest')} className="text-xs text-zinc-500 font-bold hover:text-zinc-300 hover:underline transition">
+                          Continue as Guest
+                        </button>
+                      </div>
                     )}
                   </div>
                 </form>
@@ -632,171 +681,82 @@ export default function Auth() {
             </AnimatePresence>
           </div>
 
-          {/* Footer switches & Language Selector */}
-          <div className="pt-6 border-t border-border-default space-y-5">
-            {/* Unified Mode switches */}
-            <div className="text-xs text-text-faint font-bold space-y-2.5">
-              {mode === 'login' && (
-                <>
-                  <p>
-                    New to Blippr?{' '}
-                    <button type="button" onClick={() => switchMode('signup')} className="text-accent font-extrabold hover:underline">
-                      Create account
-                    </button>
-                  </p>
-                  <p className="flex items-center gap-1.5 flex-wrap">
-                    <span>Alternative ways:</span>
-                    <button type="button" onClick={() => switchMode('guest')} className="text-accent hover:underline">Guest Session</button>
-                  </p>
-                </>
-              )}
-              {mode === 'signup' && (
-                <>
-                  <p>
-                    Already have an account?{' '}
-                    <button type="button" onClick={() => switchMode('login')} className="text-accent font-extrabold hover:underline">
-                      Sign In
-                    </button>
-                  </p>
-                  <p className="flex items-center gap-1.5 flex-wrap">
-                    <span>Alternative ways:</span>
-                    <button type="button" onClick={() => switchMode('guest')} className="text-accent hover:underline">Guest Session</button>
-                  </p>
-                </>
-              )}
-              {(mode === 'guest' || mode === 'verifyEmail' || mode === 'forgotPassword' || mode === 'resetPassword') && (
-                <p className="flex items-center gap-2 flex-wrap text-text-faint font-bold">
-                  <button type="button" onClick={() => switchMode('login')} className="text-accent hover:underline">Email Login</button>
-                  <span>•</span>
-                  <button type="button" onClick={() => switchMode('signup')} className="text-accent hover:underline">Email Signup</button>
-                  {mode !== 'guest' && (
-                    <>
-                      <span>•</span>
-                      <button type="button" onClick={() => switchMode('guest')} className="text-accent hover:underline">Guest Session</button>
-                    </>
-                  )}
-                </p>
-              )}
+          {/* Footer links */}
+          <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-zinc-500">
+            <div className="flex items-center gap-3">
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 hover:underline">Terms of Service</a>
+              <span>|</span>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 hover:underline">Privacy Policy</a>
             </div>
-
-            {/* Language Selector at bottom left */}
-            <div className="flex items-center gap-1.5 text-xs text-text-faint font-bold cursor-pointer hover:text-text-secondary transition w-fit select-none">
-              <Globe size={14} />
-              <span>ENG</span>
-              <ChevronDown size={12} />
+            
+            <div className="flex items-center gap-1.5 cursor-pointer hover:text-zinc-300 transition select-none text-[11px]">
+              <Globe size={13} />
+              <span>ENGLISH (US)</span>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Modern Visual Panel */}
-        <div className="hidden lg:flex relative rounded-[2rem] overflow-hidden p-8 flex-col justify-between items-stretch">
-          
-          {/* Animated Gradient Background */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB] via-[#7C3AED] to-[#EC4899] opacity-90" />
-            {/* Animated mesh overlay */}
-            <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="auth-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M40 0 L0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#auth-grid)" />
-            </svg>
-            {/* Animated wave */}
-            <svg className="absolute bottom-0 left-0 w-full h-[50%] opacity-15" viewBox="0 0 1440 800" fill="none" preserveAspectRatio="none">
-              <path d="M0,280 C360,380 520,200 780,250 C1040,300 1200,450 1440,370 L1440,800 L0,800 Z" fill="#FFFFFF">
-                <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,280 C360,380 520,200 780,250 C1040,300 1200,450 1440,370 L1440,800 L0,800 Z;M0,320 C300,240 560,380 780,290 C1000,200 1260,360 1440,310 L1440,800 L0,800 Z;M0,280 C360,380 520,200 780,250 C1040,300 1200,450 1440,370 L1440,800 L0,800 Z" />
-              </path>
-            </svg>
+        {/* Right Column: Modern Visual Onboarding Panel (Desktop/Tablet) */}
+        <div className="hidden lg:flex relative rounded-[2.5rem] bg-gradient-to-b from-[#0B0F19] to-[#030508] border border-white/5 shadow-2xl p-10 flex-col justify-between items-stretch overflow-hidden">
+          {/* Logo Header */}
+          <div className="flex items-center gap-2">
+            <BrandLogo compact className="text-white [&_span.bg-surface]:bg-[#111827]/80 [&_span.border-border-default]:border-white/10" />
           </div>
 
-          {/* Floating Card 1: Stats Mockup */}
-          <motion.div 
-            initial={{ opacity: 0, x: 25, y: 15 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 80 }}
-            className="relative z-10 rounded-3xl p-5 w-[85%] ml-auto mt-6 backdrop-blur-md bg-white/90 border border-white/30 shadow-elevated"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold text-text-muted uppercase tracking-widest">Inbox</span>
-              <span className="text-xs font-bold text-text-muted">176,18</span>
-            </div>
-            
-            {/* Beautiful Mini Line Chart */}
-            <div className="h-16 w-full mt-4 relative">
-              <svg className="h-full w-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-                <path 
-                  d="M0,32 Q15,8 30,25 T60,6 T90,28 L100,12" 
-                  fill="none" 
-                  stroke="#2563EB" 
-                  strokeWidth="3.5" 
-                  strokeLinecap="round" 
-                />
-                <path 
-                  d="M0,32 Q15,8 30,25 T60,6 T90,28 L100,12 L100,40 L0,40 Z" 
-                  fill="url(#chart-gradient-auth)" 
-                  opacity="0.12" 
-                />
-                <defs>
-                  <linearGradient id="chart-gradient-auth" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563EB" />
-                    <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute top-1.5 right-12 h-6 w-6 rounded-full bg-accent text-white font-extrabold text-[10px] flex items-center justify-center shadow-accent-sm">
-                45
-              </div>
-            </div>
-          </motion.div>
+          {/* Central Globe illustration */}
+          <div className="flex-1 flex items-center justify-center py-6 relative">
+            <div className="absolute w-72 h-72 bg-blue-500/15 rounded-full blur-[80px] z-0" />
+            <img 
+              src="/auth_globe.png" 
+              alt="Glowing Earth Globe" 
+              className="w-80 h-80 object-contain relative z-10 animate-[pulse_6s_infinite_ease-in-out]" 
+            />
+          </div>
 
-          {/* Floating Card 2: Security Mockup */}
-          <motion.div 
-            initial={{ opacity: 0, x: -25, y: -15 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ delay: 0.45, type: "spring", stiffness: 80 }}
-            className="relative z-10 rounded-3xl p-6 w-[90%] mr-auto mt-6 backdrop-blur-md bg-white/90 border border-white/30 shadow-elevated"
-          >
-            <div className="flex gap-4 items-start">
-              <span className="flex-shrink-0 grid place-items-center h-11 w-11 rounded-2xl bg-amber-50 text-[#FF9800]">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25z" />
-                </svg>
+          {/* Onboarding Typography */}
+          <div className="space-y-4">
+            <span className="text-xs font-bold text-cyan-400 uppercase tracking-[0.2em] select-none">Connect Instantly</span>
+            <h3 className="text-3xl font-extrabold leading-tight text-white select-none">
+              Share <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Moment</span><br />
+              Around You!
+            </h3>
+          </div>
+
+          {/* Stats & Controls */}
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
+            {/* Avatar row */}
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2.5">
+                <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80" alt="User 1" />
+                <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80" alt="User 2" />
+                <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80" alt="User 3" />
+                <div className="w-8 h-8 rounded-full border border-[#030508] bg-gradient-to-r from-blue-600 to-cyan-500 flex items-center justify-center text-[10px] font-bold text-white">
+                  +17M
+                </div>
+              </div>
+              <span className="text-xs text-zinc-400 font-semibold select-none">
+                Out regular users
               </span>
-              
-              <div className="space-y-1">
-                <h4 className="text-sm font-extrabold text-text-primary">Your data, your rules</h4>
-                <p className="text-[11px] leading-relaxed text-text-muted font-medium">
-                  Your data belongs to you, and our encryption ensures that your chat tunnels remain completely private.
-                </p>
-              </div>
             </div>
-          </motion.div>
 
-          {/* Floating accent orbs */}
-          <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-            className="absolute top-[32%] right-[10%] z-10 h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-float"
-          >
-            <Music size={16} className="text-accent" />
-          </motion.div>
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut', delay: 1 }}
-            className="absolute top-[18%] left-[8%] z-10 h-11 w-11 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-float"
-          >
-            <Camera size={18} className="text-accent" />
-          </motion.div>
-          <motion.div
-            animate={{ y: [0, -6, 0] }}
-            transition={{ repeat: Infinity, duration: 3.5, ease: 'easeInOut', delay: 0.5 }}
-            className="absolute bottom-[8%] right-[18%] z-10 h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-float"
-          >
-            <MessageCircle size={14} className="text-accent" />
-          </motion.div>
-
+            {/* Next/Skip buttons */}
+            <div className="flex items-center gap-4">
+              <button 
+                type="button"
+                onClick={() => switchMode('guest')}
+                className="text-xs text-zinc-500 font-bold hover:text-zinc-300 transition"
+              >
+                Skip
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+                className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 active:scale-95 transition"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -811,7 +771,7 @@ export default function Auth() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !loading && setSocialModal(null)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
 
             {/* Modal Box */}
@@ -819,13 +779,13 @@ export default function Auth() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border-default bg-surface shadow-elevated p-6 z-10 transition-colors duration-[350ms]"
+              className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-[#0e1322] shadow-2xl p-6 z-10"
             >
               {/* Close Button */}
               {!loading && (
                 <button
                   onClick={() => setSocialModal(null)}
-                  className="absolute top-4 right-4 rounded-xl p-1.5 text-text-faint hover:bg-surface-hover transition"
+                  className="absolute top-4 right-4 rounded-full p-1.5 text-zinc-500 hover:bg-white/5 transition"
                 >
                   <X size={18} />
                 </button>
@@ -833,44 +793,43 @@ export default function Auth() {
 
               {loading ? (
                 <div className="py-8 text-center space-y-4">
-                  <div className="mx-auto h-12 w-12 rounded-full border-4 border-accent/25 border-t-accent animate-spin" />
+                  <div className="mx-auto h-12 w-12 rounded-full border-4 border-cyan-500/25 border-t-cyan-500 animate-spin" />
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-text-primary">Connecting to Google...</p>
-                    <p className="text-xs text-text-faint">Verifying secure Google authentication token</p>
+                    <p className="text-sm font-bold text-white">Connecting to Google...</p>
+                    <p className="text-xs text-zinc-500">Verifying secure Google authentication token</p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-accent">
+                  <div className="flex items-center gap-2 text-cyan-400">
                     <Sparkles size={20} />
-                    <h3 className="text-lg font-bold text-text-primary">Google Profile Setup</h3>
+                    <h3 className="text-lg font-bold text-white">Google Profile Setup</h3>
                   </div>
-                  <p className="text-xs text-text-muted leading-relaxed font-semibold">
+                  <p className="text-xs text-zinc-400 leading-relaxed font-semibold">
                     Age and gender are required to secure our chat channels. Please complete these details:
                   </p>
 
-                  <div className="space-y-4 rounded-2xl border border-border-default bg-bg p-4 transition-colors duration-[350ms]">
+                  <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-4">
                     <div className="grid grid-cols-2 gap-3.5">
                       <UnderlinedInput 
                         value={googleAge} 
                         onChange={setGoogleAge} 
                         placeholder="Age (18+)" 
                         type="number" 
-                        icon={UserRound}
                         isValid={isGoogleInputValid}
                       />
-                      <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border-default bg-surface p-1 text-xs">
+                      <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
                         {['female', 'male'].map((value) => (
                           <button
                             key={value}
                             type="button"
                             onClick={() => setGoogleGender(value)}
-                            className={`group relative rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${googleGender === value ? 'text-white' : 'text-text-muted hover:text-text-primary'}`}
+                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${googleGender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
                           >
                             {googleGender === value && (
                               <motion.span
                                 layoutId="google-gender-pill"
-                                className="absolute inset-0 rounded-xl bg-accent -z-10 shadow-sm"
+                                className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 -z-10 shadow-md"
                                 transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                               />
                             )}
@@ -883,26 +842,26 @@ export default function Auth() {
                     <textarea 
                       value={googleBio} 
                       onChange={(event) => setGoogleBio(event.target.value)} 
-                      className="min-h-20 w-full resize-none rounded-2xl border border-border-default bg-surface px-4 py-3.5 text-xs text-text-primary outline-none placeholder:text-text-faint focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
+                      className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-500 focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 font-semibold" 
                       placeholder="Write a short bio (optional)..." 
                       maxLength={160} 
                     />
                   </div>
 
                   {isGoogleInputValid ? (
-                    <div className="flex flex-col items-center justify-center p-4 border border-dashed border-border-default rounded-2xl bg-bg transition-colors duration-[350ms]">
-                      <p className="text-[10px] text-text-faint font-bold mb-2.5">Continue with Google:</p>
+                    <div className="flex flex-col items-center justify-center p-4 border border-dashed border-white/10 rounded-2xl bg-black/20 transition-colors duration-[350ms]">
+                      <p className="text-[10px] text-zinc-500 font-bold mb-2.5">Continue with Google:</p>
                       <div id="google-signin-button" className="w-full flex justify-center py-1"></div>
                     </div>
                   ) : (
-                    <div className="text-center p-3 rounded-2xl border border-danger/20 bg-danger/5 text-danger text-xs font-semibold">
+                    <div className="text-center p-3 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-400 text-xs font-semibold">
                       You must be 18 years or older to sign in.
                     </div>
                   )}
 
                   <button
                     onClick={() => setSocialModal(null)}
-                    className="btn-secondary w-full py-3 rounded-2xl text-xs font-bold mt-2"
+                    className="w-full py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-xs font-bold mt-2 text-zinc-400 hover:text-white transition"
                   >
                     Cancel
                   </button>
@@ -941,24 +900,35 @@ function GoogleIcon() {
   );
 }
 
+function AppleIcon() {
+  return (
+    <svg className="h-4.5 w-4.5 fill-current text-white" viewBox="0 0 24 24">
+      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.21.67-2.93 1.49-.62.69-1.16 1.84-1.01 2.96 1.12.09 2.27-.56 2.95-1.39z" />
+    </svg>
+  );
+}
+
 // Subcomponents helper
 
 function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMode, prefix, icon: Icon, suffix, isValid }) {
   return (
-    <div className="flex items-center border-b border-border-default transition-all duration-200 focus-within:border-accent focus-within:scale-[1.01] w-full py-1">
-      {Icon && <span className="text-text-faint mr-3.5"><Icon size={18} /></span>}
-      {prefix && <span className="text-text-faint mr-1 text-sm font-semibold">{prefix}</span>}
+    <div className="relative flex items-center w-full">
+      {prefix && (
+        <span className="absolute left-6 text-zinc-500 text-sm font-semibold select-none">
+          {prefix}
+        </span>
+      )}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-w-0 flex-1 bg-transparent py-3 text-sm text-text-primary outline-none placeholder:text-text-faint font-semibold"
+        className={`w-full bg-[#111827]/40 border border-white/10 rounded-full py-4 ${prefix ? 'pl-11' : 'px-6'} pr-12 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 font-semibold`}
         placeholder={placeholder}
         type={type}
         inputMode={inputMode}
       />
-      {suffix && <div className="ml-2 flex items-center">{suffix}</div>}
+      {suffix && <div className="absolute right-6 flex items-center">{suffix}</div>}
       {!suffix && isValid && (
-        <span className="text-emerald-500 ml-2 flex-shrink-0 animate-fadeIn">
+        <span className="absolute right-6 text-emerald-500 flex-shrink-0 animate-fadeIn">
           <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
@@ -970,7 +940,7 @@ function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMod
 
 function PasswordRule({ met, text }) {
   return (
-    <div className="flex items-center gap-2 text-[11px] font-bold">
+    <div className="flex items-center gap-2 text-[11px] font-semibold">
       {met ? (
         <span className="text-emerald-500 flex items-center justify-center">
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3.5">
@@ -978,9 +948,9 @@ function PasswordRule({ met, text }) {
           </svg>
         </span>
       ) : (
-        <span className="h-1.5 w-1.5 rounded-full bg-border-default ml-1 mr-1" />
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 ml-1 mr-1" />
       )}
-      <span className={met ? "text-emerald-600" : "text-text-faint"}>
+      <span className={met ? "text-emerald-500" : "text-zinc-500"}>
         {text}
       </span>
     </div>
@@ -993,28 +963,27 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border-default bg-bg p-4 transition-colors duration-[350ms]">
+    <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-4 transition-colors duration-[350ms]">
       <div className="grid grid-cols-2 gap-3.5">
         <UnderlinedInput 
           value={profile.age} 
           onChange={(value) => update('age', value)} 
           placeholder="Age (18+)" 
           type="number" 
-          icon={UserRound}
           isValid={Number(profile.age) >= 18}
         />
-        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border-default bg-surface p-1 text-xs">
+        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
           {['female', 'male'].map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`group relative rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-text-muted hover:text-text-primary'}`}
+              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
             >
               {profile.gender === value && (
                 <motion.span
                   layoutId="signup-gender-pill"
-                  className="absolute inset-0 rounded-xl bg-accent -z-10 shadow-sm"
+                  className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 -z-10 shadow-md"
                   transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                 />
               )}
@@ -1031,14 +1000,12 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
             onChange={(value) => update('dob', value)} 
             placeholder="DOB" 
             type="date" 
-            icon={Calendar} 
             isValid={!!profile.dob}
           />
           <UnderlinedInput 
             value={profile.contact} 
             onChange={(value) => update('contact', value)} 
             placeholder="Contact info" 
-            icon={Phone}
             isValid={profile.contact.trim().length >= 4}
           />
         </div>
@@ -1049,7 +1016,6 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
           value={profile.hobbies} 
           onChange={(value) => update('hobbies', value)} 
           placeholder="Hobbies (e.g. music, coding)" 
-          icon={Sparkles}
           isValid={profile.hobbies.trim().length >= 2}
         />
       )}
@@ -1058,7 +1024,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
         <textarea 
           value={profile.bio} 
           onChange={(event) => update('bio', event.target.value)} 
-          className="min-h-20 w-full resize-none rounded-2xl border border-border-default bg-surface px-4 py-3.5 text-xs text-text-primary outline-none placeholder:text-text-faint focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
+          className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-500 focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 font-semibold" 
           placeholder="Write a short bio..." 
           maxLength={160} 
         />
@@ -1069,7 +1035,6 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
           value={profile.bio} 
           onChange={(value) => update('bio', value)} 
           placeholder="Short bio..." 
-          icon={Sparkles}
           isValid={profile.bio.trim().length >= 2}
         />
       )}
