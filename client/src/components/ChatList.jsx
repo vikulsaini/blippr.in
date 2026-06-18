@@ -128,11 +128,11 @@ export default function ChatList({
                 <img src={me.avatar} alt="" className="h-9 w-9 rounded-full border border-border-default object-cover shadow-sm" />
               ) : (
                 <div className="grid h-9 w-9 place-items-center rounded-full bg-accent/10 font-bold text-accent text-sm">
-                  SD
+                  BC
                 </div>
               )}
               <div className="flex items-center gap-1">
-                <h2 className="text-lg font-bold tracking-tight text-text-primary">Sakura Design</h2>
+                <h2 className="text-lg font-bold tracking-tight text-text-primary">Blippr Chat</h2>
                 <ChevronDown size={15} className="text-text-muted mt-0.5" />
               </div>
             </div>
@@ -200,7 +200,7 @@ export default function ChatList({
           <ChatSkeleton />
         ) : (
           <div className="space-y-4">
-            {/* Category 1: General Discussion */}
+            {/* Category 1: General Lounges */}
             <div className="space-y-1">
               <button
                 onClick={() => setIsGeneralOpen(!isGeneralOpen)}
@@ -208,7 +208,7 @@ export default function ChatList({
               >
                 <div className="flex items-center gap-1.5">
                   {isGeneralOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  <span>General Discussion</span>
+                  <span>General Lounges</span>
                 </div>
                 {generalUnread > 0 && (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white">
@@ -240,7 +240,7 @@ export default function ChatList({
               </AnimatePresence>
             </div>
 
-            {/* Category 2: Design Events */}
+            {/* Category 2: Interest Rooms */}
             <div className="space-y-1">
               <button
                 onClick={() => setIsEventsOpen(!isEventsOpen)}
@@ -248,7 +248,7 @@ export default function ChatList({
               >
                 <div className="flex items-center gap-1.5">
                   {isEventsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  <span>Design Events</span>
+                  <span>Interest Rooms</span>
                 </div>
                 {eventsUnread > 0 && (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white">
@@ -280,7 +280,7 @@ export default function ChatList({
               </AnimatePresence>
             </div>
 
-            {/* Category 3: Personal Messages */}
+            {/* Category 3: Direct Messages */}
             <div className="space-y-1">
               <button
                 onClick={() => setIsPersonalOpen(!isPersonalOpen)}
@@ -288,7 +288,7 @@ export default function ChatList({
               >
                 <div className="flex items-center gap-1.5">
                   {isPersonalOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  <span>Personal Messages</span>
+                  <span>Direct Messages</span>
                 </div>
                 {personalUnread > 0 && (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white badge-pulse">

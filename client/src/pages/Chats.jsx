@@ -19,56 +19,56 @@ const MOCK_CHANNELS = [
     _id: 'mock_ui_ux_design',
     isMock: true,
     type: 'channel',
-    name: '🚀 UI/UX-design',
+    name: '💬 General Lounge',
     category: 'general',
     unreadCount: 2,
-    description: 'A space for sharing UI/UX designs, case studies, and getting feedback from the community!',
+    description: 'Hang out, share random thoughts, and vibe with strangers from all around the world!',
     members: [
-      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'UI/UX Designer @ Google' },
-      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Product Designer @ Figma' },
-      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Visual Designer & Illustrator' }
+      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'Blippr Enthusiast' },
+      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Vibe coordinator' },
+      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Global Wanderer' }
     ]
   },
   {
     _id: 'mock_ui_ux_discussion',
     isMock: true,
     type: 'channel',
-    name: '📚 UI/UX-discussion',
+    name: '🎮 Gaming Zone',
     category: 'general',
     unreadCount: 0,
-    description: 'General discussions about design philosophy, typography, user research, and more.',
+    description: 'Find players, talk about games, and coordinate voice/video lobbies.',
     members: [
-      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'UI/UX Designer @ Google' },
-      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Product Designer @ Figma' },
-      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Visual Designer & Illustrator' }
+      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'Blippr Enthusiast' },
+      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Vibe coordinator' },
+      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Global Wanderer' }
     ]
   },
   {
     _id: 'mock_design_challenges',
     isMock: true,
     type: 'channel',
-    name: '🎯 Design-challenges',
+    name: '🎬 Movies & Music',
     category: 'events',
     unreadCount: 1,
-    description: 'Weekly design sprints, brainstorms, and community feedback challenges.',
+    description: 'Discuss your favorite films, Netflix series, anime, and share Spotify tracks.',
     members: [
-      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'UI/UX Designer @ Google' },
-      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Product Designer @ Figma' },
-      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Visual Designer & Illustrator' }
+      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'Blippr Enthusiast' },
+      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Vibe coordinator' },
+      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Global Wanderer' }
     ]
   },
   {
     _id: 'mock_support_group',
     isMock: true,
     type: 'channel',
-    name: '🌱 Support-group',
+    name: '✈️ Food & Travel',
     category: 'events',
     unreadCount: 0,
-    description: 'A place to discuss design career paths, mentorship, work-life balance, and burnout.',
+    description: 'Share your travel bucket list, recommendations, and mouth-watering food photos!',
     members: [
-      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'UI/UX Designer @ Google' },
-      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Product Designer @ Figma' },
-      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Visual Designer & Illustrator' }
+      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'Blippr Enthusiast' },
+      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Vibe coordinator' },
+      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Global Wanderer' }
     ]
   }
 ];
@@ -94,7 +94,7 @@ export default function Chats() {
       {
         _id: 'm1',
         chat: 'mock_ui_ux_design',
-        text: 'Hey everyone! Have you checked out the new Figma auto-layout updates?',
+        text: 'Hey everyone! Welcome to Blippr. Anyone up for a quick chat?',
         sender: 'mock_samantha',
         senderName: 'Samantha',
         senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
@@ -103,7 +103,7 @@ export default function Chats() {
       {
         _id: 'm2',
         chat: 'mock_ui_ux_design',
-        text: 'Yes! The wrap option is an absolute life-saver for responsive grids.',
+        text: 'Hey Samantha! Just joined as well. Love the clean dark aesthetics here.',
         sender: 'mock_nico',
         senderName: 'Nico Alexis',
         senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
@@ -112,7 +112,7 @@ export default function Chats() {
       {
         _id: 'm3',
         chat: 'mock_ui_ux_design',
-        text: 'Agreed. I just published a new component kit using it. Check it out!',
+        text: 'Same! Just matched with a few awesome people. Where is everyone from?',
         sender: 'mock_bima',
         senderName: 'Bima Algifari',
         senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
@@ -123,7 +123,7 @@ export default function Chats() {
       {
         _id: 'md1',
         chat: 'mock_ui_ux_discussion',
-        text: 'What is your favorite font pairing for SaaS applications?',
+        text: 'Anyone up for some Valorant, Minecraft, or coop games tonight?',
         sender: 'mock_nico',
         senderName: 'Nico Alexis',
         senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
@@ -132,7 +132,7 @@ export default function Chats() {
       {
         _id: 'md2',
         chat: 'mock_ui_ux_discussion',
-        text: 'I really like Inter for body text paired with Plus Jakarta Sans for headings. It looks incredibly clean and modern!',
+        text: "I'm down for Minecraft! Let's set up a voice room here on Blippr and play together.",
         sender: 'mock_samantha',
         senderName: 'Samantha',
         senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
@@ -143,7 +143,7 @@ export default function Chats() {
       {
         _id: 'mc1',
         chat: 'mock_design_challenges',
-        text: 'The weekly challenge is now live! Redesign a banking app landing page.',
+        text: 'Has anyone watched the new season of Stranger Things yet? No spoilers please!',
         sender: 'mock_samantha',
         senderName: 'Samantha',
         senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
@@ -152,7 +152,7 @@ export default function Chats() {
       {
         _id: 'mc2',
         chat: 'mock_design_challenges',
-        text: 'Count me in! I will submit my entry by Friday.',
+        text: 'Yes! The soundtrack and the final episode were absolutely mind-blowing.',
         sender: 'mock_bima',
         senderName: 'Bima Algifari',
         senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
@@ -163,7 +163,7 @@ export default function Chats() {
       {
         _id: 'ms1',
         chat: 'mock_support_group',
-        text: 'Feeling a bit burnt out this week. How do you guys manage work-life balance?',
+        text: 'Just tried the best street food in Tokyo. Extremely delicious!',
         sender: 'mock_bima',
         senderName: 'Bima Algifari',
         senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
@@ -172,7 +172,7 @@ export default function Chats() {
       {
         _id: 'ms2',
         chat: 'mock_support_group',
-        text: 'Taking regular screen breaks and exercising helps a lot. Remember to step away from the canvas!',
+        text: 'Extremely jealous! Share some recommendations or photos in this room.',
         sender: 'mock_nico',
         senderName: 'Nico Alexis',
         senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
