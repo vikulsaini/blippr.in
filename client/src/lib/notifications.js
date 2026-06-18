@@ -40,7 +40,7 @@ export async function refreshPushSubscriptionIfAllowed() {
 }
 
 async function subscribeDevice(publicKey) {
-  const registration = await navigator.serviceWorker.register('/notification-sw.js');
+  const registration = await navigator.serviceWorker.ready;
   const existing = await registration.pushManager.getSubscription();
   const subscription =
     existing ||

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Gauge, Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, RotateCw, Signal, SignalLow, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
+import { Ear, Gauge, Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, RotateCw, Signal, SignalLow, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
 
 export default function CallOverlay({ call, minimized = false, onMinimize, onExpand, onAccept, onReject, onEnd, onToggleMute, onToggleCamera, onSwitchCamera, onToggleSpeaker, onToggleLowDataMode }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
+  const remoteAudioVideoRef = useRef(null);
   const chromeTimerRef = useRef(null);
   const [chromeVisible, setChromeVisible] = useState(true);
 
@@ -14,12 +15,29 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   }, [call?.localStream]);
 
   useEffect(() => {
-    const remoteElement = call?.type === 'video' ? remoteVideoRef.current : remoteAudioRef.current;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = call?.type === 'video' ? call?.remoteStream || null : null;
-    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = call?.type === 'video' ? null : call?.remoteStream || null;
-    if (remoteElement) remoteElement.volume = 1;
-    setAudioOutput(remoteElement, call?.speakerOn, call?.type).catch(() => {});
-    remoteElement?.play?.().catch(() => {});
+    if (call?.type === 'video') {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = call?.remoteStream || null;
+        remoteVideoRef.current.volume = 1;
+        setAudioOutput(remoteVideoRef.current, call?.speakerOn, 'video').catch(() => {});
+        remoteVideoRef.current.play?.().catch(() => {});
+      }
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
+      if (remoteAudioVideoRef.current) remoteAudioVideoRef.current.srcObject = null;
+    } else {
+      const useVideoElement = !!call?.speakerOn;
+      const activeEl = useVideoElement ? remoteAudioVideoRef.current : remoteAudioRef.current;
+      const inactiveEl = useVideoElement ? remoteAudioRef.current : remoteAudioVideoRef.current;
+
+      if (inactiveEl) inactiveEl.srcObject = null;
+      if (activeEl) {
+        activeEl.srcObject = call?.remoteStream || null;
+        activeEl.volume = 1;
+        setAudioOutput(activeEl, call?.speakerOn, 'audio').catch(() => {});
+        activeEl.play?.().catch(() => {});
+      }
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    }
   }, [call?.remoteStream, call?.speakerOn, call?.type]);
 
   useEffect(() => {
@@ -80,7 +98,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   ) : (
     <div className={`grid w-full gap-1.5 sm:gap-2 ${isVideo ? 'max-w-md grid-cols-3 sm:max-w-3xl sm:grid-cols-6' : 'max-w-lg grid-cols-5'}`}>
       <CallButton label={call.muted ? 'Unmute' : 'Mute'} icon={call.muted ? MicOff : Mic} onClick={onToggleMute} />
-      <CallButton label={isVideo ? 'Speaker' : call.speakerOn ? 'Speaker' : 'Receiver'} icon={call.speakerOn ? Volume2 : VolumeX} onClick={onToggleSpeaker} active={call.speakerOn} />
+      <CallButton label={isVideo ? 'Speaker' : call.speakerOn ? 'Speaker' : 'Earpiece'} icon={call.speakerOn ? Volume2 : Ear} onClick={onToggleSpeaker} active={call.speakerOn} />
       <CallButton label={call.cameraOff ? 'Camera' : 'Video'} icon={call.cameraOff ? VideoOff : Video} onClick={onToggleCamera} disabled={!isVideo} />
       {isVideo && <CallButton label="Low data" icon={Gauge} onClick={onToggleLowDataMode} active={call.lowDataMode} />}
       <CallButton label="Switch" icon={RotateCw} onClick={onSwitchCamera} disabled={!isVideo || call.cameraOff} />
@@ -99,7 +117,12 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
         className="relative h-dvh overflow-hidden p-1 sm:p-1.5"
       >
         <div className="relative h-full overflow-hidden rounded-[16px] border border-white/5 bg-slate-900 shadow-inner sm:rounded-[20px]">
-          {!isVideo && <audio ref={remoteAudioRef} autoPlay playsInline />}
+          {!isVideo && (
+            <>
+              <audio ref={remoteAudioRef} autoPlay playsInline />
+              <video ref={remoteAudioVideoRef} autoPlay playsInline style={{ display: 'none' }} />
+            </>
+          )}
           {isVideo && call.remoteStream ? (
             <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-contain" />
           ) : (
@@ -157,20 +180,31 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
 }
 
 async function setAudioOutput(audioElement, speakerOn, callType) {
-  if (!audioElement?.setSinkId || !navigator.mediaDevices?.enumerateDevices) return;
+  if (!audioElement?.setSinkId) return;
   audioElement.setAttribute('playsinline', 'true');
 
-  const outputs = await navigator.mediaDevices.enumerateDevices();
-  const audioOutputs = outputs.filter((device) => device.kind === 'audiooutput');
-  const speaker = audioOutputs.find((device) => /speaker|loudspeaker/i.test(device.label));
-  const earpiece = audioOutputs.find((device) => /earpiece|receiver|phone|communications|headset/i.test(device.label));
+  try {
+    const outputs = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+    const audioOutputs = outputs.filter((device) => device.kind === 'audiooutput');
+    const speaker = audioOutputs.find((device) => /speaker|loudspeaker/i.test(device.label));
+    const earpiece = audioOutputs.find((device) => /earpiece|receiver|phone|communications|headset/i.test(device.label));
 
-  if (speakerOn || callType === 'video') {
-    await audioElement.setSinkId(speaker?.deviceId || 'default');
-    return;
+    if (speakerOn || callType === 'video') {
+      if (speaker?.deviceId) {
+        await audioElement.setSinkId(speaker.deviceId);
+      } else {
+        await audioElement.setSinkId('');
+      }
+    } else {
+      if (earpiece?.deviceId) {
+        await audioElement.setSinkId(earpiece.deviceId);
+      } else {
+        await audioElement.setSinkId('');
+      }
+    }
+  } catch (error) {
+    console.warn('setSinkId failed:', error);
   }
-
-  await audioElement.setSinkId(earpiece?.deviceId || 'communications').catch(() => audioElement.setSinkId('default'));
 }
 
 function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = false, active = false }) {

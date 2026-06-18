@@ -165,7 +165,11 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
         )}
         {message.media && <MediaPreview media={message.media} />}
         {message.location && <LocationPreview location={message.location} mine={mine} />}
-        {message.text && <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>}
+        {message.text && (
+          <p className={`whitespace-pre-wrap leading-relaxed ${mine ? 'text-white' : 'text-text-primary font-medium'}`}>
+            {message.text}
+          </p>
+        )}
         <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-white/80' : 'text-text-muted'}`}>
           {message.editedAt && <span>edited</span>}
           <span>{formatTime(message.createdAt)}</span>

@@ -9,7 +9,7 @@ const styles = {
   'friend-request': { label: 'Friend request', icon: UserPlus, tone: 'text-accent', bg: 'bg-accent/10' },
   'friend-request-accepted': { label: 'Request accepted', icon: UserCheck, tone: 'text-accent', bg: 'bg-accent/10' },
   login: { label: 'Security', icon: LogIn, tone: 'text-gold', bg: 'bg-gold/10' },
-  system: { label: 'Update', icon: ShieldCheck, tone: 'text-text-muted', bg: 'bg-bg' }
+  system: { label: 'Update', icon: ShieldCheck, tone: 'text-text-primary border border-border-default', bg: 'bg-surface-hover' }
 };
 
 const importantTypes = new Set(['friend-request', 'friend-request-accepted', 'login', 'system']);
@@ -248,8 +248,8 @@ function NotificationItem({ item, onRespond }) {
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.bg} ${style.tone}`}>{style.label}</span>
             <span className="text-[10px] text-text-faint">{formatTime(item.createdAt)}</span>
           </div>
-          <p className="mt-1 truncate text-sm font-medium text-text-primary">{item.title}</p>
-          <p className="line-clamp-2 text-xs leading-5 text-text-muted">{item.body}</p>
+          <p className="mt-1 truncate text-sm font-semibold text-text-primary">{item.title}</p>
+          <p className="line-clamp-2 text-xs leading-relaxed text-text-secondary font-medium mt-0.5">{item.body}</p>
         </div>
       </div>
       {item.request && (

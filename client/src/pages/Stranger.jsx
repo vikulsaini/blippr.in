@@ -537,7 +537,9 @@ export default function Stranger() {
               return (
                 <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-[#0EA5E9] text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} ${message.pending ? 'opacity-70' : ''}`}>
-                  {message.text}
+                  <p className={mine ? 'text-white' : 'text-text-primary font-medium'}>
+                    {message.text}
+                  </p>
                 </div>
                 </div>
               );

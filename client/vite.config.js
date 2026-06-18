@@ -11,7 +11,8 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true
+        skipWaiting: true,
+        importScripts: ['/notification-sw.js']
       },
       manifest: {
         id: '/',
