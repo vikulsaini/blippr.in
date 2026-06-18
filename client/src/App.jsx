@@ -14,6 +14,10 @@ const Landing = lazy(() => import('./pages/Landing.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const Terms = lazy(() => import('./pages/Terms.jsx'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'));
+const EditProfile = lazy(() => import('./pages/EditProfile.jsx'));
+const Interests = lazy(() => import('./pages/Interests.jsx'));
+const PrivacySettings = lazy(() => import('./pages/PrivacySettings.jsx'));
+const LocationSettings = lazy(() => import('./pages/LocationSettings.jsx'));
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/auth" replace />;
@@ -41,6 +45,10 @@ export default function App() {
           <Route path="stranger" element={<Stranger />} />
           <Route path="discover" element={<Discover />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="profile/edit" element={<EditProfile />} />
+          <Route path="profile/interests" element={<Interests />} />
+          <Route path="profile/privacy" element={<PrivacySettings />} />
+          <Route path="profile/location" element={<LocationSettings />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route
