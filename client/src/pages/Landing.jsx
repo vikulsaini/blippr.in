@@ -76,9 +76,10 @@ function FloatingOrbs() {
 }
 
 export default function Landing() {
-  const appLink = getToken() ? '/app' : '/auth';
+  const isGuest = localStorage.getItem('blippr_is_guest') === 'true';
+  const appLink = getToken() ? (isGuest ? '/app/stranger' : '/app') : '/auth';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  if (getToken()) return <Navigate to="/app" replace />;
+  if (getToken()) return <Navigate to={isGuest ? '/app/stranger' : '/app'} replace />;
 
   return (
     <main className="min-h-screen overflow-hidden bg-bg text-text-primary">

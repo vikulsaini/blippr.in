@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import CallOverlay from '../components/CallOverlay.jsx';
 import ChatList from '../components/ChatList.jsx';
 import ChatWindow from '../components/ChatWindow.jsx';
@@ -44,7 +45,7 @@ export default function Chats() {
     messages,
     calls,
     text,
-    typingChatId,
+    typingChats,
     replyTo,
     setReplyTo,
     setText,
@@ -59,6 +60,14 @@ export default function Chats() {
     deleteMessage,
     reportMessage
   } = useMessages({ activeChat, currentUserId, setChats });
+
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const callSession = useCallSession({
     activeChat,
@@ -245,14 +254,14 @@ export default function Chats() {
   }
 
   return (
-    <div className="h-full min-h-0 md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:gap-3 xl:grid-cols-[26rem_minmax(0,1fr)]">
-      <div className={`${activeChat ? 'hidden md:flex' : 'flex'} min-h-0 flex-col overflow-hidden md:rounded-3xl md:border md:border-border-default md:bg-surface md:shadow-card`}>
+    <div className="h-full min-h-0 md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:gap-3 xl:grid-cols-[26rem_minmax(0,1fr)] relative">
+      <div className={`${activeChat && isMobile ? 'hidden' : 'flex'} min-h-0 flex-1 flex-col overflow-hidden md:rounded-3xl md:border md:border-border-default md:bg-surface md:shadow-card md:flex`}>
         <ChatList
           chats={chats}
           currentUserId={currentUserId}
           query={query}
           setQuery={setQuery}
-          typingChatId={typingChatId}
+          typingChats={typingChats}
           loading={loadingChats}
           selectedChats={selectedChats}
           onClearSelection={clearSelection}
@@ -265,33 +274,42 @@ export default function Chats() {
           onFindPeople={() => navigate('/app/stranger')}
         />
       </div>
-      {activeChat ? (
-        <div className="min-h-0 overflow-hidden md:rounded-3xl md:border md:border-border-default md:shadow-card">
-          <ChatWindow
-            chat={activeChat}
-            messages={messages}
-            calls={calls}
-            currentUserId={currentUserId}
-            text={text}
-            setText={setText}
-            onSend={sendMessage}
-            onSendMedia={sendMedia}
-            onSendLocation={sendLocation}
-            onUpdateLiveLocation={updateLiveLocation}
-            onBack={closeConversation}
-            onProfile={(user) => openProfile(user, activeChat)}
-            replyTo={replyTo}
-            onReply={setReplyTo}
-            onCancelReply={() => setReplyTo(null)}
-            onReact={reactToMessage}
-            onEditMessage={editMessage}
-            onDeleteMessage={deleteMessage}
-            onReportMessage={reportMessage}
-            onStartCall={callSession.startCall}
-            isTyping={typingChatId === activeChat._id}
-          />
-        </div>
-      ) : (
+      <AnimatePresence>
+        {activeChat && (
+          <motion.div
+            initial={isMobile ? { x: '100vw' } : { opacity: 0, scale: 0.98 }}
+            animate={isMobile ? { x: 0 } : { opacity: 1, scale: 1 }}
+            exit={isMobile ? { x: '100vw' } : { opacity: 0, scale: 0.98 }}
+            transition={isMobile ? { type: 'spring', stiffness: 380, damping: 35 } : { duration: 0.2, ease: 'easeOut' }}
+            className="fixed inset-0 z-30 md:relative md:inset-auto md:z-0 min-h-0 overflow-hidden md:rounded-3xl md:border md:border-border-default md:shadow-card bg-bg flex flex-col"
+          >
+            <ChatWindow
+              chat={activeChat}
+              messages={messages}
+              calls={calls}
+              currentUserId={currentUserId}
+              text={text}
+              setText={setText}
+              onSend={sendMessage}
+              onSendMedia={sendMedia}
+              onSendLocation={sendLocation}
+              onUpdateLiveLocation={updateLiveLocation}
+              onBack={closeConversation}
+              onProfile={(user) => openProfile(user, activeChat)}
+              replyTo={replyTo}
+              onReply={setReplyTo}
+              onCancelReply={() => setReplyTo(null)}
+              onReact={reactToMessage}
+              onEditMessage={editMessage}
+              onDeleteMessage={deleteMessage}
+              onReportMessage={reportMessage}
+              onStartCall={callSession.startCall}
+              isTyping={!!typingChats?.[activeChat._id]}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {!activeChat && !isMobile && (
         <div className="hidden min-h-0 place-items-center rounded-3xl border border-border-default bg-surface p-8 text-center shadow-card md:grid">
           <div>
             <p className="text-2xl font-bold text-text-primary">Open a Conversation</p>

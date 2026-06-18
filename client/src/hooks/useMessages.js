@@ -23,7 +23,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
   const [messages, setMessages] = useState([]);
   const [calls, setCalls] = useState([]);
   const [text, setText] = useState('');
-  const [typingChatId, setTypingChatId] = useState(null);
+  const [typingChats, setTypingChats] = useState({});
   const [replyTo, setReplyTo] = useState(null);
   const typingTimerRef = useRef(null);
   const activeChatIdRef = useRef(null);
@@ -104,13 +104,16 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     const socket = getRealtimeSocket();
     const handleMessage = ({ message }) => {
       const mine = getMessageSenderId(message) === currentUserId;
-      if (!mine && (!activeChat || message.chat !== activeChat._id || document.visibilityState !== 'visible')) {
+      const isForActiveChat = activeChat && message.chat === activeChat._id;
+      if (!mine && (!isForActiveChat || document.visibilityState !== 'visible')) {
         playMessageSound();
       }
-      setMessages((current) => {
-        if (current.some((item) => item._id === message._id)) return current;
-        return [...current, message];
-      });
+      if (isForActiveChat) {
+        setMessages((current) => {
+          if (current.some((item) => item._id === message._id)) return current;
+          return [...current, message];
+        });
+      }
     };
     const handleReaction = ({ messageId, reactions }) => {
       setMessages((current) => current.map((message) => (message._id === messageId ? { ...message, reactions } : message)));
@@ -121,22 +124,32 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     const handleDeleted = ({ messageId }) => {
       setMessages((current) => current.filter((message) => message._id !== messageId));
     };
-    const handleDelivered = ({ userId }) => {
+    const handleDelivered = ({ chatId, userId }) => {
       if (normalizeId(userId) === currentUserId) return;
+      if (!activeChat || chatId !== activeChat._id) return;
       setMessages((current) => current.map((message) => (getMessageSenderId(message) === currentUserId && message.status === 'sent' ? { ...message, status: 'delivered' } : message)));
     };
-    const handleSeen = ({ userId }) => {
+    const handleSeen = ({ chatId, userId }) => {
       if (normalizeId(userId) === currentUserId) return;
+      if (!activeChat || chatId !== activeChat._id) return;
       setMessages((current) => current.map((message) => (getMessageSenderId(message) === currentUserId ? { ...message, status: 'seen' } : message)));
     };
     const handleStatus = ({ messageId, status }) => {
       setMessages((current) => current.map((message) => (message._id === messageId ? { ...message, status } : message)));
     };
     const handleTypingStart = ({ chatId, userId }) => {
-      if (normalizeId(userId) !== currentUserId) setTypingChatId(chatId);
+      if (normalizeId(userId) !== currentUserId) {
+        setTypingChats((current) => ({ ...current, [chatId]: true }));
+      }
     };
     const handleTypingStop = ({ chatId, userId }) => {
-      if (normalizeId(userId) !== currentUserId) setTypingChatId((current) => (current === chatId ? null : current));
+      if (normalizeId(userId) !== currentUserId) {
+        setTypingChats((current) => {
+          const next = { ...current };
+          delete next[chatId];
+          return next;
+        });
+      }
     };
     socket.on('message:new', handleMessage);
     socket.on('message:reaction', handleReaction);
@@ -394,7 +407,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     messages,
     calls,
     text,
-    typingChatId,
+    typingChats,
     replyTo,
     setReplyTo,
     setText: handleTextChange,

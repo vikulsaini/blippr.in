@@ -64,6 +64,7 @@ export default function GuestUpgradeModal() {
         })
       });
       setToken(token);
+      localStorage.removeItem('blippr_is_guest');
       setOpen(false);
       window.location.reload();
     } catch (err) {

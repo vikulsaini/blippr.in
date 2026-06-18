@@ -26,6 +26,7 @@ export default function Profile() {
       console.warn('Logout warning:', err.message);
     }
     localStorage.removeItem('blippr_token');
+    localStorage.removeItem('blippr_is_guest');
     navigate('/', { replace: true });
     window.location.reload();
   }

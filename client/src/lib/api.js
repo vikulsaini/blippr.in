@@ -13,6 +13,7 @@ function isGuestRecoveryEndpoint(path) {
 function handleUnauthorized(path) {
   if (isAuthEndpoint(path)) return;
   localStorage.removeItem('blippr_token');
+  localStorage.removeItem('blippr_is_guest');
   sessionStorage.removeItem(GUEST_EXPIRED_KEY);
   window.dispatchEvent(new CustomEvent('blippr:auth-invalid'));
 }
@@ -30,8 +31,13 @@ export function getToken() {
   return localStorage.getItem('blippr_token');
 }
 
-export function setToken(token) {
+export function setToken(token, isGuest = false) {
   localStorage.setItem('blippr_token', token);
+  if (isGuest) {
+    localStorage.setItem('blippr_is_guest', 'true');
+  } else {
+    localStorage.removeItem('blippr_is_guest');
+  }
   sessionStorage.removeItem(GUEST_EXPIRED_KEY);
 }
 

@@ -34,9 +34,38 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
     return () => stopLiveLocation();
   }, []);
 
+  const activeChatId = chat?._id;
+  const lastScrolledChatRef = useRef(null);
+
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' });
-  }, [messages.at(-1)?._id, calls.at(-1)?._id, isTyping]);
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    
+    const hasMessages = messages.length > 0;
+    const isNewChat = lastScrolledChatRef.current !== activeChatId;
+    
+    if (isNewChat && hasMessages) {
+      container.scrollTop = container.scrollHeight;
+      lastScrolledChatRef.current = activeChatId;
+      return;
+    }
+    
+    if (isNewChat && !hasMessages) {
+      container.scrollTop = container.scrollHeight;
+      return;
+    }
+    
+    const lastMessage = messages.at(-1);
+    const isMine = lastMessage && normalizeId(lastMessage.sender) === myId;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    
+    if (isMine || isNearBottom || isTyping) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: isMine ? 'smooth' : 'auto'
+      });
+    }
+  }, [messages.length, messages.at(-1)?._id, calls.length, calls.at(-1)?._id, isTyping, activeChatId, myId]);
 
   function handleScroll(e) {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;

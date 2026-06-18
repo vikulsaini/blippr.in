@@ -144,7 +144,26 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
   }
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 32 }} className={`flex w-full ${mine ? 'justify-end' : 'justify-start'}`}>
+    <motion.div
+      initial={{
+        opacity: 0,
+        scale: 0.82,
+        y: 12,
+        x: mine ? 22 : -22
+      }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        x: 0
+      }}
+      transition={{
+        type: 'spring',
+        stiffness: 380,
+        damping: 26
+      }}
+      className={`flex w-full ${mine ? 'justify-end' : 'justify-start'}`}
+    >
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 64 }}
@@ -278,7 +297,12 @@ function CallHistoryItem({ call, currentUserId }) {
   const statusText = call.status === 'rejected' ? 'Declined' : call.status === 'missed' ? 'Missed' : formatDuration(call.durationSeconds);
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+      className="flex justify-center"
+    >
       <div className={`flex max-w-[82%] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium shadow-card ${isMissed ? 'border-danger/18 bg-danger/10 text-danger' : 'border-border-default bg-surface text-text-secondary'}`}>
         <Icon size={13} />
         <span>{direction} {call.type} call</span>
@@ -291,7 +315,12 @@ function CallHistoryItem({ call, currentUserId }) {
 
 function TypingBubble() {
   return (
-    <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.92 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+      className="flex justify-start"
+    >
       <div className="flex items-center gap-1.5 rounded-[20px] rounded-bl-none border border-border-default bg-surface px-4 py-2.5 shadow-card">
         {[0, 1, 2].map((dot) => (
           <motion.span

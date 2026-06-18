@@ -64,7 +64,7 @@ export default function Auth() {
   const isPasswordValid = hasMinLength && hasNumOrSymbol && hasMixedCase;
 
   function finishAuth(token, isGuest = false) {
-    setToken(token);
+    setToken(token, isGuest);
     navigate(isGuest ? '/app/stranger' : '/app', { replace: true });
   }
 
@@ -480,8 +480,15 @@ export default function Auth() {
                               key={value}
                               type="button"
                               onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                              className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${profile.gender === value ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+                              className={`group relative rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-text-muted hover:text-text-primary'}`}
                             >
+                              {profile.gender === value && (
+                                <motion.span
+                                  layoutId="guest-gender-pill"
+                                  className="absolute inset-0 rounded-xl bg-accent -z-10 shadow-sm"
+                                  transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                                />
+                              )}
                               {value}
                             </button>
                           ))}
@@ -858,8 +865,15 @@ export default function Auth() {
                             key={value}
                             type="button"
                             onClick={() => setGoogleGender(value)}
-                            className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${googleGender === value ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+                            className={`group relative rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${googleGender === value ? 'text-white' : 'text-text-muted hover:text-text-primary'}`}
                           >
+                            {googleGender === value && (
+                              <motion.span
+                                layoutId="google-gender-pill"
+                                className="absolute inset-0 rounded-xl bg-accent -z-10 shadow-sm"
+                                transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                              />
+                            )}
                             {value}
                           </button>
                         ))}
@@ -995,8 +1009,15 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${profile.gender === value ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+              className={`group relative rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-text-muted hover:text-text-primary'}`}
             >
+              {profile.gender === value && (
+                <motion.span
+                  layoutId="signup-gender-pill"
+                  className="absolute inset-0 rounded-xl bg-accent -z-10 shadow-sm"
+                  transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                />
+              )}
               {value}
             </button>
           ))}

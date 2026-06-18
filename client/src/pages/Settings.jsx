@@ -181,6 +181,7 @@ export default function SettingsPage() {
     await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
     clearBlipprCache();
     localStorage.removeItem('blippr_token');
+    localStorage.removeItem('blippr_is_guest');
     navigate('/auth', { replace: true });
   }
 
@@ -233,6 +234,7 @@ export default function SettingsPage() {
     await api('/api/users/me', { method: 'DELETE' });
     clearBlipprCache();
     localStorage.removeItem('blippr_token');
+    localStorage.removeItem('blippr_is_guest');
     navigate('/auth', { replace: true });
   }
 
@@ -618,8 +620,12 @@ function ToggleRow({ title, subtitle, checked, onChange }) {
         <span className="block font-medium text-text-primary">{title}</span>
         <span className="block truncate text-xs text-text-muted">{subtitle}</span>
       </span>
-      <span className={`relative h-7 w-12 rounded-full transition-all duration-300 ${checked ? 'bg-accent' : 'bg-border-default'}`}>
-        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-card transition-all duration-300 ${checked ? 'left-6' : 'left-1'}`} />
+      <span className={`relative h-7 w-12 rounded-full transition-all duration-300 flex items-center ${checked ? 'bg-accent' : 'bg-border-default'}`}>
+        <motion.span
+          animate={{ x: checked ? 24 : 4 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+          className="h-5 w-5 rounded-full bg-white shadow-card"
+        />
       </span>
     </button>
   );

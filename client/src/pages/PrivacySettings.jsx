@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Ban, LockKeyhole, Save, Shield, Unlock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { showToast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 
@@ -204,10 +205,12 @@ function ToggleRow({ title, subtitle, checked, onChange }) {
       <button
         type="button"
         onClick={onChange}
-        className={`relative inline-flex h-5.5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-accent' : 'bg-border-default'}`}
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-accent' : 'bg-border-default'}`}
       >
-        <span
-          className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${checked ? 'translate-x-4.5' : 'translate-x-0'}`}
+        <motion.span
+          animate={{ x: checked ? 20 : 0 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+          className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0"
         />
       </button>
     </div>

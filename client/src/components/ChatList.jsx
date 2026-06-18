@@ -33,7 +33,7 @@ export default function ChatList({
   currentUserId,
   query,
   setQuery,
-  typingChatId,
+  typingChats = {},
   selectedChats,
   onClearSelection,
   onPreference,
@@ -149,7 +149,7 @@ export default function ChatList({
                   chat={chat}
                   selected={selectedChats.has(chat._id)}
                   currentUserId={currentUserId}
-                  typing={typingChatId === chat._id}
+                  typing={!!typingChats?.[chat._id]}
                   displayName={displayName}
                   other={other}
                   onOpen={() => onOpenChat(chat)}
