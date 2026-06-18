@@ -70,8 +70,14 @@ export default function Discover() {
     <div className="mx-auto w-full max-w-5xl space-y-4 px-2">
       <section className="surface-card rounded-[24px] p-3 bg-surface shadow-card">
         <label className="flex items-center gap-3 rounded-[16px] border border-border-default bg-bg px-4 py-3">
-          <Search size={18} className="text-accent" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm outline-none text-text-primary placeholder:text-text-faint font-medium" placeholder="Search @username or name" />
+          <Search size={18} className="text-accent shrink-0" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none text-text-primary placeholder:text-text-faint font-medium py-0.5"
+            placeholder="Search @username or name"
+          />
         </label>
       </section>
 

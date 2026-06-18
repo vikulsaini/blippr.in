@@ -81,17 +81,16 @@ export default function Profile() {
                 className="transition-all duration-700"
               />
             </svg>
-            <span className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/30 via-sky-400/20 to-violet-300/15 p-[3px] shadow-float">
-              <span className="block h-full w-full rounded-full bg-surface" />
-            </span>
-            {user?.avatar ? (
-              <img src={user.avatar} alt="" className="absolute inset-1.5 h-[calc(100%-0.75rem)] w-[calc(100%-0.75rem)] rounded-full object-cover" />
-            ) : (
-              <div className="absolute inset-1.5 grid place-items-center rounded-full bg-bg text-text-faint">
-                <UserRound size={34} />
-              </div>
-            )}
-            <span className={`absolute bottom-3 right-3 h-4 w-4 rounded-full border-2 border-surface ${user?.isOnline ? 'live-dot bg-success text-success' : 'bg-border-default'}`} />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/30 via-sky-400/20 to-violet-300/15 p-[3px] shadow-float overflow-hidden flex items-center justify-center">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover bg-surface" />
+              ) : (
+                <div className="grid h-full w-full place-items-center rounded-full bg-bg text-text-faint">
+                  <UserRound size={34} />
+                </div>
+              )}
+            </div>
+            <span className={`absolute bottom-2 right-2 z-10 h-4.5 w-4.5 rounded-full border-2 border-surface ${user?.isOnline ? 'live-dot bg-success text-success' : 'bg-border-default'}`} />
           </div>
 
           <div className="mx-auto mt-4 max-w-sm rounded-[24px] border border-border-default bg-surface px-4 py-3 shadow-card">
@@ -106,10 +105,14 @@ export default function Profile() {
             )}
           </div>
 
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/8 px-3 py-1.5 text-xs font-semibold text-accent">
-            <span className={`h-2 w-2 rounded-full ${user?.isOnline ? 'bg-success' : 'bg-text-faint'}`} />
+          <div className={`mt-4 inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-sm transition mx-auto ${
+            user?.isOnline 
+              ? 'border-accent/30 bg-accent/8 text-accent' 
+              : 'border-slate-300 dark:border-slate-700 bg-slate-100/90 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${user?.isOnline ? 'bg-success badge-pulse' : 'bg-slate-400 dark:bg-slate-500'}`} />
             {presenceText(user)}
-          </p>
+          </div>
 
           <div className="mx-auto mt-3 flex max-w-md items-center justify-between gap-3 rounded-[20px] border border-border-default bg-bg px-3 py-2">
             <div className="flex flex-wrap gap-1.5">

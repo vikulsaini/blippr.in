@@ -133,11 +133,12 @@ export default function NotificationBell() {
   return (
     <div className="relative">
       <button onClick={() => setOpen((value) => !value)} className="btn-icon relative h-11 w-11 rounded-[16px]" aria-label="Notifications">
-        <Bell size={20} />
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-[20px] h-[20px] text-text-primary">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 20.8a2 2 0 0 1-3.46 0" />
+        </svg>
         {count > 0 && (
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[10px] font-bold text-white badge-pulse">
-            {Math.min(count, 99)}
-          </span>
+          <span className="absolute top-[8px] right-[8px] h-3 w-3 rounded-full bg-accent border-2 border-surface badge-pulse z-10" />
         )}
       </button>
       <AnimatePresence>
@@ -149,14 +150,14 @@ export default function NotificationBell() {
             transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
             className="fixed inset-0 z-[110] flex h-[100dvh] flex-col bg-surface/98 px-3 pb-[calc(env(safe-area-inset-bottom)+0.85rem)] pt-[calc(env(safe-area-inset-top)+0.85rem)] text-text-primary shadow-elevated backdrop-blur-xl sm:p-5 md:inset-4 md:rounded-[30px] md:border md:border-border-default"
           >
-            <div className="flex items-start justify-between gap-3 border-b border-border-default pb-4">
-              <div>
-                <h2 className="text-xl font-semibold md:text-2xl">Notifications</h2>
-                <p className="mt-1 text-xs text-text-muted">Friend requests, accepted requests, login alerts and important updates</p>
+            <div className="border-b border-border-default pb-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-xl font-bold md:text-2xl text-slate-800 dark:text-slate-100">Notifications</h2>
+                <button onClick={() => setOpen(false)} className="btn-icon h-10 w-10 rounded-full shrink-0" aria-label="Close notifications">
+                  <X size={17} />
+                </button>
               </div>
-              <button onClick={() => setOpen(false)} className="btn-icon h-10 w-10 rounded-full" aria-label="Close notifications">
-                <X size={17} />
-              </button>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 font-medium">Friend requests, accepted requests, login alerts and important updates</p>
             </div>
             {message && <p className="mt-2 text-sm font-medium text-accent">{message}</p>}
             <div className="mx-auto mt-4 flex w-full max-w-3xl flex-1 flex-col space-y-2 overflow-y-auto overscroll-contain scrollbar-thin pr-1">
@@ -178,8 +179,8 @@ export default function NotificationBell() {
                       <Bell size={28} />
                     </span>
                   </div>
-                  <p className="mt-2 text-sm font-semibold text-text-primary">No important notifications yet.</p>
-                  <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-text-muted">Messages and call rings stay in their own chat/call surfaces so this screen stays clean.</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">No important notifications yet.</p>
+                  <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-slate-600 dark:text-slate-400 font-medium">Messages and call rings stay in their own chat/call surfaces so this screen stays clean.</p>
                   <button onClick={loadFeed} className="btn-secondary mx-auto mt-4 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold">Refresh</button>
                 </div>
               )}

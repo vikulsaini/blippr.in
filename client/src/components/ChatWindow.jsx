@@ -267,9 +267,15 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </div>
         </div>
         {searchOpen && (
-          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-border-default bg-bg px-3">
-            <Search size={16} className="text-slate-400" />
-            <input value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none text-text-primary" placeholder="Search in conversation" />
+          <label className="mt-2 flex items-center gap-2 rounded-2xl border border-border-default bg-bg px-3 py-1.5 shadow-sm">
+            <Search size={16} className="text-text-muted shrink-0" />
+            <input
+              type="text"
+              value={messageSearch}
+              onChange={(event) => setMessageSearch(event.target.value)}
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none text-text-primary placeholder:text-text-faint py-0.5"
+              placeholder="Search in conversation"
+            />
             {messageSearch && <button onClick={() => setMessageSearch('')} type="button" className="rounded-full bg-border-default p-1 text-text-muted hover:text-text-primary" aria-label="Clear search"><X size={13} /></button>}
           </label>
         )}

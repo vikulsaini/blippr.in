@@ -86,11 +86,12 @@ export default function ChatList({
               <TabButton active={tab === 'archived'} onClick={() => setTab('archived')} label="Archived" />
             </div>
             <label className="flex shrink-0 items-center gap-3 rounded-2xl border border-border-default bg-surface px-4 py-3 shadow-card transition focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
-              <Search size={18} className="text-accent" />
+              <Search size={18} className="text-accent shrink-0" />
               <input
+                type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-faint"
+                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-faint py-0.5"
                 placeholder="Search friends or messages"
               />
             </label>

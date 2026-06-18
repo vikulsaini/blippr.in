@@ -444,39 +444,32 @@ select:focus {
 }
 
 /* Wrapper inset inputs */
-.flex.items-center:has(input[type='text']),
-.flex.items-center:has(input[type='password']),
-.flex.items-center:has(input[type='email']),
-.flex.items-center:has(input[type='tel']),
-.flex.items-center:has(input[type='number']),
-.flex.items-center:has(input[type='date']),
-.flex.items-center:has(textarea) {
+.flex.items-center:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])),
+.flex.items-center:has(textarea),
+.flex.items-stretch:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])),
+label.flex:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])) {
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
   box-shadow: none !important;
 }
 
-.flex.items-center:has(input[type='text']):focus-within,
-.flex.items-center:has(input[type='password']):focus-within,
-.flex.items-center:has(input[type='email']):focus-within,
-.flex.items-center:has(input[type='tel']):focus-within,
-.flex.items-center:has(input[type='number']):focus-within,
-.flex.items-center:has(input[type='date']):focus-within,
-.flex.items-center:has(textarea):focus-within {
+.flex.items-center:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])):focus-within,
+.flex.items-center:has(textarea):focus-within,
+.flex.items-stretch:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])):focus-within,
+label.flex:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])):focus-within {
   border-color: var(--accent) !important;
   box-shadow: 0 0 0 3px var(--accent-ring) !important;
 }
 
-.flex.items-center:has(input[type='text']) input,
-.flex.items-center:has(input[type='password']) input,
-.flex.items-center:has(input[type='email']) input,
-.flex.items-center:has(input[type='tel']) input,
-.flex.items-center:has(input[type='number']) input,
-.flex.items-center:has(input[type='date']) input {
+.flex.items-center:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])) input,
+.flex.items-center:has(textarea) textarea,
+.flex.items-stretch:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])) input,
+label.flex:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])) input {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   color: var(--text-primary);
+  outline: none !important;
 }
 
 input::placeholder,
