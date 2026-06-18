@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Calendar, ChevronRight, Copy, Heart, MapPin, MessageCircle, Shield, ShieldCheck, Settings, Sparkles, UserRound } from 'lucide-react';
+import { Calendar, ChevronRight, Copy, Heart, MapPin, MessageCircle, Shield, ShieldCheck, Settings, Sparkles, UserRound, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../components/Toast.jsx';
@@ -158,6 +158,15 @@ export default function Profile() {
       <button onClick={() => navigate('/app/settings')} className="btn-primary flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-semibold transition lg:col-start-2">
         <Settings size={18} />
         Edit profile & privacy
+      </button>
+
+      <button onClick={async () => {
+        await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        navigate('/', { replace: true });
+        window.location.reload();
+      }} className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-semibold text-danger border border-danger/20 bg-danger/5 hover:bg-danger/10 transition lg:col-start-2">
+        <LogOut size={18} />
+        Logout
       </button>
     </div>
   );
