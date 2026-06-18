@@ -121,6 +121,7 @@ export const guestUpgradeSchema = Joi.object({
 });
 
 export const guestSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(80).required(),
   age: Joi.number().integer().min(18).max(120).required(),
   gender: Joi.string().valid('male', 'female').required(),
   bio: Joi.string().max(160).allow('').optional()
@@ -272,7 +273,12 @@ export const continueAsGuest = asyncHandler(async (req, res) => {
     if (existingGuest) {
       existingGuest.lastIp = ip;
       existingGuest.lastSeenAt = new Date();
-      existingGuest.guestExpiresAt = existingGuest.guestExpiresAt || new Date(Date.now() + Number(process.env.GUEST_LIMIT_MINUTES || 10) * 60 * 1000);
+      existingGuest.guestExpiresAt = undefined;
+      if (req.body.name) {
+        existingGuest.name = req.body.name;
+        existingGuest.username = await createUniqueUsername(req.body.name);
+        existingGuest.avatar = avatarForGender(req.body.gender || existingGuest.gender, existingGuest.username);
+      }
       existingGuest.ipHistory = [...(existingGuest.ipHistory || []), { ip, at: new Date() }].slice(-8);
       await existingGuest.save();
       return sendAuth(res, signJwt(existingGuest), existingGuest, 200, { reused: true });
@@ -280,13 +286,18 @@ export const continueAsGuest = asyncHandler(async (req, res) => {
   }
 
   const identity = await guestIdentity(req.body.gender);
+  if (req.body.name) {
+    identity.name = req.body.name;
+    identity.username = await createUniqueUsername(req.body.name);
+    identity.avatar = avatarForGender(req.body.gender, identity.username);
+  }
   const user = await User.create({
     ...identity,
     age: req.body.age,
     gender: req.body.gender,
     bio: req.body.bio || '',
     isGuest: true,
-    guestExpiresAt: new Date(Date.now() + Number(process.env.GUEST_LIMIT_MINUTES || 10) * 60 * 1000),
+    guestExpiresAt: undefined,
     lastIp: ip || undefined,
     lastSeenAt: new Date(),
     ipHistory: ip ? [{ ip, at: new Date() }] : []

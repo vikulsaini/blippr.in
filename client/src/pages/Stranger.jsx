@@ -23,6 +23,11 @@ export default function Stranger() {
   const [friendSent, setFriendSent] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
   const [localStream, setLocalStream] = useState(null);
+  const [me, setMe] = useState(null);
+
+  useEffect(() => {
+    api('/api/users/me').then(({ user }) => setMe(user)).catch(() => {});
+  }, []);
   const [remoteStream, setRemoteStream] = useState(null);
   const [callState, setCallState] = useState('idle');
   const [muted, setMuted] = useState(false);
@@ -53,8 +58,9 @@ export default function Stranger() {
   const sessionStartedAt = session?.startedAt || session?.chat?.createdAt;
   const elapsedMs = sessionStartedAt ? Math.max(0, now - new Date(sessionStartedAt).getTime()) : 0;
   const friendUnlockMs = Math.max(0, FRIEND_UNLOCK_MS - elapsedMs);
-  const friendUnlocked = !!peer && friendUnlockMs === 0;
-  const friendGateLabel = friendSent ? 'Sent' : friendUnlocked ? 'Add Friend' : `Wait ${formatCountdown(friendUnlockMs)}`;
+  const isGuest = me?.isGuest;
+  const friendUnlocked = !isGuest && !!peer && friendUnlockMs === 0;
+  const friendGateLabel = isGuest ? 'Upgrade' : (friendSent ? 'Sent' : friendUnlocked ? 'Add Friend' : `Wait ${formatCountdown(friendUnlockMs)}`);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -266,6 +272,10 @@ export default function Stranger() {
   }
 
   async function sendFriendRequest() {
+    if (me?.isGuest) {
+      window.dispatchEvent(new CustomEvent('blippr:guest-expired'));
+      return;
+    }
     if (!peer?._id || friendSent) return;
     if (!friendUnlocked) {
       setStatus(`Talk for ${formatCountdown(friendUnlockMs)} more before sending a request.`);
@@ -500,7 +510,7 @@ export default function Stranger() {
                   <CircleControl onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
                   <CircleControl onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
                   <CircleControl onClick={switchCamera} disabled={!localStream || callState === 'idle'} icon={FlipHorizontal2} label="Flip" />
-                  <CircleControl onClick={sendFriendRequest} disabled={!peer || friendSent || !friendUnlocked} icon={friendSent ? Check : UserPlus} label={friendGateLabel} primary />
+                  <CircleControl onClick={sendFriendRequest} disabled={!peer || friendSent || (!friendUnlocked && !isGuest)} icon={friendSent ? Check : UserPlus} label={friendGateLabel} primary />
                   <CircleControl onClick={handleRandomAction} disabled={finding} icon={Shuffle} label="Skip" />
                 </>
               }
@@ -573,9 +583,9 @@ export default function Stranger() {
               <button
                 type="button"
                 onClick={sendFriendRequest}
-                disabled={!peer || friendSent || !friendUnlocked}
-                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent || friendUnlocked ? 'btn-primary' : 'btn-primary'}`}
-                title={friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request'}
+                disabled={!peer || friendSent || (!friendUnlocked && !isGuest)}
+                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent || friendUnlocked || isGuest ? 'btn-primary' : 'btn-primary'}`}
+                title={isGuest ? 'Upgrade to send friend requests' : (friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request')}
               >
                 {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
                 {friendGateLabel}

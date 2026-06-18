@@ -18,13 +18,6 @@ export async function socketAuth(socket, next) {
     const user = await User.findById(payload.sub);
     if (!user) throw new Error('Invalid user');
     if (user.bannedUntil && user.bannedUntil.getTime() > Date.now()) throw new Error('Account temporarily restricted');
-    if (
-      user.isGuest &&
-      user.guestExpiresAt &&
-      user.guestExpiresAt.getTime() < Date.now()
-    ) {
-      throw new Error('Guest session expired');
-    }
     socket.user = user;
     trackUserActivity(user._id, socket);
     next();

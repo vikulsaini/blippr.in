@@ -45,6 +45,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(initialProfile);
   const [error, setError] = useState('');
+  const [guestTermsAccepted, setGuestTermsAccepted] = useState(false);
   
   const [socialModal, setSocialModal] = useState(null); // 'Google' | null
   const [connectingSocial, setConnectingSocial] = useState(false);
@@ -62,9 +63,9 @@ export default function Auth() {
   const hasMixedCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
   const isPasswordValid = hasMinLength && hasNumOrSymbol && hasMixedCase;
 
-  function finishAuth(token) {
+  function finishAuth(token, isGuest = false) {
     setToken(token);
-    navigate('/app', { replace: true });
+    navigate(isGuest ? '/app/stranger' : '/app', { replace: true });
   }
 
   function switchMode(nextMode) {
@@ -211,14 +212,26 @@ export default function Auth() {
 
   async function continueAsGuest(event) {
     event.preventDefault();
+    if (!profile.name?.trim()) {
+      setError('Profile name is required');
+      return;
+    }
+    if (Number(profile.age) < 18) {
+      setError('You must be 18 or older to join.');
+      return;
+    }
+    if (!guestTermsAccepted) {
+      setError('You must accept the terms and conditions.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
       const { token } = await api('/api/auth/guest', {
         method: 'POST',
-        body: JSON.stringify({ age: Number(profile.age), gender: profile.gender, bio: profile.bio })
+        body: JSON.stringify({ name: profile.name, age: Number(profile.age), gender: profile.gender, bio: profile.bio })
       });
-      finishAuth(token);
+      finishAuth(token, true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -444,8 +457,48 @@ export default function Auth() {
 
                   {/* GUEST FIELDS */}
                   {mode === 'guest' && (
-                    <div className="space-y-4">
-                      <ProfileSetup profile={profile} setProfile={setProfile} compact />
+                    <div className="space-y-4 rounded-2xl border border-border-default bg-bg p-4 transition-colors duration-[350ms]">
+                      <UnderlinedInput 
+                        value={profile.name} 
+                        onChange={(value) => setProfile((c) => ({ ...c, name: value }))} 
+                        placeholder="Profile Name" 
+                        icon={UserRound}
+                        isValid={profile.name.trim().length >= 2}
+                      />
+                      <div className="grid grid-cols-2 gap-3.5">
+                        <UnderlinedInput 
+                          value={profile.age} 
+                          onChange={(value) => setProfile((c) => ({ ...c, age: value }))} 
+                          placeholder="Age (18+)" 
+                          type="number" 
+                          icon={UserRound}
+                          isValid={Number(profile.age) >= 18}
+                        />
+                        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border-default bg-surface p-1 text-xs">
+                          {['female', 'male'].map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setProfile((c) => ({ ...c, gender: value }))}
+                              className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${profile.gender === value ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+                            >
+                              {value}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2.5 pt-2 select-none">
+                        <input
+                          id="guest-terms"
+                          type="checkbox"
+                          checked={guestTermsAccepted}
+                          onChange={(e) => setGuestTermsAccepted(e.target.checked)}
+                          className="mt-1 h-4 w-4 rounded border-border-default text-accent focus:ring-accent"
+                        />
+                        <label htmlFor="guest-terms" className="text-xs text-text-secondary leading-normal font-semibold cursor-pointer">
+                          I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Privacy Policy</a>, and I certify that I am 18 years of age or older.
+                        </label>
+                      </div>
                     </div>
                   )}
 

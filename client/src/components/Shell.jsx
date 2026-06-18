@@ -10,6 +10,7 @@ import NotificationBell from './NotificationBell.jsx';
 import SocketStateBanner from './SocketStateBanner.jsx';
 import ToastProvider from './Toast.jsx';
 import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
+import { api } from '../lib/api.js';
 
 const tabs = [
   { to: '/app', label: 'Chats', icon: MessageCircle },
@@ -21,6 +22,24 @@ const tabs = [
 export default function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [me, setMe] = useState(null);
+
+  useEffect(() => {
+    api('/api/users/me')
+      .then(({ user }) => setMe(user))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (me && me.isGuest) {
+      if (location.pathname !== '/app/stranger') {
+        navigate('/auth', { replace: true });
+      }
+    }
+  }, [me, location.pathname, navigate]);
+
+  const activeTabs = me?.isGuest ? tabs.filter(t => t.to === '/app/stranger') : tabs;
+
   const isChats = location.pathname === '/app';
   const isRandom = location.pathname === '/app/stranger';
   const isConversation = isChats && new URLSearchParams(location.search).has('chat');
@@ -118,7 +137,7 @@ export default function Shell() {
       data-random-route={isRandom ? 'true' : undefined}
       className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-text-primary md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'}`}
     >
-      <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} />
+      <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} tabs={activeTabs} />
       <div className="flex min-h-0 flex-col overflow-hidden">
         {showMainHeader && (
           <header className="mb-2 flex items-center justify-between rounded-2xl border border-border-default bg-surface px-3 py-2 shadow-card md:mb-3 md:px-4 md:py-3">
@@ -155,8 +174,8 @@ export default function Shell() {
       <ToastProvider />
       {!navHidden && (
         <nav className="safe-bottom premium-nav fixed inset-x-3 bottom-2 z-20 mx-auto max-w-[22rem] rounded-3xl px-2 pt-1 backdrop-blur-sm md:hidden">
-          <div className="grid grid-cols-4">
-            {tabs.map(({ to, label, icon: Icon }) => (
+          <div className={activeTabs.length === 1 ? "flex justify-center" : "grid grid-cols-4"}>
+            {activeTabs.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -191,7 +210,7 @@ export default function Shell() {
   );
 }
 
-function DesktopNav({ locationPath, socketState, clock }) {
+function DesktopNav({ locationPath, socketState, clock, tabs }) {
   const connected = socketState === 'connected' || socketState === 'reconnected';
   return (
     <aside className="premium-nav hidden min-h-0 rounded-3xl p-2 md:flex md:flex-col">

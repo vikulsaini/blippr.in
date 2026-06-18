@@ -13,15 +13,20 @@ export const friendRequestSchema = Joi.object({
 const RANDOM_FRIEND_REQUEST_MIN_MS = 3 * 60 * 1000;
 
 export const sendFriendRequest = asyncHandler(async (req, res) => {
-  if ((req.user.blockedUsers || []).some((userId) => userId.toString() === req.body.userId)) {
-    const error = new Error('User is blocked');
+  if (req.user.isGuest) {
+    const error = new Error('Guest users cannot send friend requests.');
     error.status = 403;
     throw error;
   }
-  const target = await User.findById(req.body.userId).select('blockedUsers');
+  const target = await User.findById(req.body.userId).select('blockedUsers isGuest');
   if (!target || target.blockedUsers.some((userId) => userId.toString() === req.user._id.toString())) {
     const error = new Error('User not found');
     error.status = 404;
+    throw error;
+  }
+  if (target.isGuest) {
+    const error = new Error('Cannot send friend request to guest users.');
+    error.status = 403;
     throw error;
   }
   if (req.body.sourceChatId) {
@@ -65,6 +70,11 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
 });
 
 export const respondFriendRequest = asyncHandler(async (req, res) => {
+  if (req.user.isGuest) {
+    const error = new Error('Guest users cannot accept friend requests.');
+    error.status = 403;
+    throw error;
+  }
   const request = await FriendRequest.findOne({ _id: req.params.id, to: req.user._id });
   if (!request) {
     const error = new Error('Friend request not found');
