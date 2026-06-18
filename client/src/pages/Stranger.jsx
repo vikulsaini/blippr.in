@@ -34,6 +34,7 @@ export default function Stranger() {
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [videoChromeVisible, setVideoChromeVisible] = useState(true);
   const [queueText, setQueueText] = useState('Connecting to closest node...');
+  const [activeUsers, setActiveUsers] = useState(0);
   const pendingFindRef = useRef(false);
   const videoChromeTimerRef = useRef(null);
   const peerRef = useRef(null);
@@ -133,6 +134,18 @@ export default function Stranger() {
       socket.off('stranger:signal', handleSignal);
       leaveSession();
     };
+  }, []);
+
+  useEffect(() => {
+    const socket = getRealtimeSocket();
+    function fetchStats() {
+      socket.emit('stranger:stats', (result) => {
+        if (result?.ok) setActiveUsers(result.activeUsers);
+      });
+    }
+    fetchStats();
+    const timer = setInterval(fetchStats, 30000);
+    return () => clearInterval(timer);
   }, []);
 
   function startSession(chat, matchedPeer, initiator) {
@@ -530,7 +543,7 @@ export default function Stranger() {
 
           <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-2.5 sm:p-3 bg-bg">
             {!session && (
-              <EmptyRandom finding={finding} queueText={queueText} onStart={() => requestFindStranger(false)} />
+              <EmptyRandom finding={finding} queueText={queueText} onStart={() => requestFindStranger(false)} activeUsers={activeUsers} />
             )}
             {messages.map((message) => {
               const mine = (message.sender?._id || message.sender) !== peer?._id;
@@ -779,7 +792,7 @@ function ConnectionQualityIndicator({ state }) {
   );
 }
 
-function EmptyRandom({ finding, queueText }) {
+function EmptyRandom({ finding, queueText, activeUsers }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid h-full min-h-0 place-items-center text-center py-12 px-4">
       <div className="surface-card rounded-[24px] p-6 max-w-sm bg-surface border border-border-default shadow-card text-center flex flex-col items-center">
@@ -823,6 +836,15 @@ function EmptyRandom({ finding, queueText }) {
             <p className="mt-2 text-xs text-text-muted leading-relaxed">
               Tap the Start button in the bottom action bar to begin finding a random connection.
             </p>
+            {activeUsers > 0 && (
+              <p className="mt-4 text-[11px] font-semibold text-accent/80 bg-accent/10 px-3 py-1.5 rounded-full border border-accent/20 flex items-center gap-1.5 shadow-sm">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                </span>
+                {activeUsers} {activeUsers === 1 ? 'user' : 'users'} active now
+              </p>
+            )}
           </>
         )}
       </div>
