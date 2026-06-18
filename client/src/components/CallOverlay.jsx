@@ -48,13 +48,13 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   const QualityIcon = call?.quality === 'poor' ? SignalLow : Signal;
   const qualityLabel = call?.quality === 'reconnecting' ? 'Reconnecting' : call?.quality === 'poor' ? 'Poor connection' : call?.quality === 'good' ? 'Good connection' : 'Checking connection';
 
-  function revealChrome() {
+  const revealChrome = () => {
     setChromeVisible(true);
     window.clearTimeout(chromeTimerRef.current);
     if (call?.type === 'video' && call?.status !== 'incoming') {
       chromeTimerRef.current = window.setTimeout(() => setChromeVisible(false), 2600);
     }
-  }
+  };
 
   const controls = call?.status === 'incoming' ? (
     <div className="grid w-full max-w-sm grid-cols-2 gap-2">
