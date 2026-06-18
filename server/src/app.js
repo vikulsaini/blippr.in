@@ -24,7 +24,7 @@ app.set('trust proxy', 1);
 app.use(
   helmet({
     frameguard: { action: 'deny' },
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: false
   })
 );
 app.use(compression());
