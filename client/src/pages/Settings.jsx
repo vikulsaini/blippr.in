@@ -24,6 +24,7 @@ export default function SettingsPage() {
   const [soundPrefs, setSoundPrefs] = useState(() => loadSoundPrefs());
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
+  const [vaultPassword, setVaultPassword] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('blippr_theme') || 'light');
 
   function toggleTheme() {
@@ -108,6 +109,20 @@ export default function SettingsPage() {
       if (updated.username && !updated.isGuest) {
         setForm((curr) => ({ ...curr, username: updated.username }));
       }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function saveVaultPassword(event) {
+    if (event) event.preventDefault();
+    try {
+      await api('/api/users/me/vault', {
+        method: 'POST',
+        body: JSON.stringify({ vaultPassword: vaultPassword.trim() || null })
+      });
+      showToast(vaultPassword.trim() ? 'Vault password set' : 'Vault password removed', 'success');
+      setVaultPassword('');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -338,6 +353,12 @@ export default function SettingsPage() {
                 <ActionRow icon={MapPin} title="Random room location" subtitle={user?.location?.updatedAt ? 'Location saved for nearby rooms' : 'Not shared yet'} action="Refresh" onClick={refreshLocation} />
                 <ToggleRow title="Show last seen" subtitle="Let friends see when you were last active" checked={form.showLastSeen} onChange={() => setField('showLastSeen', !form.showLastSeen)} />
                 <ToggleRow title="Read receipts" subtitle="Send seen status when you read messages" checked={form.readReceipts} onChange={() => setField('readReceipts', !form.readReceipts)} />
+                <div className="surface-card rounded-2xl p-3 border border-border-default mt-4 mb-4">
+                  <p className="text-sm font-medium text-text-primary mb-2">Hidden Chat Vault</p>
+                  <p className="text-xs text-text-muted mb-3">Set a password to hide archived chats. Type it in the search bar to unlock.</p>
+                  <Field label="Vault Password (leave empty to remove)" value={vaultPassword} onChange={setVaultPassword} type="password" />
+                  <button type="button" onClick={saveVaultPassword} className="btn-secondary w-full rounded-xl py-2 mt-3 text-xs font-semibold">Save Vault Password</button>
+                </div>
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center gap-3 px-1">
                     <span className="grid h-9 w-9 place-items-center rounded-xl bg-danger/10 text-danger"><Ban size={17} /></span>

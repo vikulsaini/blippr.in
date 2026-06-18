@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X } from 'lucide-react';
+import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X, Users, LockKeyhole } from 'lucide-react';
+import { api } from '../lib/api.js';
 import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
 import { haptics } from '../lib/haptics.js';
 import { presenceText } from '../lib/presence.js';
@@ -47,13 +48,34 @@ export default function ChatList({
   const [tab, setTab] = useState('chats');
   const visibleChats = useMemo(() => {
     const scoped = chats.filter((chat) => {
-      if (tab === 'archived') return chat.archived;
+      if (tab === 'vault') return chat.archived;
       if (tab === 'favorites') return chat.starred && !chat.archived;
+      if (tab === 'groups') return false;
       return !chat.archived;
     });
     return filterChats(scoped, query, currentUserId);
   }, [chats, currentUserId, query, tab]);
   const archivedCount = useMemo(() => chats.filter((chat) => chat.archived).length, [chats]);
+
+  useEffect(() => {
+    if (query.trim().length < 3) return;
+    const timer = setTimeout(async () => {
+      try {
+        const { valid } = await api('/api/users/me/vault/verify', {
+          method: 'POST',
+          body: JSON.stringify({ password: query.trim() })
+        });
+        if (valid) {
+          setTab('vault');
+          setQuery('');
+          haptics.success();
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   return (
     <section className="flex min-h-0 flex-1 flex-col px-2 pt-2 md:px-4 md:pt-3">
@@ -79,12 +101,18 @@ export default function ChatList({
 
         {!selectedChats.size && (
           <div className="px-4">
-            {/* Filter tabs with accent bottom indicator */}
-            <div className="mb-3 grid grid-cols-3 gap-1 rounded-2xl border border-border-default bg-bg p-1">
-              <TabButton active={tab === 'chats'} onClick={() => setTab('chats')} label="Chats" />
-              <TabButton active={tab === 'favorites'} onClick={() => setTab('favorites')} label="Favorites" />
-              <TabButton active={tab === 'archived'} onClick={() => setTab('archived')} label="Archived" />
-            </div>
+            {tab === 'vault' ? (
+              <div className="mb-3 flex items-center justify-between rounded-2xl border border-accent bg-accent/10 px-4 py-2 text-accent">
+                <span className="font-semibold text-sm">Hidden Vault Unlocked</span>
+                <button onClick={() => setTab('chats')} className="grid h-8 w-8 place-items-center rounded-full text-accent bg-accent/20 cursor-pointer"><LockKeyhole size={16}/></button>
+              </div>
+            ) : (
+              <div className="mb-3 grid grid-cols-3 gap-1 rounded-2xl border border-border-default bg-bg p-1">
+                <TabButton active={tab === 'chats'} onClick={() => setTab('chats')} label="Chats" />
+                <TabButton active={tab === 'favorites'} onClick={() => setTab('favorites')} label="Favorites" />
+                <TabButton active={tab === 'groups'} onClick={() => setTab('groups')} label="Groups" />
+              </div>
+            )}
             <label className="search-container">
               <Search size={18} className="text-accent shrink-0" />
               <input
@@ -181,13 +209,22 @@ export default function ChatList({
             </div>
           </div>
         )}
-        {!loading && chats.length > 0 && !visibleChats.length && (
+        {!loading && tab === 'groups' && (
           <EmptyState
-            icon={tab === 'archived' ? Archive : Search}
-            title={tab === 'archived' ? 'No Archived Chats' : 'No Chats Found'}
+            icon={Users}
+            title="Groups Coming Soon"
+            text="Group chats are being built and will be available soon."
+            action="Back to Chats"
+            onAction={() => setTab('chats')}
+          />
+        )}
+        {!loading && chats.length > 0 && !visibleChats.length && tab !== 'groups' && (
+          <EmptyState
+            icon={tab === 'vault' ? Archive : Search}
+            title={tab === 'vault' ? 'No Archived Chats' : 'No Chats Found'}
             text={tab === 'favorites' ? 'Star close friends to see them here.' : 'Try another name or message.'}
-            action={tab === 'archived' ? 'Back to Chats' : 'Clear Search'}
-            onAction={() => (tab === 'archived' ? setTab('chats') : setQuery(''))}
+            action={tab === 'vault' ? 'Close Vault' : 'Clear Search'}
+            onAction={() => (tab === 'vault' ? setTab('chats') : setQuery(''))}
           />
         )}
       </div>

@@ -24,7 +24,8 @@ const userSchema = new mongoose.Schema(
     interests: [{ type: String, trim: true, lowercase: true }],
     privacy: {
       showLastSeen: { type: Boolean, default: true },
-      readReceipts: { type: Boolean, default: true }
+      readReceipts: { type: Boolean, default: true },
+      vaultPassword: { type: String, select: false }
     },
     safety: {
       blockedWords: [{ type: String, trim: true, lowercase: true }]
