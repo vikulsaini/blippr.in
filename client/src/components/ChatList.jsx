@@ -91,7 +91,7 @@ export default function ChatList({
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-faint py-0.5"
+                className="min-w-0 flex-1 bg-transparent border-none text-sm font-medium text-text-primary outline-none focus:outline-none placeholder:text-text-faint py-0.5"
                 placeholder="Search friends or messages"
               />
             </label>

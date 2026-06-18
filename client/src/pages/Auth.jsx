@@ -35,7 +35,7 @@ const SOCIAL_PROFILES = [
     username: 'alex_rivera',
     age: 24,
     gender: 'male',
-    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Alex',
+    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Alex&accessoriesProbability=0',
     bio: 'Software engineer who loves exploring coffee shops and coding late.'
   },
   {
@@ -45,7 +45,7 @@ const SOCIAL_PROFILES = [
     username: 'sara_chen',
     age: 26,
     gender: 'female',
-    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Sara',
+    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Sara&accessoriesProbability=0',
     bio: 'Product designer and tea enthusiast. Let\'s talk about design & life.'
   },
   {
@@ -55,7 +55,7 @@ const SOCIAL_PROFILES = [
     username: 'taylor_j',
     age: 22,
     gender: 'female',
-    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Taylor',
+    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Taylor&accessoriesProbability=0',
     bio: 'Avid traveler, foodie, and music lover. Looking to meet nice people!'
   },
   {
@@ -65,7 +65,7 @@ const SOCIAL_PROFILES = [
     username: 'marcus_v',
     age: 29,
     gender: 'male',
-    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Marcus',
+    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Marcus&accessoriesProbability=0',
     bio: 'Fitness coach & adventure photographer. Tell me your favorite trail.'
   }
 ];

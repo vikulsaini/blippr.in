@@ -273,7 +273,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
               type="text"
               value={messageSearch}
               onChange={(event) => setMessageSearch(event.target.value)}
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none text-text-primary placeholder:text-text-faint py-0.5"
+              className="min-w-0 flex-1 bg-transparent border-none text-sm outline-none focus:outline-none text-text-primary placeholder:text-text-faint py-0.5"
               placeholder="Search in conversation"
             />
             {messageSearch && <button onClick={() => setMessageSearch('')} type="button" className="rounded-full bg-border-default p-1 text-text-muted hover:text-text-primary" aria-label="Clear search"><X size={13} /></button>}

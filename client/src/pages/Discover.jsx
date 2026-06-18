@@ -75,7 +75,7 @@ export default function Discover() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none text-text-primary placeholder:text-text-faint font-medium py-0.5"
+            className="min-w-0 flex-1 bg-transparent border-none text-sm outline-none focus:outline-none text-text-primary placeholder:text-text-faint font-medium py-0.5"
             placeholder="Search @username or name"
           />
         </label>

@@ -224,9 +224,9 @@ function DesktopNav({ locationPath, socketState, clock }) {
           );
         })}
       </nav>
-      <div className="mt-auto grid justify-items-center gap-3 rounded-2xl border border-border-default bg-bg p-3" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
+      <div className="mt-auto flex flex-col items-center justify-center gap-3 rounded-2xl border border-border-default bg-bg p-3" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
         <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-success text-success' : 'bg-gold text-gold'}`} />
-        <span className="h-1.5 w-6 rounded-full bg-border-default" />
+        <span className="h-1.5 w-6 rounded-full bg-text-faint/30 border border-border-default" />
       </div>
     </aside>
   );

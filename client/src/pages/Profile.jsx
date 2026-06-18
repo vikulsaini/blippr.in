@@ -81,7 +81,7 @@ export default function Profile() {
                 className="transition-all duration-700"
               />
             </svg>
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/30 via-sky-400/20 to-violet-300/15 p-[3px] shadow-float overflow-hidden flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent/30 via-sky-400/20 to-violet-300/15 p-[3px] shadow-float overflow-hidden flex items-center justify-center" style={{ transform: 'translateZ(0)' }}>
               {user?.avatar ? (
                 <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover bg-surface" />
               ) : (

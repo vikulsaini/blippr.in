@@ -443,6 +443,24 @@ select:focus {
   box-shadow: 0 0 0 3px var(--accent-ring) !important;
 }
 
+/* Override generic inputs for transparent/borderless search inputs */
+input.bg-transparent,
+input.bg-transparent:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+input.border-none,
+input.border-none:focus {
+  border: none !important;
+  border-width: 0 !important;
+}
+input.outline-none,
+input.outline-none:focus,
+input.focus\:outline-none:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Wrapper inset inputs */
 .flex.items-center:has(input:not([type='file']):not([type='checkbox']):not([type='radio'])),
 .flex.items-center:has(textarea),
