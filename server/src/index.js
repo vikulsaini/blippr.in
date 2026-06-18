@@ -22,8 +22,8 @@ async function boot() {
   console.log(`Environment check: MongoDB=${mongoUri ? 'set' : 'missing'}, REDIS_URL=${process.env.REDIS_URL ? 'set' : 'missing'}`);
   await connectMongo();
   await connectRedis();
-  server.listen(port, () => {
-    console.log(`Blippr API listening on ${port}`);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Blippr API listening on production port ${port}`);
   });
 }
 

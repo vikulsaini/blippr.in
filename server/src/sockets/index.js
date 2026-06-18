@@ -310,6 +310,15 @@ export function registerSockets(io) {
       }
     });
 
+    socket.on('stranger:stats', async (ack) => {
+      try {
+        const activeUsers = await User.countDocuments({ isOnline: true });
+        ack?.({ ok: true, activeUsers });
+      } catch (err) {
+        ack?.({ ok: false });
+      }
+    });
+
     socket.on('stranger:leave', async ({ chatId } = {}) => {
       await leaveQueues(userId);
       if (!chatId) return;

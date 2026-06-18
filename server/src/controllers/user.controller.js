@@ -36,6 +36,14 @@ export const updateLocationSchema = Joi.object({
   longitude: Joi.number().min(-180).max(180).required()
 });
 
+export const vaultPasswordSchema = Joi.object({
+  vaultPassword: Joi.string().allow(null, '').optional()
+});
+
+export const verifyVaultPasswordSchema = Joi.object({
+  password: Joi.string().required()
+});
+
 const matchUserFields = 'name username avatar bio interests isOnline lastSeenAt age gender location';
 
 function pageLimit(value, fallback = 20, max = 50) {
@@ -92,6 +100,19 @@ export const updateProfile = asyncHandler(async (req, res) => {
   Object.assign(req.user, req.body);
   await req.user.save();
   res.json({ user: req.user });
+});
+
+export const updateVaultPassword = asyncHandler(async (req, res) => {
+  if (!req.user.privacy) req.user.privacy = {};
+  req.user.privacy.vaultPassword = req.body.vaultPassword || undefined;
+  await req.user.save();
+  res.json({ ok: true, message: 'Vault password updated' });
+});
+
+export const verifyVaultPassword = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('+privacy.vaultPassword');
+  const isValid = user?.privacy?.vaultPassword && user.privacy.vaultPassword === req.body.password;
+  res.json({ valid: !!isValid });
 });
 
 export const exportAccountData = asyncHandler(async (req, res) => {

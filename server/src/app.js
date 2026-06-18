@@ -23,7 +23,8 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(
   helmet({
-    frameguard: { action: 'deny' }
+    frameguard: { action: 'deny' },
+    crossOriginResourcePolicy: false
   })
 );
 app.use(compression());

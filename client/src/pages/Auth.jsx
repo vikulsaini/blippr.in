@@ -84,6 +84,7 @@ export default function Auth() {
   const googleAgeRef = useRef(googleAge);
   const googleGenderRef = useRef(googleGender);
   const googleBioRef = useRef(googleBio);
+  const googleInitRef = useRef(false);
 
   useEffect(() => { googleAgeRef.current = googleAge; }, [googleAge]);
   useEffect(() => { googleGenderRef.current = googleGender; }, [googleGender]);
@@ -114,7 +115,7 @@ export default function Auth() {
     if (socialModal === 'Google' && Number(googleAge) >= 18 && window.google) {
       const timer = setTimeout(() => {
         const btnContainer = document.getElementById('google-signin-button');
-        if (btnContainer) {
+        if (btnContainer && !googleInitRef.current) {
           window.google.accounts.id.initialize({
             client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'replace-me.apps.googleusercontent.com',
             callback: handleGoogleCredentialResponse
@@ -123,9 +124,12 @@ export default function Auth() {
             btnContainer,
             { theme: 'outline', size: 'large', width: '320' }
           );
+          googleInitRef.current = true;
         }
       }, 100);
       return () => clearTimeout(timer);
+    } else if (!socialModal) {
+      googleInitRef.current = false;
     }
   }, [socialModal, googleAge]);
 
