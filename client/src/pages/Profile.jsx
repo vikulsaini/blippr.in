@@ -90,7 +90,6 @@ export default function Profile() {
                 </div>
               )}
             </div>
-            <span className={`absolute bottom-2 right-2 z-10 h-4.5 w-4.5 rounded-full border-2 border-surface ${user?.isOnline ? 'live-dot bg-success text-success' : 'bg-border-default'}`} />
           </div>
 
           <div className="mx-auto mt-4 max-w-sm rounded-[24px] border border-border-default bg-surface px-4 py-3 shadow-card">
@@ -103,15 +102,6 @@ export default function Profile() {
                 <Copy size={14} />
               </button>
             )}
-          </div>
-
-          <div className={`mt-4 inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-sm transition mx-auto ${
-            user?.isOnline 
-              ? 'border-accent/30 bg-accent/8 text-accent' 
-              : 'border-slate-300 dark:border-slate-700 bg-slate-100/90 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-          }`}>
-            <span className={`h-2 w-2 rounded-full ${user?.isOnline ? 'bg-success badge-pulse' : 'bg-slate-400 dark:bg-slate-500'}`} />
-            {presenceText(user)}
           </div>
 
           <div className="mx-auto mt-3 flex max-w-md items-center justify-between gap-3 rounded-[20px] border border-border-default bg-bg px-3 py-2">
