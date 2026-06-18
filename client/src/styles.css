@@ -15,18 +15,18 @@
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* ─── Core Surfaces ─── */
-  --bg: #F8FAFC;
+  --bg: #F4FBF7;
   --surface: #FFFFFF;
-  --surface-hover: #F1F5F9;
-  --surface-glass: rgba(255, 255, 255, 0.72);
+  --surface-hover: #EAF7F1;
+  --surface-glass: rgba(255, 255, 255, 0.75);
 
-  /* ─── Accent: Engagement Blue ─── */
-  --accent: #2563EB;
-  --accent-hover: #1D4ED8;
-  --accent-tint: rgba(37, 99, 235, 0.05);
-  --accent-light: rgba(37, 99, 235, 0.10);
-  --accent-ring: rgba(37, 99, 235, 0.25);
-  --accent-glow: rgba(37, 99, 235, 0.15);
+  /* ─── Accent: Engagement Emerald ─── */
+  --accent: #059669;
+  --accent-hover: #047857;
+  --accent-tint: rgba(5, 150, 105, 0.05);
+  --accent-light: rgba(5, 150, 105, 0.10);
+  --accent-ring: rgba(5, 150, 105, 0.25);
+  --accent-glow: rgba(5, 150, 105, 0.15);
 
   /* ─── Typography ─── */
   --text-primary: #0F172A;
@@ -35,8 +35,8 @@
   --text-faint: #94A3B8;
 
   /* ─── Borders ─── */
-  --border: #E2E8F0;
-  --border-hover: #2563EB;
+  --border: #E2F1EB;
+  --border-hover: #059669;
 
   /* ─── Semantic Colors ─── */
   --danger: #EF4444;
@@ -65,31 +65,31 @@
 }
 
 /* ═══════════════════════════════════════════
-   DARK THEME
+   DARK THEME (HackerRank Dark-Teal Style)
    ═══════════════════════════════════════════ */
 
 .dark-theme {
   color-scheme: dark;
 
-  --bg: #0B1120;
-  --surface: #1E293B;
-  --surface-hover: #334155;
-  --surface-glass: rgba(30, 41, 59, 0.72);
+  --bg: #030712;
+  --surface: #0B1527;
+  --surface-hover: #11223E;
+  --surface-glass: rgba(11, 21, 39, 0.75);
 
-  --accent: #3B82F6;
-  --accent-hover: #60A5FA;
-  --accent-tint: rgba(59, 130, 246, 0.08);
-  --accent-light: rgba(59, 130, 246, 0.14);
-  --accent-ring: rgba(59, 130, 246, 0.30);
-  --accent-glow: rgba(59, 130, 246, 0.20);
+  --accent: #10B981;
+  --accent-hover: #34D399;
+  --accent-tint: rgba(16, 185, 129, 0.08);
+  --accent-light: rgba(16, 185, 129, 0.14);
+  --accent-ring: rgba(16, 185, 129, 0.30);
+  --accent-glow: rgba(16, 185, 129, 0.20);
 
   --text-primary: #F1F5F9;
   --text-secondary: #CBD5E1;
   --text-muted: #94A3B8;
   --text-faint: #475569;
 
-  --border: #334155;
-  --border-hover: #3B82F6;
+  --border: #1E2E4A;
+  --border-hover: #10B981;
 
   --danger: #F87171;
   --danger-bg: rgba(239, 68, 68, 0.10);

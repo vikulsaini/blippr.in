@@ -16,8 +16,8 @@ export default {
           ring: 'var(--accent-ring)',
           glow: 'var(--accent-glow)'
         },
-        primary: '#2563EB',
-        'primary-soft': '#60A5FA',
+        primary: 'var(--accent)',
+        'primary-soft': 'var(--accent-hover)',
         bg: 'var(--bg)',
         surface: 'var(--surface)',
         'surface-hover': 'var(--surface-hover)',
