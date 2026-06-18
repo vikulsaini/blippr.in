@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
   {
-    phone: { type: String, sparse: true, index: true },
+
     email: { type: String, lowercase: true, trim: true, sparse: true, index: true },
     emailVerifiedAt: Date,
     passwordHash: { type: String, select: false },
@@ -61,6 +61,6 @@ userSchema.set('toObject', { transform: hidePrivateFields });
 userSchema.index({ location: '2dsphere' });
 userSchema.index({ isOnline: 1, age: 1, lastSeenAt: -1 });
 userSchema.index({ isGuest: 1, lastIp: 1, updatedAt: -1 });
-userSchema.index({ name: 'text', username: 'text', phone: 'text', email: 'text' });
+userSchema.index({ name: 'text', username: 'text', email: 'text' });
 
 export default mongoose.model('User', userSchema);

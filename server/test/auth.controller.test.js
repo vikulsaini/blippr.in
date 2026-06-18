@@ -75,7 +75,7 @@ test('email signup creates a user, token, and httpOnly auth cookie', async () =>
   assert.equal(res.cookies[0].options.httpOnly, true);
 });
 
-test('email login returns a testing verification code when provider is missing', async () => {
+test('email login returns 403 when provider is missing and does not leak verification code', async () => {
   process.env.NODE_ENV = 'production';
   process.env.DISABLE_EMAIL_VERIFICATION = 'false';
   const bcrypt = (await import('bcryptjs')).default;
@@ -104,7 +104,7 @@ test('email login returns a testing verification code when provider is missing',
   assert.equal(res.statusCode, 403);
   assert.equal(res.body.code, 'EMAIL_NOT_VERIFIED');
   assert.equal(res.body.emailSent, false);
-  assert.equal(res.body.verificationCode.length, 6);
+  assert.equal(res.body.verificationCode, undefined);
 });
 
 test('guest login reuses recent guest from the same IP', async () => {

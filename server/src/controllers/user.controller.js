@@ -161,17 +161,27 @@ export const deleteAccount = asyncHandler(async (req, res) => {
 
 export const searchUsers = asyncHandler(async (req, res) => {
   const q = String(req.query.q || '').trim();
+  
+  if (q.length > 50) {
+    const error = new Error('Search query is too long');
+    error.status = 400;
+    throw error;
+  }
+
+  const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const excludedIds = [req.user._id, ...(req.user.blockedUsers || [])];
-  const filter = q
+  
+  const filter = escapedQ
     ? {
         _id: { $nin: excludedIds },
         blockedUsers: { $ne: req.user._id },
         $or: [
-          { username: { $regex: q, $options: 'i' } },
-          { name: { $regex: q, $options: 'i' } }
+          { username: { $regex: escapedQ, $options: 'i' } },
+          { name: { $regex: escapedQ, $options: 'i' } }
         ]
       }
     : { _id: { $nin: excludedIds }, blockedUsers: { $ne: req.user._id } };
+    
   const users = await User.find(filter).select('name username avatar bio interests isOnline lastSeenAt age gender').limit(20);
   res.json({ users });
 });

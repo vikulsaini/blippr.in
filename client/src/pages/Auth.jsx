@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -27,60 +27,18 @@ import { api, setToken } from '../lib/api.js';
 
 const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', gender: 'female', bio: '', hobbies: '' };
 
-const SOCIAL_PROFILES = [
-  {
-    provider: 'Google',
-    name: 'Alex Rivera',
-    email: 'alex.rivera@gmail.com',
-    username: 'alex_rivera',
-    age: 24,
-    gender: 'male',
-    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Alex&accessoriesProbability=0',
-    bio: 'Software engineer who loves exploring coffee shops and coding late.'
-  },
-  {
-    provider: 'Google',
-    name: 'Sara Chen',
-    email: 'sara.chen@gmail.com',
-    username: 'sara_chen',
-    age: 26,
-    gender: 'female',
-    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Sara&accessoriesProbability=0',
-    bio: 'Product designer and tea enthusiast. Let\'s talk about design & life.'
-  },
-  {
-    provider: 'Facebook',
-    name: 'Taylor Jones',
-    email: 'taylor.jones@facebook.com',
-    username: 'taylor_j',
-    age: 22,
-    gender: 'female',
-    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Taylor&accessoriesProbability=0',
-    bio: 'Avid traveler, foodie, and music lover. Looking to meet nice people!'
-  },
-  {
-    provider: 'Facebook',
-    name: 'Marcus Vance',
-    email: 'marcus.vance@facebook.com',
-    username: 'marcus_v',
-    age: 29,
-    gender: 'male',
-    avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Marcus&accessoriesProbability=0',
-    bio: 'Fitness coach & adventure photographer. Tell me your favorite trail.'
-  }
-];
+const SOCIAL_PROFILES = [];
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState('signup'); // 'signup' is default as in screenshot. 'login' | 'guest' | 'phone' | 'verifyEmail'
-  const [signupStep, setSignupStep] = useState(1); // 1: credentials, 2: profile details
+  const [mode, setMode] = useState('signup'); // 'signup' | 'login' | 'guest' | 'verifyEmail' | 'forgotPassword' | 'resetPassword'
+  const [signupStep, setSignupStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpHint, setOtpHint] = useState('');
+  const [googleAge, setGoogleAge] = useState('18');
+  const [googleGender, setGoogleGender] = useState('female');
+  const [googleBio, setGoogleBio] = useState('');
   const [emailCode, setEmailCode] = useState('');
   const [emailHint, setEmailHint] = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
@@ -88,8 +46,7 @@ export default function Auth() {
   const [profile, setProfile] = useState(initialProfile);
   const [error, setError] = useState('');
   
-  // Social login modal state
-  const [socialModal, setSocialModal] = useState(null); // 'Google' | 'Facebook' | null
+  const [socialModal, setSocialModal] = useState(null); // 'Google' | null
   const [connectingSocial, setConnectingSocial] = useState(false);
   const [selectedSocialProfile, setSelectedSocialProfile] = useState(null);
 
@@ -97,8 +54,7 @@ export default function Auth() {
   const isNameValid = profile.name.trim().length >= 2;
   const isUsernameValid = /^[a-z0-9_]{3,24}$/.test(profile.username);
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isPhoneValid = /^\+?[\d\s-]{8,18}$/.test(phone);
-  const isOtpValid = /^\d{6}$/.test(otp);
+  const isGoogleInputValid = Number(googleAge) >= 18;
 
   // Password rules checks
   const hasMinLength = password.length >= 8;
@@ -115,17 +71,63 @@ export default function Auth() {
     setMode(nextMode);
     setSignupStep(1);
     setError('');
-    setOtpHint('');
     setEmailHint('');
-    setOtpSent(false);
   }
 
   function showEmailVerification(result, fallbackEmail = email) {
     setPendingEmail(result.email || fallbackEmail);
-    setEmailHint(result.verificationCode ? `Testing code: ${result.verificationCode}` : result.message || 'Check your email for the verification code.');
+    setEmailHint(result.message || 'Check your email for the verification code.');
     setEmailCode('');
     setMode('verifyEmail');
   }
+
+  const googleAgeRef = useRef(googleAge);
+  const googleGenderRef = useRef(googleGender);
+  const googleBioRef = useRef(googleBio);
+
+  useEffect(() => { googleAgeRef.current = googleAge; }, [googleAge]);
+  useEffect(() => { googleGenderRef.current = googleGender; }, [googleGender]);
+  useEffect(() => { googleBioRef.current = googleBio; }, [googleBio]);
+
+  async function handleGoogleCredentialResponse(response) {
+    setLoading(true);
+    setError('');
+    try {
+      const { token } = await api('/api/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({
+          idToken: response.credential,
+          age: Number(googleAgeRef.current),
+          gender: googleGenderRef.current,
+          bio: googleBioRef.current
+        })
+      });
+      finishAuth(token);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (socialModal === 'Google' && Number(googleAge) >= 18 && window.google) {
+      const timer = setTimeout(() => {
+        const btnContainer = document.getElementById('google-signin-button');
+        if (btnContainer) {
+          window.google.accounts.id.initialize({
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'replace-me.apps.googleusercontent.com',
+            callback: handleGoogleCredentialResponse
+          });
+          window.google.accounts.id.renderButton(
+            btnContainer,
+            { theme: 'outline', size: 'large', width: '320' }
+          );
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [socialModal, googleAge]);
 
   function profilePayload() {
     return {
@@ -220,40 +222,18 @@ export default function Auth() {
     }
   }
 
-  async function handlePhoneSubmit(event) {
-    event.preventDefault();
-    if (otpSent) {
-      await verifyOtp(event);
-    } else {
-      await requestOtp(event);
-    }
-  }
-
-  async function requestOtp(event) {
-    setError('');
-    setOtpHint('');
-    setLoading(true);
-    try {
-      const result = await api('/api/auth/otp/request', { method: 'POST', body: JSON.stringify({ phone }) });
-      setOtpSent(true);
-      if (result.otp) setOtpHint(`Testing OTP: ${result.otp}`);
-      else if (!result.smsSent) setOtpHint('OTP was generated, but SMS is not configured on the server.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function verifyOtp(event) {
+  async function submitForgotPassword(event) {
+    if (event) event.preventDefault();
     setError('');
     setLoading(true);
     try {
-       const { token } = await api('/api/auth/otp/verify', {
+      const result = await api('/api/auth/email/forgot-password', {
         method: 'POST',
-        body: JSON.stringify({ phone, otp, ...profilePayload(), name: profile.name || 'Blippr User' })
+        body: JSON.stringify({ email })
       });
-      finishAuth(token);
+      setEmailHint(result.message || 'Check your email for the reset code.');
+      setEmailCode('');
+      setMode('resetPassword');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -261,46 +241,29 @@ export default function Auth() {
     }
   }
 
-  // Handle Social Login (Google / Facebook mock handler)
-  async function triggerSocialLogin(socialProfile) {
-    setSelectedSocialProfile(socialProfile);
-    setConnectingSocial(true);
-    
-    // Simulate OAuth handshake
-    setTimeout(async () => {
-      try {
-        // 1. Create a guest session under the hood to get a valid token
-        const { token } = await api('/api/auth/guest', {
-          method: 'POST',
-          body: JSON.stringify({ 
-            age: socialProfile.age, 
-            gender: socialProfile.gender, 
-            bio: socialProfile.bio 
-          })
-        });
-        setToken(token);
-        
-        // 2. Patch the profile details on the backend to match Google/Facebook account
-        try {
-          await api('/api/users/me', {
-            method: 'PATCH',
-            body: JSON.stringify({
-              name: socialProfile.name,
-              username: socialProfile.username,
-              avatar: socialProfile.avatar
-            })
-          });
-        } catch (profileErr) {
-          console.warn('Failed to update social details:', profileErr.message);
-        }
-        
-        finishAuth(token);
-      } catch (err) {
-        setError(err.message);
-        setConnectingSocial(false);
-        setSocialModal(null);
-      }
-    }, 1200);
+  async function submitResetPassword(event) {
+    if (event) event.preventDefault();
+    if (!isPasswordValid) {
+      setError('Please satisfy all password requirements.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const result = await api('/api/auth/email/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, code: emailCode, password })
+      });
+      setMode('login');
+      setError('');
+      setPassword('');
+      setEmailCode('');
+      setEmailHint(result.message || 'Password reset successfully. You can now log in.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -332,25 +295,28 @@ export default function Auth() {
                     {mode === 'signup' && signupStep === 1 ? 'Sign Up' : ''}
                     {mode === 'signup' && signupStep === 2 ? 'Profile Details' : ''}
                     {mode === 'login' ? 'Sign In' : ''}
-                    {mode === 'phone' ? 'Phone OTP' : ''}
                     {mode === 'guest' ? 'Guest Setup' : ''}
                     {mode === 'verifyEmail' ? 'Verify Email' : ''}
+                    {mode === 'forgotPassword' ? 'Reset Password' : ''}
+                    {mode === 'resetPassword' ? 'New Password' : ''}
                   </h2>
                   <p className="text-xs font-bold text-text-muted uppercase tracking-widest">
                     {mode === 'signup' && signupStep === 1 && 'Secure Your Communications with Blippr'}
                     {mode === 'signup' && signupStep === 2 && 'Step 2: Tell us a bit about yourself'}
                     {mode === 'login' && 'Welcome back to your private cafe'}
-                    {mode === 'phone' && 'Fast access via one-time verification code'}
                     {mode === 'guest' && 'Enter instantly without an email address'}
                     {mode === 'verifyEmail' && 'Secure authentication checkpoint'}
+                    {mode === 'forgotPassword' && 'Enter your email to receive a reset code'}
+                    {mode === 'resetPassword' && 'Enter the 6-digit code and your new password'}
                   </p>
                 </div>
 
                 <form onSubmit={
                   mode === 'signup' ? submitForm :
                   mode === 'login' ? submitForm :
-                  mode === 'phone' ? handlePhoneSubmit :
                   mode === 'guest' ? continueAsGuest :
+                  mode === 'forgotPassword' ? submitForgotPassword :
+                  mode === 'resetPassword' ? submitResetPassword :
                   verifyEmail
                 } className="space-y-5 pt-2">
                   
@@ -441,10 +407,76 @@ export default function Auth() {
                         icon={Mail}
                         isValid={isEmailValid}
                       />
+                      <div className="space-y-2">
+                        <UnderlinedInput 
+                          value={password} 
+                          onChange={setPassword} 
+                          placeholder="Password" 
+                          type={showPassword ? 'text' : 'password'} 
+                          icon={Lock}
+                          suffix={
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="text-text-faint hover:text-text-secondary transition p-1"
+                            >
+                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          }
+                          isValid={password.length >= 6}
+                        />
+                        <div className="flex justify-end">
+                          <button type="button" onClick={() => switchMode('forgotPassword')} className="text-[11px] font-bold text-accent hover:underline">Forgot password?</button>
+                        </div>
+                      </div>
+                      
+                      {emailHint && (
+                        <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
+                          {emailHint}
+                        </p>
+                      )}
+                    </>
+                  )}
+
+                  {/* GUEST FIELDS */}
+                  {mode === 'guest' && (
+                    <div className="space-y-4">
+                      <ProfileSetup profile={profile} setProfile={setProfile} compact />
+                    </div>
+                  )}
+
+                  {/* FORGOT PASSWORD FIELDS */}
+                  {mode === 'forgotPassword' && (
+                    <div className="space-y-4">
+                      <UnderlinedInput 
+                        value={email} 
+                        onChange={setEmail} 
+                        placeholder="Email Address" 
+                        type="email" 
+                        icon={Mail}
+                        isValid={isEmailValid}
+                      />
+                    </div>
+                  )}
+
+                  {/* RESET PASSWORD FIELDS */}
+                  {mode === 'resetPassword' && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-border-default bg-bg p-4 text-xs font-semibold text-text-muted leading-relaxed transition-colors duration-[350ms]">
+                        Reset code sent to <span className="font-bold text-text-primary">{email}</span>. Enter code:
+                      </div>
+                      <UnderlinedInput 
+                        value={emailCode} 
+                        onChange={setEmailCode} 
+                        placeholder="6-digit code" 
+                        inputMode="numeric" 
+                        icon={ShieldCheck} 
+                        isValid={emailCode.length === 6}
+                      />
                       <UnderlinedInput 
                         value={password} 
                         onChange={setPassword} 
-                        placeholder="Password" 
+                        placeholder="New Password" 
                         type={showPassword ? 'text' : 'password'} 
                         icon={Lock}
                         suffix={
@@ -456,66 +488,18 @@ export default function Auth() {
                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         }
-                        isValid={password.length >= 6}
+                        isValid={isPasswordValid}
                       />
-                    </>
-                  )}
-
-                  {/* PHONE OTP FIELDS */}
-                  {mode === 'phone' && (
-                    <>
-                      {otpSent && (
-                        <div className="space-y-4 mb-2 animate-fadeIn">
-                          <UnderlinedInput 
-                            value={profile.name} 
-                            onChange={(value) => setProfile((c) => ({ ...c, name: value }))} 
-                            placeholder="Full Name" 
-                            icon={UserRound} 
-                            isValid={isNameValid}
-                          />
-                          <UnderlinedInput 
-                            value={profile.username} 
-                            onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
-                            placeholder="Username" 
-                            prefix="@" 
-                            icon={UserRound} 
-                            isValid={isUsernameValid}
-                          />
-                        </div>
-                      )}
-                      <UnderlinedInput 
-                        value={phone} 
-                        onChange={setPhone} 
-                        placeholder="Phone number (+91 ...)" 
-                        type="tel" 
-                        icon={Phone} 
-                        isValid={isPhoneValid}
-                      />
-                      {otpSent && (
-                        <div className="space-y-4 mt-4 animate-fadeIn">
-                          <UnderlinedInput 
-                            value={otp} 
-                            onChange={setOtp} 
-                            placeholder="6-Digit OTP" 
-                            inputMode="numeric" 
-                            icon={ShieldCheck} 
-                            isValid={isOtpValid}
-                          />
-                          <ProfileSetup profile={profile} setProfile={setProfile} compact />
-                        </div>
-                      )}
-                      {otpHint && (
-                        <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3.5 text-xs text-accent font-semibold leading-relaxed">
-                          {otpHint}
+                      <div className="space-y-1.5 pt-1">
+                        <PasswordRule met={hasMinLength} text="Least 8 characters" />
+                        <PasswordRule met={hasNumOrSymbol} text="Least one number (0-9) or a symbol" />
+                        <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
+                      </div>
+                      {emailHint && (
+                        <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
+                          {emailHint}
                         </p>
                       )}
-                    </>
-                  )}
-
-                  {/* GUEST FIELDS */}
-                  {mode === 'guest' && (
-                    <div className="space-y-4">
-                      <ProfileSetup profile={profile} setProfile={setProfile} compact />
                     </div>
                   )}
 
@@ -558,7 +542,7 @@ export default function Auth() {
                       disabled={loading}
                       className="btn-primary rounded-xl px-8 py-3.5 flex items-center gap-2.5 font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
-                      {loading ? 'Please wait...' : mode === 'signup' ? (signupStep === 1 ? 'Sign Up' : 'Complete Setup') : mode === 'login' ? 'Sign In' : mode === 'phone' ? (otpSent ? 'Verify OTP' : 'Send OTP') : mode === 'guest' ? 'Enter Cafe' : 'Verify'}
+                      {loading ? 'Please wait...' : mode === 'signup' ? (signupStep === 1 ? 'Sign Up' : 'Complete Setup') : mode === 'login' ? 'Sign In' : mode === 'guest' ? 'Enter Cafe' : mode === 'forgotPassword' ? 'Send Reset Code' : mode === 'resetPassword' ? 'Update Password' : 'Verify'}
                       <ChevronRight size={18} />
                     </button>
 
@@ -566,21 +550,14 @@ export default function Auth() {
                       <>
                         <span className="text-text-muted text-sm font-semibold">Or</span>
                         <div className="flex items-center gap-2.5">
-                          {/* Facebook circular button */}
-                          <button
-                            type="button"
-                            onClick={() => setSocialModal('Facebook')}
-                            className="h-11 w-11 rounded-xl border border-border-default hover:border-accent hover:bg-accent-tint flex items-center justify-center transition active:scale-95 text-[#1877F2] shadow-card bg-surface"
-                          >
-                            <FacebookIcon />
-                          </button>
-                          {/* Google circular button */}
+                          {/* Google login button */}
                           <button
                             type="button"
                             onClick={() => setSocialModal('Google')}
-                            className="h-11 w-11 rounded-xl border border-border-default hover:border-accent hover:bg-accent-tint flex items-center justify-center transition active:scale-95 shadow-card bg-surface"
+                            className="h-11 px-4 rounded-xl border border-border-default hover:border-accent hover:bg-accent-tint flex items-center gap-2 justify-center transition active:scale-95 shadow-card bg-surface font-bold text-xs text-text-secondary"
                           >
                             <GoogleIcon />
+                            <span>Google</span>
                           </button>
                         </div>
                       </>
@@ -605,8 +582,6 @@ export default function Auth() {
                   </p>
                   <p className="flex items-center gap-1.5 flex-wrap">
                     <span>Alternative ways:</span>
-                    <button type="button" onClick={() => switchMode('phone')} className="text-accent hover:underline">Phone OTP</button>
-                    <span>•</span>
                     <button type="button" onClick={() => switchMode('guest')} className="text-accent hover:underline">Guest Session</button>
                   </p>
                 </>
@@ -621,23 +596,15 @@ export default function Auth() {
                   </p>
                   <p className="flex items-center gap-1.5 flex-wrap">
                     <span>Alternative ways:</span>
-                    <button type="button" onClick={() => switchMode('phone')} className="text-accent hover:underline">Phone OTP</button>
-                    <span>•</span>
                     <button type="button" onClick={() => switchMode('guest')} className="text-accent hover:underline">Guest Session</button>
                   </p>
                 </>
               )}
-              {(mode === 'phone' || mode === 'guest' || mode === 'verifyEmail') && (
+              {(mode === 'guest' || mode === 'verifyEmail' || mode === 'forgotPassword' || mode === 'resetPassword') && (
                 <p className="flex items-center gap-2 flex-wrap text-text-faint font-bold">
                   <button type="button" onClick={() => switchMode('login')} className="text-accent hover:underline">Email Login</button>
                   <span>•</span>
                   <button type="button" onClick={() => switchMode('signup')} className="text-accent hover:underline">Email Signup</button>
-                  {mode !== 'phone' && (
-                    <>
-                      <span>•</span>
-                      <button type="button" onClick={() => switchMode('phone')} className="text-accent hover:underline">Phone OTP</button>
-                    </>
-                  )}
                   {mode !== 'guest' && (
                     <>
                       <span>•</span>
@@ -770,7 +737,7 @@ export default function Auth() {
 
       </div>
 
-      {/* SOCIAL OAUTH MOCK MODAL */}
+      {/* SOCIAL OAUTH REAL GOOGLE MODAL */}
       <AnimatePresence>
         {socialModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -779,7 +746,7 @@ export default function Auth() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => !connectingSocial && setSocialModal(null)}
+              onClick={() => !loading && setSocialModal(null)}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
 
@@ -791,7 +758,7 @@ export default function Auth() {
               className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border-default bg-surface shadow-elevated p-6 z-10 transition-colors duration-[350ms]"
             >
               {/* Close Button */}
-              {!connectingSocial && (
+              {!loading && (
                 <button
                   onClick={() => setSocialModal(null)}
                   className="absolute top-4 right-4 rounded-xl p-1.5 text-text-faint hover:bg-surface-hover transition"
@@ -800,53 +767,67 @@ export default function Auth() {
                 </button>
               )}
 
-              {connectingSocial ? (
+              {loading ? (
                 <div className="py-8 text-center space-y-4">
-                  {/* Spinner */}
                   <div className="mx-auto h-12 w-12 rounded-full border-4 border-accent/25 border-t-accent animate-spin" />
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-text-primary">Connecting to {socialModal}...</p>
-                    <p className="text-xs text-text-faint">Simulating secure OAuth authentication handshake</p>
+                    <p className="text-sm font-bold text-text-primary">Connecting to Google...</p>
+                    <p className="text-xs text-text-faint">Verifying secure Google authentication token</p>
                   </div>
-                  {selectedSocialProfile && (
-                    <div className="flex items-center justify-center gap-2 pt-2 text-xs font-semibold text-text-secondary">
-                      <img src={selectedSocialProfile.avatar} className="h-6 w-6 rounded-full border" alt="" />
-                      <span>{selectedSocialProfile.name}</span>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-accent">
                     <Sparkles size={20} />
-                    <h3 className="text-lg font-bold text-text-primary">Connect with {socialModal}</h3>
+                    <h3 className="text-lg font-bold text-text-primary">Google Profile Setup</h3>
                   </div>
                   <p className="text-xs text-text-muted leading-relaxed font-semibold">
-                    This is a development sandboxed environment. Choose a mock {socialModal} account below to authenticate immediately:
+                    Age and gender are required to secure our chat channels. Please complete these details:
                   </p>
 
-                  <div className="space-y-2.5 pt-2">
-                    {SOCIAL_PROFILES.filter(p => p.provider === socialModal).map((profileOpt, index) => (
-                      <button
-                        key={index}
-                        onClick={() => triggerSocialLogin(profileOpt)}
-                        className="flex items-center gap-3 w-full text-left p-3.5 rounded-2xl border border-border-default hover:border-accent hover:bg-accent/5 transition group"
-                      >
-                        <img 
-                          src={profileOpt.avatar} 
-                          className="h-10 w-10 rounded-full border border-border-default bg-surface shadow-sm"
-                          alt="" 
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-text-primary group-hover:text-accent transition">{profileOpt.name}</p>
-                          <p className="text-xs text-text-faint truncate font-semibold">{profileOpt.email}</p>
-                        </div>
-                        <div className="text-right text-[10px] font-bold text-text-faint bg-bg px-2.5 py-1 rounded-full border border-border-default">
-                          {profileOpt.age} • {profileOpt.gender}
-                        </div>
-                      </button>
-                    ))}
+                  <div className="space-y-4 rounded-2xl border border-border-default bg-bg p-4 transition-colors duration-[350ms]">
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <UnderlinedInput 
+                        value={googleAge} 
+                        onChange={setGoogleAge} 
+                        placeholder="Age (18+)" 
+                        type="number" 
+                        icon={UserRound}
+                        isValid={isGoogleInputValid}
+                      />
+                      <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border-default bg-surface p-1 text-xs">
+                        {['female', 'male'].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setGoogleGender(value)}
+                            className={`rounded-xl px-2 py-2 font-bold capitalize transition-all duration-200 active:scale-[0.96] ${googleGender === value ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+                          >
+                            {value}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <textarea 
+                      value={googleBio} 
+                      onChange={(event) => setGoogleBio(event.target.value)} 
+                      className="min-h-20 w-full resize-none rounded-2xl border border-border-default bg-surface px-4 py-3.5 text-xs text-text-primary outline-none placeholder:text-text-faint focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
+                      placeholder="Write a short bio (optional)..." 
+                      maxLength={160} 
+                    />
                   </div>
+
+                  {isGoogleInputValid ? (
+                    <div className="flex flex-col items-center justify-center p-4 border border-dashed border-border-default rounded-2xl bg-bg transition-colors duration-[350ms]">
+                      <p className="text-[10px] text-text-faint font-bold mb-2.5">Continue with Google:</p>
+                      <div id="google-signin-button" className="w-full flex justify-center py-1"></div>
+                    </div>
+                  ) : (
+                    <div className="text-center p-3 rounded-2xl border border-danger/20 bg-danger/5 text-danger text-xs font-semibold">
+                      You must be 18 years or older to sign in.
+                    </div>
+                  )}
 
                   <button
                     onClick={() => setSocialModal(null)}
@@ -884,16 +865,6 @@ function GoogleIcon() {
       <path
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
         fill="#EA4335"
-      />
-    </svg>
-  );
-}
-
-function FacebookIcon() {
-  return (
-    <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="currentColor">
-      <path
-        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
       />
     </svg>
   );

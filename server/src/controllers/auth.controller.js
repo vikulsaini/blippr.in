@@ -8,27 +8,11 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { signJwt } from '../utils/tokens.js';
 import { avatarForGender, createUniqueUsername, guestIdentity } from '../utils/identity.js';
 import { getClientIp } from '../utils/clientIp.js';
-import { canExposeOtp, issueOtp, verifyOtp } from '../services/otp.service.js';
-import { canExposeEmailCode, issueEmailVerification, verifyEmailCode } from '../services/emailVerification.service.js';
+import { issueEmailVerification, verifyEmailCode } from '../services/emailVerification.service.js';
+import { issuePasswordReset, validatePasswordReset } from '../services/passwordReset.service.js';
 import { notifyUser } from '../services/notification.service.js';
 import { clearAuthCookie, setAuthCookie, readAuthCookie } from '../utils/authCookie.js';
 
-export const requestOtpSchema = Joi.object({
-  phone: Joi.string().min(8).max(18).required()
-});
-
-export const verifyOtpSchema = Joi.object({
-  phone: Joi.string().min(8).max(18).required(),
-  otp: Joi.string().length(6).required(),
-  name: Joi.string().trim().min(2).max(80).required(),
-  username: Joi.string().lowercase().pattern(/^[a-z0-9_]{3,24}$/).optional(),
-  age: Joi.number().integer().min(18).max(120).required(),
-  dob: Joi.date().iso().optional(),
-  contact: Joi.string().trim().max(40).allow('').optional(),
-  gender: Joi.string().valid('male', 'female').required(),
-  bio: Joi.string().max(160).allow('').optional(),
-  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional()
-});
 
 export const googleLoginSchema = Joi.object({
   idToken: Joi.string().required(),
@@ -73,18 +57,7 @@ function sendAuth(res, token, user, status = 200, extra = {}) {
 }
 
 function emailVerificationEnabled() {
-  return process.env.DISABLE_EMAIL_VERIFICATION !== 'true';
-}
-
-function providerMissingError(kind) {
-  const error = new Error(`${kind.toUpperCase()} provider is not configured on the server`);
-  error.status = 503;
-  error.code = `${kind.toUpperCase()}_PROVIDER_MISSING`;
-  return error;
-}
-
-function shouldReturnEmailCode(delivery) {
-  return canExposeEmailCode() || !delivery.sent;
+  return true;
 }
 
 async function sendEmailVerificationResponse(res, user, status = 200) {
@@ -94,8 +67,7 @@ async function sendEmailVerificationResponse(res, user, status = 200) {
     verificationRequired: true,
     email: user.email,
     emailSent: delivery.sent,
-    message: delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Use this testing code to verify your account.',
-    ...(shouldReturnEmailCode(delivery) ? { verificationCode: code } : {})
+    message: delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Check server console for code.'
   });
 }
 
@@ -126,6 +98,16 @@ export const emailResendSchema = Joi.object({
   email: Joi.string().email().lowercase().required()
 });
 
+export const forgotPasswordSchema = Joi.object({
+  email: Joi.string().email().lowercase().required()
+});
+
+export const resetPasswordSchema = Joi.object({
+  email: Joi.string().email().lowercase().required(),
+  code: Joi.string().length(6).required(),
+  password: Joi.string().min(8).max(72).required()
+});
+
 export const guestUpgradeSchema = Joi.object({
   name: Joi.string().trim().min(2).max(80).required(),
   email: Joi.string().email().lowercase().required(),
@@ -144,60 +126,39 @@ export const guestSchema = Joi.object({
   bio: Joi.string().max(160).allow('').optional()
 });
 
-export const requestOtp = asyncHandler(async (req, res) => {
-  const { otp, delivery } = await issueOtp(req.body.phone);
-  if (!delivery.sent && !canExposeOtp()) throw providerMissingError('sms');
-  res.json({
-    ok: true,
-    message: delivery.sent ? 'OTP sent' : 'OTP generated. SMS provider is not configured.',
-    smsSent: delivery.sent,
-    ...(canExposeOtp() ? { otp } : {})
-  });
+export const requestPasswordReset = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    // Return a success message even if user not found to prevent email enumeration
+    return res.json({ ok: true, message: 'If an account exists, a reset code was sent.' });
+  }
+
+  await issuePasswordReset(user.email);
+  return res.json({ ok: true, message: 'If an account exists, a reset code was sent.' });
 });
 
-export const verifyPhoneOtp = asyncHandler(async (req, res) => {
-  const valid = await verifyOtp(req.body.phone, req.body.otp);
+export const resetPassword = asyncHandler(async (req, res) => {
+  const valid = await validatePasswordReset(req.body.email, req.body.code);
   if (!valid) {
-    const error = new Error('Invalid or expired OTP');
+    const error = new Error('Invalid or expired reset code');
     error.status = 401;
+    error.code = 'RESET_CODE_INVALID';
     throw error;
   }
-  const existingUser = await User.findOne({ phone: req.body.phone }).select('+lastIp +ipHistory');
-  if (!existingUser && !req.body.username) {
-    const error = new Error('Username is required for new phone signup');
-    error.status = 422;
+
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    const error = new Error('Account not found');
+    error.status = 404;
     throw error;
   }
-  if (req.body.username) {
-    const usernameExists = await User.exists({ username: req.body.username, phone: { $ne: req.body.phone } });
-    if (usernameExists) {
-      const error = new Error('Username is already taken');
-      error.status = 409;
-      throw error;
-    }
-  }
-  const user = await User.findOneAndUpdate(
-    { phone: req.body.phone },
-    {
-      $set: {
-        name: req.body.name,
-        age: req.body.age,
-        dob: req.body.dob,
-        contact: req.body.contact || '',
-        gender: req.body.gender,
-        bio: req.body.bio || '',
-        interests: req.body.interests || []
-      },
-      $setOnInsert: {
-        phone: req.body.phone,
-        username: req.body.username,
-        avatar: avatarForGender(req.body.gender, req.body.username)
-      }
-    },
-    { upsert: true, new: true }
-  );
-  await recordLogin(req, user);
-  return sendAuth(res, signJwt(user), user);
+
+  user.passwordHash = await bcrypt.hash(req.body.password, 12);
+  await user.save();
+  
+  // Clear any existing tokens in redis cache if applicable
+  // Or simply let them expire and force new login
+  return res.json({ ok: true, message: 'Password reset successfully. You can now log in.' });
 });
 
 export const signupWithEmail = asyncHandler(async (req, res) => {
@@ -251,10 +212,9 @@ export const loginWithEmail = asyncHandler(async (req, res) => {
     return res.status(403).json({
       ok: false,
       code: 'EMAIL_NOT_VERIFIED',
-      message: delivery.sent ? 'Please verify your email. We sent a fresh code.' : 'Email provider is not configured. Use this testing code to verify your account.',
+      message: delivery.sent ? 'Please verify your email. We sent a fresh code.' : 'Email provider is not configured. Check server console for code.',
       email: user.email,
-      emailSent: delivery.sent,
-      ...(shouldReturnEmailCode(delivery) ? { verificationCode: code } : {})
+      emailSent: delivery.sent
     });
   }
 
@@ -370,8 +330,7 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
     return sendAuth(res, signJwt(req.user), req.user, 200, {
       verificationRequired: true,
       emailSent: delivery.sent,
-      message: delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Use this testing code to verify your account.',
-      ...(shouldReturnEmailCode(delivery) ? { verificationCode: code } : {})
+      message: delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Check server console for code.'
     });
   }
 

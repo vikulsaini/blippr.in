@@ -1,11 +1,11 @@
 import { redis } from '../config/redis.js';
-import { sendVerificationEmail } from './email.service.js';
+import { sendPasswordResetEmail } from './email.service.js';
 
-const ttlSeconds = () => Number(process.env.EMAIL_CODE_TTL_SECONDS || 600);
-const cooldownSeconds = () => Number(process.env.EMAIL_CODE_COOLDOWN_SECONDS || 60);
-const keyFor = (email) => `email_verify:${email}`;
-const cooldownKeyFor = (email) => `email_verify_cooldown:${email}`;
-const attemptsKeyFor = (email) => `email_verify_attempts:${email}`;
+const ttlSeconds = () => Number(process.env.PASSWORD_RESET_TTL_SECONDS || 600);
+const cooldownSeconds = () => Number(process.env.PASSWORD_RESET_COOLDOWN_SECONDS || 60);
+const keyFor = (email) => `password_reset:${email}`;
+const cooldownKeyFor = (email) => `password_reset_cooldown:${email}`;
+const attemptsKeyFor = (email) => `password_reset_attempts:${email}`;
 const memoryStore = new Map();
 
 function redisConfigured() {
@@ -43,12 +43,12 @@ function createCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-export async function issueEmailVerification(email) {
+export async function issuePasswordReset(email) {
   const cooldown = redisConfigured() ? await redis.get(cooldownKeyFor(email)) : memoryGet(cooldownKeyFor(email));
   if (cooldown) {
-    const error = new Error('Please wait before requesting another verification email');
+    const error = new Error('Please wait before requesting another password reset code');
     error.status = 429;
-    error.code = 'EMAIL_CODE_COOLDOWN';
+    error.code = 'PASSWORD_RESET_COOLDOWN';
     throw error;
   }
 
@@ -66,7 +66,7 @@ export async function issueEmailVerification(email) {
     memoryDel(attemptsKeyFor(email));
   }
 
-  const delivery = await sendVerificationEmail(email, code);
+  const delivery = await sendPasswordResetEmail(email, code);
   const maskEmail = (str) => {
     const parts = str.split('@');
     if (parts.length < 2) return '***';
@@ -75,26 +75,28 @@ export async function issueEmailVerification(email) {
     const maskedName = name.length > 2 ? name[0] + '*'.repeat(name.length - 2) + name[name.length - 1] : '*'.repeat(name.length);
     return `${maskedName}@${domain}`;
   };
-  console.log(`Email verification issued for ${maskEmail(email)}: ${code}`);
+  console.log(`Password reset code issued for ${maskEmail(email)}: ${code}`);
   return { code, delivery };
 }
 
-export async function verifyEmailCode(email, code) {
+export async function validatePasswordReset(email, code) {
   const attempts = redisConfigured() ? Number((await redis.incr(attemptsKeyFor(email))) || 1) : memoryIncr(attemptsKeyFor(email));
   if (redisConfigured() && attempts === 1) await redis.expire(attemptsKeyFor(email), ttlSeconds());
-  if (attempts > Number(process.env.EMAIL_CODE_MAX_ATTEMPTS || 6)) {
+  if (attempts > Number(process.env.PASSWORD_RESET_MAX_ATTEMPTS || 6)) {
     const error = new Error('Too many incorrect verification attempts. Please request a new code.');
     error.status = 429;
-    error.code = 'EMAIL_CODE_LOCKED';
+    error.code = 'PASSWORD_RESET_LOCKED';
     throw error;
   }
 
   const stored = redisConfigured() ? await redis.get(keyFor(email)) : memoryGet(keyFor(email));
   if (!stored || stored !== code) return false;
+  
   if (redisConfigured()) {
     await redis.del(keyFor(email), attemptsKeyFor(email), cooldownKeyFor(email));
   } else {
     memoryDel(keyFor(email), attemptsKeyFor(email), cooldownKeyFor(email));
   }
+  
   return true;
 }

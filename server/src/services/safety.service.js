@@ -8,6 +8,14 @@ const restrictedTextPatterns = [
 export function assertTextAllowed(text = '') {
   const value = String(text || '');
   if (!value.trim()) return;
+  
+  if (value.length > 5000) {
+    const error = new Error('Message is too long for safety evaluation');
+    error.status = 400;
+    error.code = 'SAFETY_PAYLOAD_TOO_LARGE';
+    throw error;
+  }
+
   if (restrictedTextPatterns.some((pattern) => pattern.test(value))) {
     const error = new Error('This message violates Blippr safety rules');
     error.status = 400;
