@@ -14,6 +14,65 @@ import { readCache, writeCache } from '../lib/cache.js';
 import { normalizeId, sortChats } from '../lib/chat.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 
+const MOCK_CHANNELS = [
+  {
+    _id: 'mock_ui_ux_design',
+    isMock: true,
+    type: 'channel',
+    name: '🚀 UI/UX-design',
+    category: 'general',
+    unreadCount: 2,
+    description: 'A space for sharing UI/UX designs, case studies, and getting feedback from the community!',
+    members: [
+      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'UI/UX Designer @ Google' },
+      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Product Designer @ Figma' },
+      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Visual Designer & Illustrator' }
+    ]
+  },
+  {
+    _id: 'mock_ui_ux_discussion',
+    isMock: true,
+    type: 'channel',
+    name: '📚 UI/UX-discussion',
+    category: 'general',
+    unreadCount: 0,
+    description: 'General discussions about design philosophy, typography, user research, and more.',
+    members: [
+      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'UI/UX Designer @ Google' },
+      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Product Designer @ Figma' },
+      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Visual Designer & Illustrator' }
+    ]
+  },
+  {
+    _id: 'mock_design_challenges',
+    isMock: true,
+    type: 'channel',
+    name: '🎯 Design-challenges',
+    category: 'events',
+    unreadCount: 1,
+    description: 'Weekly design sprints, brainstorms, and community feedback challenges.',
+    members: [
+      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'UI/UX Designer @ Google' },
+      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Product Designer @ Figma' },
+      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Visual Designer & Illustrator' }
+    ]
+  },
+  {
+    _id: 'mock_support_group',
+    isMock: true,
+    type: 'channel',
+    name: '🌱 Support-group',
+    category: 'events',
+    unreadCount: 0,
+    description: 'A place to discuss design career paths, mentorship, work-life balance, and burnout.',
+    members: [
+      { _id: 'mock_samantha', name: 'Samantha', username: 'samantha', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', isOnline: true, bio: 'UI/UX Designer @ Google' },
+      { _id: 'mock_nico', name: 'Nico Alexis', username: 'nico_alexis', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', isOnline: true, bio: 'Product Designer @ Figma' },
+      { _id: 'mock_bima', name: 'Bima Algifari', username: 'bima_alg', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', isOnline: false, bio: 'Visual Designer & Illustrator' }
+    ]
+  }
+];
+
 export default function Chats() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,6 +85,102 @@ export default function Chats() {
   const [profileChat, setProfileChat] = useState(null);
   const [query, setQuery] = useState('');
   const [loadingChats, setLoadingChats] = useState(!friendChats(readCache('chats', tokenUserId, [])).length);
+
+  // Mock channels state
+  const [mockChannels, setMockChannels] = useState(MOCK_CHANNELS);
+  const [mockTypingChatId, setMockTypingChatId] = useState(null);
+  const [mockChannelMessages, setMockChannelMessages] = useState({
+    mock_ui_ux_design: [
+      {
+        _id: 'm1',
+        chat: 'mock_ui_ux_design',
+        text: 'Hey everyone! Have you checked out the new Figma auto-layout updates?',
+        sender: 'mock_samantha',
+        senderName: 'Samantha',
+        senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+        createdAt: new Date(Date.now() - 3600000 * 2).toISOString()
+      },
+      {
+        _id: 'm2',
+        chat: 'mock_ui_ux_design',
+        text: 'Yes! The wrap option is an absolute life-saver for responsive grids.',
+        sender: 'mock_nico',
+        senderName: 'Nico Alexis',
+        senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        createdAt: new Date(Date.now() - 3600000).toISOString()
+      },
+      {
+        _id: 'm3',
+        chat: 'mock_ui_ux_design',
+        text: 'Agreed. I just published a new component kit using it. Check it out!',
+        sender: 'mock_bima',
+        senderName: 'Bima Algifari',
+        senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+        createdAt: new Date(Date.now() - 1800000).toISOString()
+      }
+    ],
+    mock_ui_ux_discussion: [
+      {
+        _id: 'md1',
+        chat: 'mock_ui_ux_discussion',
+        text: 'What is your favorite font pairing for SaaS applications?',
+        sender: 'mock_nico',
+        senderName: 'Nico Alexis',
+        senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        createdAt: new Date(Date.now() - 3600000).toISOString()
+      },
+      {
+        _id: 'md2',
+        chat: 'mock_ui_ux_discussion',
+        text: 'I really like Inter for body text paired with Plus Jakarta Sans for headings. It looks incredibly clean and modern!',
+        sender: 'mock_samantha',
+        senderName: 'Samantha',
+        senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+        createdAt: new Date(Date.now() - 1200000).toISOString()
+      }
+    ],
+    mock_design_challenges: [
+      {
+        _id: 'mc1',
+        chat: 'mock_design_challenges',
+        text: 'The weekly challenge is now live! Redesign a banking app landing page.',
+        sender: 'mock_samantha',
+        senderName: 'Samantha',
+        senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+        createdAt: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        _id: 'mc2',
+        chat: 'mock_design_challenges',
+        text: 'Count me in! I will submit my entry by Friday.',
+        sender: 'mock_bima',
+        senderName: 'Bima Algifari',
+        senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+        createdAt: new Date(Date.now() - 43200000).toISOString()
+      }
+    ],
+    mock_support_group: [
+      {
+        _id: 'ms1',
+        chat: 'mock_support_group',
+        text: 'Feeling a bit burnt out this week. How do you guys manage work-life balance?',
+        sender: 'mock_bima',
+        senderName: 'Bima Algifari',
+        senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+        createdAt: new Date(Date.now() - 3600000).toISOString()
+      },
+      {
+        _id: 'ms2',
+        chat: 'mock_support_group',
+        text: 'Taking regular screen breaks and exercising helps a lot. Remember to step away from the canvas!',
+        sender: 'mock_nico',
+        senderName: 'Nico Alexis',
+        senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        createdAt: new Date(Date.now() - 1800000).toISOString()
+      }
+    ]
+  });
+
   const currentUserId = normalizeId(me?._id || tokenUserId);
 
   const {
@@ -92,6 +247,20 @@ export default function Chats() {
     setProfileChat(chat);
   }
 
+  function handleOpenMockProfile() {
+    if (!activeChat) return;
+    const channelProfileUser = {
+      _id: activeChat._id,
+      name: activeChat.name,
+      username: activeChat._id,
+      avatar: activeChat.avatar || '',
+      bio: activeChat.description || 'No description provided.',
+      isChannel: true,
+      members: activeChat.members || []
+    };
+    openProfile(channelProfileUser, activeChat);
+  }
+
   function closeProfile() {
     setProfileUser(null);
     setProfileChat(null);
@@ -105,8 +274,13 @@ export default function Chats() {
 
   function handleChatOpen(chat) {
     if (selectedChats.size) {
-      toggleSelect(chat._id);
+      if (!chat.isMock) {
+        toggleSelect(chat._id);
+      }
       return;
+    }
+    if (chat.isMock) {
+      setMockChannels(prev => prev.map(c => c._id === chat._id ? { ...c, unreadCount: 0 } : c));
     }
     setActiveChat(chat);
     const nextSearch = `?chat=${chat._id}`;
@@ -151,6 +325,11 @@ export default function Chats() {
     }
     setActiveChat((current) => {
       if (current?._id === requestedChatId) return current;
+      const mockChat = mockChannels.find((c) => c._id === requestedChatId);
+      if (mockChat) {
+        setMockChannels(prev => prev.map(c => c._id === requestedChatId ? { ...c, unreadCount: 0 } : c));
+        return { ...mockChat, unreadCount: 0 };
+      }
       return chats.find((chat) => chat._id === requestedChatId) || current || null;
     });
   }, [chats, location.search]);
@@ -201,7 +380,92 @@ export default function Chats() {
     };
   }, []);
 
+  const handleSendMockMessage = (event) => {
+    event.preventDefault();
+    if (!text.trim()) return;
+    const messageText = text.trim();
+    const newMsg = {
+      _id: `mock_msg_${Date.now()}`,
+      chat: activeChat._id,
+      text: messageText,
+      sender: currentUserId,
+      senderName: me?.name || 'Guest User',
+      senderAvatar: me?.avatar || '',
+      createdAt: new Date().toISOString()
+    };
+    setMockChannelMessages(prev => ({
+      ...prev,
+      [activeChat._id]: [...(prev[activeChat._id] || []), newMsg]
+    }));
+    setText('');
+    setReplyTo(null);
+
+    // Simulate typing and response
+    const chatId = activeChat._id;
+    setTimeout(() => {
+      setMockTypingChatId(chatId);
+      setTimeout(() => {
+        setMockTypingChatId(null);
+        const responses = [
+          "That sounds like a great idea! Let's explore it.",
+          "I agree with Samantha's point on this one.",
+          "Interesting layout choice, is there a specific reason for that?",
+          "Thanks for sharing, will try this out in my designs today!",
+          "Can you link the Figma file if possible?",
+          "Awesome design updates, I love the alignment!"
+        ];
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        const systemMembers = activeChat.members || [];
+        const randomMember = systemMembers[Math.floor(Math.random() * systemMembers.length)] || {
+          _id: 'mock_samantha',
+          name: 'Samantha',
+          avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
+        };
+        const replyMsg = {
+          _id: `mock_msg_${Date.now()}`,
+          chat: chatId,
+          text: randomResponse,
+          sender: randomMember._id,
+          senderName: randomMember.name,
+          senderAvatar: randomMember.avatar,
+          createdAt: new Date().toISOString()
+        };
+        setMockChannelMessages(prev => ({
+          ...prev,
+          [chatId]: [...(prev[chatId] || []), replyMsg]
+        }));
+      }, 1500);
+    }, 600);
+  };
+
   async function updateNickname(chatId, userId, nickname) {
+    if (chatId.startsWith('mock_')) {
+      setMockChannels(prev => prev.map(c => {
+        if (c._id === chatId) {
+          return {
+            ...c,
+            nicknames: {
+              ...c.nicknames,
+              [`${currentUserId}:${userId}`]: nickname
+            }
+          };
+        }
+        return c;
+      }));
+      setProfileChat(prev => {
+        if (prev?._id === chatId) {
+          return {
+            ...prev,
+            nicknames: {
+              ...prev.nicknames,
+              [`${currentUserId}:${userId}`]: nickname
+            }
+          };
+        }
+        return prev;
+      });
+      return;
+    }
     const { chat } = await api(`/api/chats/${chatId}/nicknames`, {
       method: 'PATCH',
       body: JSON.stringify({ userId, nickname })
@@ -258,10 +522,12 @@ export default function Chats() {
       <div className={`${activeChat && isMobile ? 'hidden' : 'flex'} min-h-0 flex-1 flex-col overflow-hidden md:rounded-3xl md:border md:border-border-default md:bg-surface md:shadow-card md:flex`}>
         <ChatList
           chats={chats}
+          mockChannels={mockChannels}
+          me={me}
           currentUserId={currentUserId}
           query={query}
           setQuery={setQuery}
-          typingChats={typingChats}
+          typingChats={mockTypingChatId ? { ...typingChats, [mockTypingChatId]: true } : typingChats}
           loading={loadingChats}
           selectedChats={selectedChats}
           onClearSelection={clearSelection}
@@ -285,26 +551,26 @@ export default function Chats() {
           >
             <ChatWindow
               chat={activeChat}
-              messages={messages}
+              messages={activeChat?.isMock ? (mockChannelMessages[activeChat._id] || []) : messages}
               calls={calls}
               currentUserId={currentUserId}
               text={text}
               setText={setText}
-              onSend={sendMessage}
-              onSendMedia={sendMedia}
-              onSendLocation={sendLocation}
+              onSend={activeChat?.isMock ? handleSendMockMessage : sendMessage}
+              onSendMedia={activeChat?.isMock ? undefined : sendMedia}
+              onSendLocation={activeChat?.isMock ? undefined : sendLocation}
               onUpdateLiveLocation={updateLiveLocation}
               onBack={closeConversation}
-              onProfile={(user) => openProfile(user, activeChat)}
+              onProfile={activeChat?.isMock ? handleOpenMockProfile : (user) => openProfile(user, activeChat)}
               replyTo={replyTo}
               onReply={setReplyTo}
               onCancelReply={() => setReplyTo(null)}
-              onReact={reactToMessage}
-              onEditMessage={editMessage}
-              onDeleteMessage={deleteMessage}
-              onReportMessage={reportMessage}
-              onStartCall={callSession.startCall}
-              isTyping={!!typingChats?.[activeChat._id]}
+              onReact={activeChat?.isMock ? undefined : reactToMessage}
+              onEditMessage={activeChat?.isMock ? undefined : editMessage}
+              onDeleteMessage={activeChat?.isMock ? undefined : deleteMessage}
+              onReportMessage={activeChat?.isMock ? undefined : reportMessage}
+              onStartCall={activeChat?.isMock ? undefined : callSession.startCall}
+              isTyping={activeChat?.isMock ? activeChat._id === mockTypingChatId : !!typingChats?.[activeChat._id]}
             />
           </motion.div>
         )}

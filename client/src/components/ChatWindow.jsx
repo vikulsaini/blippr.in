@@ -278,21 +278,38 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
-            {otherMember?.avatar && (
+            {chat?.isMock && chat?.type === 'channel' ? (
+              <button onClick={() => onProfile?.()} className="relative" aria-label={`View ${chat.name} info`}>
+                <div className="h-10 w-10 rounded-xl bg-accent-light text-accent border border-border-default flex items-center justify-center shrink-0">
+                  <Hash size={19} />
+                </div>
+              </button>
+            ) : otherMember?.avatar ? (
               <button onClick={() => onProfile?.(otherMember)} className="relative" aria-label={`View ${displayName} profile`}>
                 <img src={otherMember.avatar} alt="" className="h-10 w-10 rounded-full object-cover border border-border-default" />
                 <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface ${otherMember.isOnline ? 'bg-success' : 'bg-border-default'}`} />
               </button>
-            )}
-            <button onClick={() => otherMember && onProfile?.(otherMember)} className="min-w-0 text-left">
-              <p className="truncate font-semibold text-text-primary">{displayName || 'Select a chat'}</p>
-              <p className={`truncate text-xs font-medium ${isTyping || otherMember?.isOnline ? 'text-accent' : 'text-text-muted'}`}>{isTyping ? 'typing...' : otherMember ? presenceText(otherMember) : 'No active conversation'}</p>
+            ) : null}
+            <button onClick={() => (chat?.isMock ? onProfile?.() : (otherMember && onProfile?.(otherMember)))} className="min-w-0 text-left">
+              <p className="truncate font-semibold text-text-primary">{chat?.isMock ? chat.name : (displayName || 'Select a chat')}</p>
+              <p className={`truncate text-xs font-medium ${isTyping || (chat?.isMock ? isTyping : otherMember?.isOnline) ? 'text-accent' : 'text-text-muted'}`}>
+                {isTyping ? 'typing...' : chat?.isMock ? '3 members • 2 online' : otherMember ? presenceText(otherMember) : 'No active conversation'}
+              </p>
             </button>
           </div>
           <div className="flex gap-2">
-            <IconButton label="Audio call" icon={Phone} onClick={() => onStartCall?.('audio')} />
-            <IconButton label="Video call" icon={Video} onClick={() => onStartCall?.('video')} />
-            <IconButton label="Search messages" icon={Search} onClick={() => setSearchOpen((open) => !open)} />
+            {chat?.isMock && chat?.type === 'channel' ? (
+              <>
+                <IconButton label="Search messages" icon={Search} onClick={() => setSearchOpen((open) => !open)} />
+                <IconButton label="Channel info" icon={FileText} onClick={() => onProfile?.()} />
+              </>
+            ) : (
+              <>
+                <IconButton label="Audio call" icon={Phone} onClick={() => onStartCall?.('audio')} />
+                <IconButton label="Video call" icon={Video} onClick={() => onStartCall?.('video')} />
+                <IconButton label="Search messages" icon={Search} onClick={() => setSearchOpen((open) => !open)} />
+              </>
+            )}
           </div>
         </div>
         {searchOpen && (
@@ -422,7 +439,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             </button>
           </motion.div>
         )}
-        <div className="flex items-end gap-2 rounded-[20px] border border-border-default bg-bg p-1.5">
+        <div className="flex items-center gap-2 rounded-full border border-border-default bg-surface shadow-sm p-1.5">
           <input
             ref={fileInputRef}
             type="file"
@@ -431,15 +448,15 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             className="hidden"
             onChange={handleFilePick}
           />
-          <button type="button" onClick={openAttachmentSheet} className={`h-10 w-10 shrink-0 ${attachmentOpen ? 'btn-primary rounded-full' : 'btn-icon'}`} aria-label="Share photos, media, files or location">
-            <Plus size={19} />
+          <button type="button" onClick={openAttachmentSheet} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${attachmentOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`} aria-label="Share photos, media, files or location">
+            <Plus size={18} />
           </button>
-          <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`h-10 w-10 shrink-0 ${emojiOpen ? 'btn-primary rounded-full' : 'btn-icon'}`} aria-label="Emoji"><Smile size={18} /></button>
+          <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${emojiOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`} aria-label="Emoji"><Smile size={18} /></button>
           <textarea
             value={text}
             onChange={(event) => handleTextInput(event.target.value)}
             onFocus={() => setEmojiOpen(false)}
-            className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2.5 text-sm font-medium text-text-primary outline-none"
+            className="max-h-28 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-medium text-text-primary outline-none self-center"
             placeholder={uploading ? 'Uploading...' : recording ? 'Recording voice...' : chat ? 'Message' : 'Start from Discover'}
             disabled={!chat || uploading || recording}
             rows={1}
@@ -451,11 +468,11 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             }}
           />
           {text.trim() ? (
-            <button disabled={!chat || uploading} className="btn-primary grid h-10 w-10 shrink-0 place-items-center rounded-full disabled:opacity-40" aria-label="Send"><Send size={18} /></button>
+            <button disabled={!chat || uploading} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-accent-hover active:scale-[0.96] transition disabled:opacity-40" aria-label="Send"><Send size={16} /></button>
           ) : recording ? (
-            <button type="button" onClick={stopRecording} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-danger text-white hover:bg-red-600 active:scale-[0.96] transition" aria-label="Stop recording"><Square size={16} /></button>
+            <button type="button" onClick={stopRecording} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-danger text-white hover:bg-red-600 active:scale-[0.96] transition" aria-label="Stop recording"><Square size={14} /></button>
           ) : (
-            <button type="button" onClick={startRecording} disabled={!chat || uploading} className="btn-icon h-10 w-10 shrink-0 disabled:opacity-40" aria-label="Voice message"><Mic size={18} /></button>
+            <button type="button" onClick={startRecording} disabled={!chat || uploading} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary active:scale-[0.96] transition disabled:opacity-40" aria-label="Voice message"><Mic size={16} /></button>
           )}
         </div>
         {permissionPrompt && (

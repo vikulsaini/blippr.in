@@ -18,6 +18,12 @@ function isLocalDevOrigin(origin) {
 export function isAllowedOrigin(origin) {
   if (!origin) return true;
   const normalizedOrigin = origin.trim().replace(/\/$/, '');
+  
+  // Allow preview environments on Cloudflare Pages and Vercel
+  if (normalizedOrigin.endsWith('.pages.dev') || normalizedOrigin.endsWith('.vercel.app')) {
+    return true;
+  }
+  
   return configuredOrigins.includes(normalizedOrigin) || isLocalDevOrigin(normalizedOrigin);
 }
 

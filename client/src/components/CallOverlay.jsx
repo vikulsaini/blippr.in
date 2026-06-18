@@ -40,6 +40,38 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
     }
   }, [call?.remoteStream, call?.speakerOn, call?.type]);
 
+  const isVideo = call?.type === 'video';
+  const canAutoHideChrome = isVideo && call?.status !== 'incoming';
+  const chromeClass = canAutoHideChrome && !chromeVisible ? 'translate-y-2 opacity-0 pointer-events-none' : 'translate-y-0 opacity-100';
+  const title = call?.status === 'incoming' ? 'Incoming call' : call?.status === 'calling' ? 'Calling...' : call?.status === 'reconnecting' ? 'Reconnecting...' : 'Connected';
+  const routeLabel = isVideo ? 'Video speaker' : call?.speakerOn ? 'Speaker' : 'Receiver';
+  const QualityIcon = call?.quality === 'poor' ? SignalLow : Signal;
+  const qualityLabel = call?.quality === 'reconnecting' ? 'Reconnecting' : call?.quality === 'poor' ? 'Poor connection' : call?.quality === 'good' ? 'Good connection' : 'Checking connection';
+
+  function revealChrome() {
+    setChromeVisible(true);
+    window.clearTimeout(chromeTimerRef.current);
+    if (call?.type === 'video' && call?.status !== 'incoming') {
+      chromeTimerRef.current = window.setTimeout(() => setChromeVisible(false), 2600);
+    }
+  }
+
+  const controls = call?.status === 'incoming' ? (
+    <div className="grid w-full max-w-sm grid-cols-2 gap-2">
+      <CallButton label="Reject" icon={PhoneOff} onClick={onReject} tone="danger" />
+      <CallButton label="Accept" icon={Phone} onClick={onAccept} tone="mint" />
+    </div>
+  ) : (
+    <div className={`grid w-full gap-1.5 sm:gap-2 ${isVideo ? 'max-w-md grid-cols-3 sm:max-w-3xl sm:grid-cols-6' : 'max-w-lg grid-cols-5'}`}>
+      <CallButton label={call?.muted ? 'Unmute' : 'Mute'} icon={call?.muted ? MicOff : Mic} onClick={onToggleMute} />
+      <CallButton label={isVideo ? 'Speaker' : call?.speakerOn ? 'Speaker' : 'Earpiece'} icon={call?.speakerOn ? Volume2 : Ear} onClick={onToggleSpeaker} active={call?.speakerOn} />
+      <CallButton label={call?.cameraOff ? 'Camera' : 'Video'} icon={call?.cameraOff ? VideoOff : Video} onClick={onToggleCamera} disabled={!isVideo} />
+      {isVideo && <CallButton label="Low data" icon={Gauge} onClick={onToggleLowDataMode} active={call?.lowDataMode} />}
+      <CallButton label="Switch" icon={RotateCw} onClick={onSwitchCamera} disabled={!isVideo || call?.cameraOff} />
+      <CallButton label="End" icon={PhoneOff} onClick={onEnd} tone="danger" />
+    </div>
+  );
+
   useEffect(() => {
     revealChrome();
     return () => window.clearTimeout(chromeTimerRef.current);

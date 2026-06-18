@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X, Users, LockKeyhole } from 'lucide-react';
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X, Users, LockKeyhole, Hash, ChevronDown, ChevronRight, Mail } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
 import { haptics } from '../lib/haptics.js';
@@ -30,6 +30,8 @@ const itemVariants = {
 
 export default function ChatList({
   chats,
+  mockChannels = [],
+  me,
   currentUserId,
   query,
   setQuery,
@@ -46,15 +48,21 @@ export default function ChatList({
   loading = false
 }) {
   const [tab, setTab] = useState('chats');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [showThreadsPromo, setShowThreadsPromo] = useState(true);
+  const [isGeneralOpen, setIsGeneralOpen] = useState(true);
+  const [isEventsOpen, setIsEventsOpen] = useState(true);
+  const [isPersonalOpen, setIsPersonalOpen] = useState(true);
+
   const visibleChats = useMemo(() => {
     const scoped = chats.filter((chat) => {
       if (tab === 'vault') return chat.archived;
       if (tab === 'favorites') return chat.starred && !chat.archived;
-      if (tab === 'groups') return false;
       return !chat.archived;
     });
     return filterChats(scoped, query, currentUserId);
   }, [chats, currentUserId, query, tab]);
+
   const archivedCount = useMemo(() => chats.filter((chat) => chat.archived).length, [chats]);
 
   useEffect(() => {
@@ -77,6 +85,29 @@ export default function ChatList({
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Collapsible Sakura Categories logic
+  const generalChannels = useMemo(() => {
+    const items = mockChannels.filter(c => c.category === 'general');
+    if (!query.trim()) return items;
+    const q = query.trim().toLowerCase();
+    return items.filter(c => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+  }, [mockChannels, query]);
+
+  const eventChannels = useMemo(() => {
+    const items = mockChannels.filter(c => c.category === 'events');
+    if (!query.trim()) return items;
+    const q = query.trim().toLowerCase();
+    return items.filter(c => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+  }, [mockChannels, query]);
+
+  const personalChats = useMemo(() => {
+    return visibleChats;
+  }, [visibleChats]);
+
+  const generalUnread = useMemo(() => generalChannels.reduce((sum, c) => sum + (c.unreadCount || 0), 0), [generalChannels]);
+  const eventsUnread = useMemo(() => eventChannels.reduce((sum, c) => sum + (c.unreadCount || 0), 0), [eventChannels]);
+  const personalUnread = useMemo(() => personalChats.reduce((sum, c) => sum + (c.unreadCount || 0), 0), [personalChats]);
+
   return (
     <section className="flex min-h-0 flex-1 flex-col px-2 pt-2 md:px-4 md:pt-3">
       <div className="sticky top-0 z-10 -mx-3 bg-surface/90 px-3 pb-3 backdrop-blur-xl md:-mx-4 md:px-4">
@@ -91,141 +122,222 @@ export default function ChatList({
             onDelete={onDeleteSelected}
           />
         ) : (
-          <div className="mb-3 flex shrink-0 items-center justify-between">
-            <div className="pl-4">
-              <h2 className="text-2xl font-bold tracking-tight text-text-primary">Chats</h2>
-              {archivedCount > 0 && <p className="text-sm font-medium text-text-muted">{archivedCount} archived chats</p>}
+          <div className="flex shrink-0 items-center justify-between px-4 py-2">
+            <div className="flex items-center gap-3">
+              {me?.avatar ? (
+                <img src={me.avatar} alt="" className="h-9 w-9 rounded-full border border-border-default object-cover shadow-sm" />
+              ) : (
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-accent/10 font-bold text-accent text-sm">
+                  SD
+                </div>
+              )}
+              <div className="flex items-center gap-1">
+                <h2 className="text-lg font-bold tracking-tight text-text-primary">Sakura Design</h2>
+                <ChevronDown size={15} className="text-text-muted mt-0.5" />
+              </div>
             </div>
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-bg hover:bg-surface-hover text-text-secondary transition active:scale-95 cursor-pointer"
+              aria-label="Toggle Search"
+            >
+              <Search size={18} />
+            </button>
           </div>
         )}
 
         {!selectedChats.size && (
           <div className="px-4">
-            {tab === 'vault' ? (
+            {tab === 'vault' && (
               <div className="mb-3 flex items-center justify-between rounded-2xl border border-accent bg-accent/10 px-4 py-2 text-accent">
                 <span className="font-semibold text-sm">Hidden Vault Unlocked</span>
                 <button onClick={() => setTab('chats')} className="grid h-8 w-8 place-items-center rounded-full text-accent bg-accent/20 cursor-pointer"><LockKeyhole size={16}/></button>
               </div>
-            ) : (
-              <div className="mb-3 grid grid-cols-3 gap-1 rounded-2xl border border-border-default bg-bg p-1">
-                <TabButton active={tab === 'chats'} onClick={() => setTab('chats')} label="Chats" />
-                <TabButton active={tab === 'favorites'} onClick={() => setTab('favorites')} label="Favorites" />
-                <TabButton active={tab === 'groups'} onClick={() => setTab('groups')} label="Groups" />
-              </div>
             )}
-            <label className="search-container">
-              <Search size={18} className="text-accent shrink-0" />
-              <input
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search friends or messages"
-              />
-            </label>
+            {(searchOpen || query) && (
+              <label className="search-container mt-2">
+                <Search size={18} className="text-accent shrink-0" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search channels, friends or messages"
+                />
+                {query && (
+                  <button onClick={() => setQuery('')} className="p-1 rounded-full text-text-muted hover:bg-surface-hover">
+                    <X size={14} />
+                  </button>
+                )}
+              </label>
+            )}
           </div>
         )}
       </div>
 
-      <div data-chat-feed className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin">
-        {/* Mobile Pull-to-Refresh Gesture Hint */}
-        <div className="flex justify-center py-2 text-[10px] font-semibold text-text-faint md:hidden opacity-70">
-          <span>↓ Pull down to refresh feeds</span>
-        </div>
+      <div data-chat-feed className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin px-4 space-y-4">
+        {showThreadsPromo && (
+          <div className="flex items-center justify-between rounded-2xl border border-accent/20 bg-accent-tint p-3.5 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
+                <Mail size={18} />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-text-primary">Threads</h4>
+                <p className="text-[11px] text-text-muted truncate">You have unread design threads</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowThreadsPromo(false)}
+              className="rounded-full p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary transition shrink-0"
+              aria-label="Dismiss threads"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <ChatSkeleton />
         ) : (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="space-y-1"
-          >
-            {visibleChats.map((chat) => {
-              const other = getOtherMember(chat, currentUserId);
-              const displayName = getNickname(chat, currentUserId, other);
-              return (
-                <SwipeChatRow
-                  key={chat._id}
-                  chat={chat}
-                  selected={selectedChats.has(chat._id)}
-                  currentUserId={currentUserId}
-                  typing={!!typingChats?.[chat._id]}
-                  displayName={displayName}
-                  other={other}
-                  onOpen={() => onOpenChat(chat)}
-                  onProfile={() => other && onOpenProfile(other, chat)}
-                  onSelect={() => {
-                    haptics.select();
-                    onToggleSelect(chat._id);
-                  }}
-                  onPreference={onPreference}
-                  onSetChatPreference={onSetChatPreference}
-                />
-              );
-            })}
-          </motion.div>
-        )}
-        {!loading && !chats.length && (
           <div className="space-y-4">
-            <EmptyState
-              icon={MessageCircle}
-              title="No Chats Yet"
-              text="Start a random chat to make your first friend."
-              action="Start Random Matching"
-              onAction={onFindPeople}
-            />
-            <div className="surface-card rounded-3xl p-5 text-left space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-accent">How Blippr Works</h3>
-              <ul className="space-y-3 text-xs leading-relaxed text-text-secondary">
-                <li className="flex items-start gap-2.5">
-                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent/10 text-accent font-bold">1</span>
-                  <div>
-                    <p className="font-semibold text-text-primary">Start Matching</p>
-                    <p className="text-text-muted">Go to Random Chat to meet live online strangers instantly via text or video.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent/10 text-accent font-bold">2</span>
-                  <div>
-                    <p className="font-semibold text-text-primary">Find & Connect</p>
-                    <p className="text-text-muted">Search for people by username or name in the Find section to add them as friends.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent/10 text-accent font-bold">3</span>
-                  <div>
-                    <p className="font-semibold text-text-primary">Complete Your Profile</p>
-                    <p className="text-text-muted">Add an avatar and bio to make your profile stand out and match with better people.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent/10 text-accent font-bold">4</span>
-                  <div>
-                    <p className="font-semibold text-text-primary">Safe & Filtered</p>
-                    <p className="text-text-muted">Add safety filters and block words in Settings to control what content you receive.</p>
-                  </div>
-                </li>
-              </ul>
+            {/* Category 1: General Discussion */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setIsGeneralOpen(!isGeneralOpen)}
+                className="flex w-full items-center justify-between py-1.5 text-[11px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary transition cursor-pointer"
+              >
+                <div className="flex items-center gap-1.5">
+                  {isGeneralOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <span>General Discussion</span>
+                </div>
+                {generalUnread > 0 && (
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    {generalUnread}
+                  </span>
+                )}
+              </button>
+              <AnimatePresence initial={false}>
+                {isGeneralOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden space-y-1.5 pl-1.5 animate-collapse"
+                  >
+                    {generalChannels.map((channel) => (
+                      <MockChannelRow
+                        key={channel._id}
+                        channel={channel}
+                        typing={!!typingChats?.[channel._id]}
+                        onOpen={() => onOpenChat(channel)}
+                      />
+                    ))}
+                    {!loading && generalChannels.length === 0 && (
+                      <p className="text-xs text-text-faint py-1 pl-4">No channels found</p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Category 2: Design Events */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setIsEventsOpen(!isEventsOpen)}
+                className="flex w-full items-center justify-between py-1.5 text-[11px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary transition cursor-pointer"
+              >
+                <div className="flex items-center gap-1.5">
+                  {isEventsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <span>Design Events</span>
+                </div>
+                {eventsUnread > 0 && (
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    {eventsUnread}
+                  </span>
+                )}
+              </button>
+              <AnimatePresence initial={false}>
+                {isEventsOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden space-y-1.5 pl-1.5 animate-collapse"
+                  >
+                    {eventChannels.map((channel) => (
+                      <MockChannelRow
+                        key={channel._id}
+                        channel={channel}
+                        typing={!!typingChats?.[channel._id]}
+                        onOpen={() => onOpenChat(channel)}
+                      />
+                    ))}
+                    {!loading && eventChannels.length === 0 && (
+                      <p className="text-xs text-text-faint py-1 pl-4">No channels found</p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Category 3: Personal Messages */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setIsPersonalOpen(!isPersonalOpen)}
+                className="flex w-full items-center justify-between py-1.5 text-[11px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary transition cursor-pointer"
+              >
+                <div className="flex items-center gap-1.5">
+                  {isPersonalOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <span>Personal Messages</span>
+                </div>
+                {personalUnread > 0 && (
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white badge-pulse">
+                    {personalUnread}
+                  </span>
+                )}
+              </button>
+              <AnimatePresence initial={false}>
+                {isPersonalOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden space-y-1.5 pl-1.5 animate-collapse"
+                  >
+                    {personalChats.map((chat) => {
+                      const other = getOtherMember(chat, currentUserId);
+                      const displayName = getNickname(chat, currentUserId, other);
+                      return (
+                        <SwipeChatRow
+                          key={chat._id}
+                          chat={chat}
+                          selected={selectedChats.has(chat._id)}
+                          currentUserId={currentUserId}
+                          typing={!!typingChats?.[chat._id]}
+                          displayName={displayName}
+                          other={other}
+                          onOpen={() => onOpenChat(chat)}
+                          onProfile={() => other && onOpenProfile(other, chat)}
+                          onSelect={() => {
+                            haptics.select();
+                            onToggleSelect(chat._id);
+                          }}
+                          onPreference={onPreference}
+                          onSetChatPreference={onSetChatPreference}
+                        />
+                      );
+                    })}
+                    {!loading && personalChats.length === 0 && (
+                      <div className="py-2 text-center">
+                        <p className="text-xs text-text-muted">No personal messages yet.</p>
+                        <button onClick={onFindPeople} className="btn-secondary mt-2 px-3 py-1.5 text-xs rounded-full font-semibold">Start Matching</button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
-        )}
-        {!loading && tab === 'groups' && (
-          <EmptyState
-            icon={Users}
-            title="Groups Coming Soon"
-            text="Group chats are being built and will be available soon."
-            action="Back to Chats"
-            onAction={() => setTab('chats')}
-          />
-        )}
-        {!loading && chats.length > 0 && !visibleChats.length && tab !== 'groups' && (
-          <EmptyState
-            icon={tab === 'vault' ? Archive : Search}
-            title={tab === 'vault' ? 'No Archived Chats' : 'No Chats Found'}
-            text={tab === 'favorites' ? 'Star close friends to see them here.' : 'Try another name or message.'}
-            action={tab === 'vault' ? 'Close Vault' : 'Clear Search'}
-            onAction={() => (tab === 'vault' ? setTab('chats') : setQuery(''))}
-          />
         )}
       </div>
     </section>
@@ -444,5 +556,37 @@ function ChatRowButton({ children, onOpen, onLongSelect }) {
     >
       {children}
     </button>
+  );
+}
+
+function MockChannelRow({ channel, typing, onOpen }) {
+  return (
+    <article
+      onClick={onOpen}
+      className="interactive-card relative flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left md:px-3"
+    >
+      <div className="relative shrink-0">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent-light text-accent border border-border-default">
+          <Hash size={18} />
+        </div>
+        {typing && <span className="absolute bottom-0 right-0 status-dot online" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <p className="truncate font-semibold text-text-primary text-sm">{channel.name}</p>
+          <span className="text-[10px] text-text-faint font-medium">Channel</span>
+        </div>
+        <div className="mt-0.5 flex items-center justify-between gap-3">
+          <p className={`truncate text-xs ${typing ? 'font-semibold text-accent' : channel.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
+            {typing ? 'typing...' : channel.description}
+          </p>
+          {channel.unreadCount > 0 && (
+            <span className="shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white badge-pulse">
+              {channel.unreadCount}
+            </span>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }

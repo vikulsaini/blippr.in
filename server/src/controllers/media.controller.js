@@ -67,6 +67,8 @@ export const getMediaFile = asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
   res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename || 'blippr-media')}"`);
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   const stream = openMediaDownloadStream(req.params.id);
   stream.on('error', () => {
     if (!res.headersSent) res.status(404).end();

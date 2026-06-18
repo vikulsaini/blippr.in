@@ -44,7 +44,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
 
   function handleTextChange(value) {
     setText(value);
-    if (!activeChat) return;
+    if (!activeChat || activeChat.isMock) return;
 
     const socket = getRealtimeSocket();
     socket.emit(value ? 'typing:start' : 'typing:stop', { chatId: activeChat._id });
@@ -59,6 +59,11 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
   useEffect(() => {
     activeChatIdRef.current = activeChat?._id || null;
     if (!activeChat) {
+      setMessages([]);
+      setCalls([]);
+      return;
+    }
+    if (activeChat.isMock) {
       setMessages([]);
       setCalls([]);
       return;
