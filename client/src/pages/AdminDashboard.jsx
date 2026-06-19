@@ -33,7 +33,9 @@ import {
   FileCode,
   TrendingDown,
   Sun,
-  Moon
+  Moon,
+  Menu,
+  X
 } from 'lucide-react';
 import { 
   claimAdmin, 
@@ -86,6 +88,12 @@ export default function AdminDashboard() {
   const [error, setError] = useState(null);
   const [claimSecret, setClaimSecret] = useState('');
   const [activeTab, setActiveTab] = useState('analytics');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleTabChange = (id) => {
+    setActiveTab(id);
+    setMobileMenuOpen(false);
+  };
 
   // Sidebar collapse
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -511,8 +519,8 @@ export default function AdminDashboard() {
   // Render Nilova Audience Reached Donut Chart representing verification status
   const renderPresenceDonut = () => {
     const total = stats ? stats.totalUsers : 1;
-    const verified = stats ? stats.verifiedUsers : 0;
-    const guests = stats ? stats.guestUsers : 0;
+    const verified = stats && typeof stats.verifiedUsers === 'number' ? stats.verifiedUsers : 0;
+    const guests = stats && typeof stats.guestUsers === 'number' ? stats.guestUsers : 0;
     
     const verifiedPercent = total > 0 ? Math.min(100, Math.round((verified / total) * 100)) : 0;
     const guestPercent = total > 0 ? Math.min(100, Math.round((guests / total) * 100)) : 0;
@@ -634,27 +642,43 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Left Sidebar Menu - Twin layout of Nilova */}
-      <aside className={`bg-surface border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0 transition-all duration-300 ${
-        sidebarCollapsed ? 'w-20' : 'w-64'
-      }`}>
+      {/* Sidebar Backdrop Overlay on Mobile */}
+      {mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden animate-fadeIn"
+        />
+      )}
+
+      {/* Left Sidebar Menu */}
+      <aside className={`bg-surface border-r border-border flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-50
+        fixed inset-y-0 left-0 w-64 md:static md:translate-x-0
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${sidebarCollapsed ? 'md:w-20' : 'md:w-64'}
+      `}>
         {/* Brand Header */}
         <div className="p-5 flex items-center justify-between border-b border-border min-h-16">
-          {!sidebarCollapsed ? (
-            <div className="flex flex-col text-left">
-              <BrandLogo compactTitle />
+          <div className="flex flex-col text-left">
+            <BrandLogo compactTitle={!sidebarCollapsed} compact={sidebarCollapsed} />
+            {!sidebarCollapsed && (
               <span className="text-[8px] bg-red-500/10 text-red-500 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-widest mt-1.5 w-max">
                 Control Center
               </span>
-            </div>
-          ) : (
-            <BrandLogo compact className="mx-auto" />
-          )}
+            )}
+          </div>
           <button 
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                setMobileMenuOpen(false);
+              } else {
+                setSidebarCollapsed(!sidebarCollapsed);
+              }
+            }}
             className="p-1 hover:bg-bg rounded-lg transition-all text-text-muted hover:text-text-primary"
+            title={window.innerWidth < 768 ? "Close Menu" : "Collapse Sidebar"}
           >
-            <MoreHorizontal className="w-5 h-5" />
+            <span className="md:hidden"><X className="w-5 h-5" /></span>
+            <span className="hidden md:block"><MoreHorizontal className="w-5 h-5" /></span>
           </button>
         </div>
 
@@ -664,9 +688,9 @@ export default function AdminDashboard() {
           <div>
             {!sidebarCollapsed && <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider px-3 block mb-2 text-left">Main</span>}
             <nav className="space-y-1">
-              <SidebarItem icon={<Activity />} label="Dashboards" id="analytics" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
-              <SidebarItem icon={<Users />} label="Users & Sessions" id="users" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
-              <SidebarItem icon={<Database />} label="Database Visualizer" id="database" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<Activity />} label="Dashboards" id="analytics" active={activeTab} onClick={handleTabChange} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<Users />} label="Users & Sessions" id="users" active={activeTab} onClick={handleTabChange} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<Database />} label="Database Visualizer" id="database" active={activeTab} onClick={handleTabChange} collapsed={sidebarCollapsed} />
             </nav>
           </div>
 
@@ -674,9 +698,9 @@ export default function AdminDashboard() {
           <div>
             {!sidebarCollapsed && <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider px-3 block mb-2 text-left">Web Apps</span>}
             <nav className="space-y-1">
-              <SidebarItem icon={<Folder />} label="File Storage" id="files" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
-              <SidebarItem icon={<FileText />} label="System Audit Logs" id="audit" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
-              <SidebarItem icon={<Send />} label="System Broadcast" id="broadcast" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<Folder />} label="File Storage" id="files" active={activeTab} onClick={handleTabChange} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<FileText />} label="System Audit Logs" id="audit" active={activeTab} onClick={handleTabChange} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<Send />} label="System Broadcast" id="broadcast" active={handleTabChange} collapsed={sidebarCollapsed} />
             </nav>
           </div>
         </div>
@@ -721,7 +745,25 @@ export default function AdminDashboard() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Navbar */}
-        <header className="h-16 bg-surface border-b border-border px-6 flex items-center justify-between shrink-0 animate-fadeIn">
+        <header className="h-16 bg-surface border-b border-border px-4 sm:px-6 flex items-center justify-between shrink-0 animate-fadeIn">
+          {/* Hamburger Menu Button on Mobile */}
+          <button 
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 hover:bg-bg/60 rounded-xl text-text-secondary hover:text-text-primary transition-colors md:hidden mr-2 shrink-0"
+            title="Open Menu"
+          >
+            <Menu className="w-5.5 h-5.5" />
+          </button>
+
+          {/* Breadcrumb Title on Mobile */}
+          <div className="text-xs font-black text-text-primary uppercase tracking-wider font-mono block sm:hidden">
+            {activeTab === 'analytics' ? 'Analytics' : 
+             activeTab === 'users' ? 'Accounts' : 
+             activeTab === 'database' ? 'Database' : 
+             activeTab === 'files' ? 'Files' : 
+             activeTab === 'audit' ? 'Audit' : 'Broadcast'}
+          </div>
+
           {['users', 'audit', 'files', 'database'].includes(activeTab) ? (
             <div className="relative w-64 flex items-center hidden sm:flex">
               <Search className="absolute left-3 w-4.5 h-4.5 text-text-faint" />
@@ -783,14 +825,14 @@ export default function AdminDashboard() {
                 label="Registered Users" 
                 value={stats.totalUsers} 
                 icon={<Users />} 
-                percent={stats.totalUsers > 0 ? Math.round((stats.verifiedUsers / stats.totalUsers) * 100) + '% Ver.' : '0%'} 
+                percent={stats.totalUsers > 0 ? Math.round(((stats.verifiedUsers || 0) / stats.totalUsers) * 100) + '% Ver.' : '0%'} 
                 growth="up" 
               />
               <NilovaMiniCard 
                 label="Online Now" 
                 value={stats.activeUsers} 
                 icon={<Activity />} 
-                percent={stats.totalUsers > 0 ? Math.round((stats.activeUsers / stats.totalUsers) * 100) + '% On.' : '0%'} 
+                percent={stats.totalUsers > 0 ? Math.round(((stats.activeUsers || 0) / stats.totalUsers) * 100) + '% On.' : '0%'} 
                 growth="up" 
                 isAccent 
               />
@@ -798,21 +840,21 @@ export default function AdminDashboard() {
                 label="Total Chats" 
                 value={stats.totalChats} 
                 icon={<MessageSquare />} 
-                percent={stats.totalUsers > 0 ? (stats.totalChats / stats.totalUsers).toFixed(1) + '/usr' : '0/usr'} 
+                percent={stats.totalUsers > 0 ? ((stats.totalChats || 0) / stats.totalUsers).toFixed(1) + '/usr' : '0/usr'} 
                 growth="up" 
               />
               <NilovaMiniCard 
                 label="Total Messages" 
                 value={stats.totalMessages} 
                 icon={<Globe />} 
-                percent={stats.totalChats > 0 ? (stats.totalMessages / stats.totalChats).toFixed(0) + '/chat' : '0/chat'} 
+                percent={stats.totalChats > 0 ? ((stats.totalMessages || 0) / stats.totalChats).toFixed(0) + '/chat' : '0/chat'} 
                 growth="up" 
               />
               <NilovaMiniCard 
                 label="Cloud Storage" 
                 value={fileStats ? formatBytes(fileStats.totalSize) : '0 B'} 
                 icon={<Folder />} 
-                percent={fileStats && fileStats.totalSize > 0 ? Math.round((fileStats.cloudinary.size / fileStats.totalSize) * 100) + '% CDN' : '0%'} 
+                percent={fileStats && fileStats.totalSize > 0 ? Math.round(((fileStats.cloudinary?.size || 0) / fileStats.totalSize) * 100) + '% CDN' : '0%'} 
                 growth="up" 
               />
             </section>
