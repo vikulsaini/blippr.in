@@ -29,6 +29,8 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const recorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const liveLocationRef = useRef({ watchId: null, messageId: null, timer: null, lastSentAt: 0 });
+  const audioContextRef = useRef(null);
+  const sampleIntervalRef = useRef(null);
 
   useEffect(() => {
     return () => stopLiveLocation();
@@ -241,29 +243,68 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
       audioChunksRef.current = [];
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioCtx();
+      audioContextRef.current = audioContext;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      const samples = [];
+      const startTime = Date.now();
+
+      sampleIntervalRef.current = window.setInterval(() => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+        const normalized = Math.min(100, Math.round((average / 255) * 100));
+        samples.push(normalized);
+      }, 100);
+
       recorder.ondataavailable = (event) => {
         if (event.data.size) audioChunksRef.current.push(event.data);
       };
+
       recorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
+        window.clearInterval(sampleIntervalRef.current);
+        if (audioContextRef.current?.state !== 'closed') {
+          audioContextRef.current?.close().catch(() => {});
+        }
+
+        const duration = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+        const waveform = downsampleWaveform(samples, 24);
+
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         if (blob.size && onSendMedia) {
-        setUploading(true);
-        setUploadError('');
-        try {
-          await onSendMedia(new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }));
-        } catch (err) {
-          setUploadError(err.message || 'Could not send voice note');
-        } finally {
-          setUploading(false);
-        }
+          setUploading(true);
+          setUploadError('');
+          try {
+            await onSendMedia(
+              new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }),
+              { duration, waveform }
+            );
+          } catch (err) {
+            setUploadError(err.message || 'Could not send voice note');
+          } finally {
+            setUploading(false);
+          }
         }
       };
+
       recorder.start();
       setRecording(true);
-    } catch {
+    } catch (err) {
       setRecording(false);
-      setUploadError('Microphone permission is needed to record voice notes.');
+      setUploadError(err.message || 'Microphone permission is needed to record voice notes.');
     }
   }
 
@@ -524,4 +565,29 @@ function IconButton({ label, icon: Icon, onClick }) {
       <Icon size={18} />
     </button>
   );
+}
+
+function downsampleWaveform(samples, targetCount = 24) {
+  if (!samples.length) {
+    return Array.from({ length: targetCount }, () => Math.floor(Math.random() * 40) + 10);
+  }
+  if (samples.length <= targetCount) {
+    const result = [...samples];
+    while (result.length < targetCount) {
+      result.push(Math.floor(Math.random() * 15) + 5);
+    }
+    return result;
+  }
+  const step = samples.length / targetCount;
+  const result = [];
+  for (let i = 0; i < targetCount; i++) {
+    const start = Math.floor(i * step);
+    const end = Math.floor((i + 1) * step);
+    let sum = 0;
+    for (let j = start; j < end; j++) {
+      sum += samples[j];
+    }
+    result.push(Math.round(sum / (end - start)));
+  }
+  return result;
 }

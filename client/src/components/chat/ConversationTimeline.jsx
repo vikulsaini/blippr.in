@@ -359,19 +359,35 @@ function MediaPreview({ media }) {
   if (!media.url) return <span className="mb-2 block rounded-2xl bg-bg/40 px-3 py-2 text-xs">Preparing attachment...</span>;
   if (media.type === 'image') return <img src={media.url} alt="" className="mb-2 max-h-64 rounded-2xl object-cover" />;
   if (media.type === 'audio') {
+    const hasWaveform = Array.isArray(media.waveform) && media.waveform.length > 0;
+    const waveformData = hasWaveform ? media.waveform : Array.from({ length: 24 }).map((_, index) => 8 + ((index * 7) % 22));
+
     return (
-      <div className="mb-2 rounded-2xl bg-bg/40 p-2">
-        <div className="mb-2 flex h-8 items-end gap-0.5">
-          {Array.from({ length: 24 }).map((_, index) => (
-            <span key={index} className="w-1 rounded-full bg-accent/70" style={{ height: `${8 + ((index * 7) % 22)}px` }} />
-          ))}
+      <div className="mb-2 rounded-2xl bg-bg/40 p-3">
+        <div className="mb-2 flex h-10 items-end gap-1 px-1">
+          {waveformData.map((amplitude, index) => {
+            const height = Math.max(4, Math.round((amplitude / 100) * 36));
+            return (
+              <span key={index} className="w-1 rounded-full bg-accent/70 transition-all duration-200" style={{ height: `${height}px` }} />
+            );
+          })}
         </div>
-        <audio src={media.url} controls className="max-w-full" />
+        <div className="flex items-center justify-between text-[10px] text-text-muted mb-1 px-1 font-semibold">
+          <span>Voice note</span>
+          {media.duration && <span>{formatAudioDuration(media.duration)}</span>}
+        </div>
+        <audio src={media.url} controls className="max-w-full rounded-lg" />
       </div>
     );
   }
   if (media.type === 'video') return <video src={media.url} controls className="mb-2 max-h-64 rounded-2xl" />;
   return <a href={media.url} className="mb-2 block rounded-2xl bg-bg/40 px-3 py-2 text-xs underline">{media.name || 'Open attachment'}</a>;
+}
+
+function formatAudioDuration(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 function LocationPreview({ location, mine }) {

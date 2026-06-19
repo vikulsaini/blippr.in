@@ -7,7 +7,9 @@ const mediaSchema = new mongoose.Schema(
     publicId: String,
     name: String,
     mimeType: String,
-    size: Number
+    size: Number,
+    duration: Number,
+    waveform: [Number]
   },
   { _id: false }
 );

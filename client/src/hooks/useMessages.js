@@ -264,7 +264,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     }
   }
 
-  async function sendMedia(file) {
+  async function sendMedia(file, metadata = {}) {
     if (!activeChat || !file) return;
     const kind = file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : 'file';
     const previewUrl = URL.createObjectURL(file);
@@ -274,7 +274,14 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       chat: activeChat._id,
       sender: currentUserId,
       text: '',
-      media: { url: previewUrl, type: kind, name: file.name, local: true },
+      media: {
+        url: previewUrl,
+        type: kind,
+        name: file.name,
+        local: true,
+        duration: metadata.duration,
+        waveform: metadata.waveform
+      },
       reactions: [],
       status: 'sending',
       createdAt: new Date().toISOString()
@@ -295,7 +302,16 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       });
       const { message } = await api(`/api/chats/${activeChat._id}/messages`, {
         method: 'POST',
-        body: JSON.stringify({ media: { ...media, name: media.name || file.name, mimeType: media.mimeType || file.type, size: media.size || file.size } })
+        body: JSON.stringify({
+          media: {
+            ...media,
+            name: media.name || file.name,
+            mimeType: media.mimeType || file.type,
+            size: media.size || file.size,
+            duration: metadata.duration,
+            waveform: metadata.waveform
+          }
+        })
       });
       setMessages((current) => current.map((item) => (item._id === tempId ? message : item)));
       URL.revokeObjectURL(previewUrl);
