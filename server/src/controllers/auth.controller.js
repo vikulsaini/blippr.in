@@ -614,3 +614,44 @@ export const checkUsernameAvailable = asyncHandler(async (req, res) => {
   return res.json({ ok: true, available: !exists });
 });
 
+export const runDiagnostic = asyncHandler(async (req, res) => {
+  const results = {
+    supabaseInitialized: !!supabase,
+    supabaseAdminInitialized: !!supabaseAdmin,
+    hasUrl: !!process.env.SUPABASE_URL,
+    hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
+    hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    nodeEnv: process.env.NODE_ENV,
+    storageBucket: process.env.SUPABASE_BUCKET || 'media',
+    uploadTest: null
+  };
+
+  if (supabaseAdmin) {
+    try {
+      const bucketName = process.env.SUPABASE_BUCKET || 'media';
+      const testFilename = `diag-test-${Date.now()}.txt`;
+      const fileBuffer = Buffer.from('diag');
+
+      const { data, error } = await supabaseAdmin.storage
+        .from(bucketName)
+        .upload(testFilename, fileBuffer, {
+          contentType: 'text/plain',
+          upsert: true
+        });
+
+      if (error) {
+        results.uploadTest = { ok: false, error: error.message };
+      } else {
+        const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(testFilename);
+        results.uploadTest = { ok: true, publicUrl };
+        await supabaseAdmin.storage.from(bucketName).remove([testFilename]);
+      }
+    } catch (err) {
+      results.uploadTest = { ok: false, error: err.message };
+    }
+  }
+
+  res.json({ ok: true, diagnostics: results });
+});
+
+

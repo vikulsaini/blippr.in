@@ -21,7 +21,8 @@ import {
   verifyEmail,
   supabaseAuthSchema,
   supabaseLogin,
-  checkUsernameAvailable
+  checkUsernameAvailable,
+  runDiagnostic
 } from '../controllers/auth.controller.js';
 import { authLimiter, guestLimiter } from '../middleware/rateLimit.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -40,6 +41,7 @@ router.post('/guest/upgrade', requireAuth, validate(guestUpgradeSchema), upgrade
 router.post('/google', authLimiter, validate(googleLoginSchema), googleLogin);
 router.post('/supabase', authLimiter, validate(supabaseAuthSchema), supabaseLogin);
 router.get('/username-check', authLimiter, checkUsernameAvailable);
+router.get('/diagnostic', runDiagnostic);
 router.post('/logout', logout);
 
 export default router;
