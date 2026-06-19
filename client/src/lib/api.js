@@ -83,20 +83,20 @@ export async function api(path, options = {}) {
   return body;
 }
 
-export const checkAppConfig = () => api('/config/app');
+export const checkAppConfig = () => api('/api/config/app');
 
 // Admin
-export const claimAdmin = (secret) => api('/admin/claim', { method: 'POST', body: JSON.stringify({ secret }) });
-export const getAdminStats = () => api('/admin/stats');
-export const searchAdminUsers = (q) => api(`/admin/users?q=${encodeURIComponent(q || '')}`);
-export const updateAdminUserStatus = (id, action, value) => api(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ action, value }) });
-export const sendAdminBroadcast = (message) => api('/admin/broadcast', { method: 'POST', body: JSON.stringify({ message }) });
-export const getAdminMetrics = () => api('/admin/metrics');
-export const getAdminDbStats = () => api('/admin/db/stats');
-export const runAdminDbQuery = (body) => api('/admin/db/query', { method: 'POST', body: JSON.stringify(body) });
-export const getAdminSlowQueries = () => api('/admin/db/slow');
-export const getAdminFiles = (type) => api(`/admin/files?type=${type || 'all'}`);
-export const deleteAdminFile = (id, provider) => api(`/admin/files/${id}?provider=${provider}`, { method: 'DELETE' });
-export const getAdminFileStats = () => api('/admin/files/stats');
-export const revokeAdminUserSessions = (id) => api(`/admin/users/${id}/revoke`, { method: 'POST' });
-export const getAdminAuditLogs = () => api('/admin/audit-logs');
+export const claimAdmin = (secret) => api('/api/admin/claim', { method: 'POST', body: JSON.stringify({ secret }) });
+export const getAdminStats = () => api('/api/admin/stats');
+export const searchAdminUsers = (q) => api(`/api/admin/users?q=${encodeURIComponent(q || '')}`);
+export const updateAdminUserStatus = (id, action, value) => api(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ action, value }) });
+export const sendAdminBroadcast = (message) => api('/api/admin/broadcast', { method: 'POST', body: JSON.stringify({ message }) });
+export const getAdminMetrics = () => api('/api/admin/metrics');
+export const getAdminDbStats = () => api('/api/admin/db/stats');
+export const runAdminDbQuery = (body) => api('/api/admin/db/query', { method: 'POST', body: JSON.stringify(body) });
+export const getAdminSlowQueries = () => api('/api/admin/db/slow');
+export const getAdminFiles = (type) => api(`/api/admin/files?type=${type || 'all'}`);
+export const deleteAdminFile = (id, provider) => api(`/api/admin/files/${id}?provider=${provider}`, { method: 'DELETE' });
+export const getAdminFileStats = () => api('/api/admin/files/stats');
+export const revokeAdminUserSessions = (id) => api(`/api/admin/users/${id}/revoke`, { method: 'POST' });
+export const getAdminAuditLogs = () => api('/api/admin/audit-logs');
