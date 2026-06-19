@@ -35,9 +35,14 @@ export default function Auth() {
   const isSupabaseEnabled = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
   const navigate = useNavigate();
   
-  // Supported modes: 'login' | 'guest' | 'completeProfile' | 'forgotPassword' | 'resetPassword'
+  // Supported modes: 'login' | 'guest' | 'completeProfile'
   const [mode, setMode] = useState('login'); 
+  const [authSubMode, setAuthSubMode] = useState('login'); // 'login' or 'signup'
+  const [loginMethod, setLoginMethod] = useState('otp'); // 'otp' or 'password'
+  
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   const [otpSent, setOtpSent] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
@@ -49,9 +54,13 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [guestTermsAccepted, setGuestTermsAccepted] = useState(false);
 
+  // Username status: 'idle' | 'checking' | 'available' | 'taken'
+  const [usernameStatus, setUsernameStatus] = useState('idle');
+
   // Validation States
   const isUsernameValid = /^[a-z0-9_]{3,24}$/.test(profile.username);
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const passwordsMatch = password.length >= 8 && password === confirmPassword;
 
   function finishAuth(token, isGuest = false) {
     setToken(token, isGuest);
@@ -66,11 +75,53 @@ export default function Auth() {
     setEmailCode('');
   }
 
-  async function syncSupabaseSession(token) {
+  function switchSubMode(nextSubMode) {
+    setAuthSubMode(nextSubMode);
+    setError('');
+    setEmailHint('');
+    setOtpSent(false);
+    setEmailCode('');
+    setPassword('');
+    setConfirmPassword('');
+    setUsernameStatus('idle');
+  }
+
+  // Username availability check effect
+  useEffect(() => {
+    const trimmed = profile.username.trim().toLowerCase();
+    if (!trimmed || trimmed.length < 3 || !/^[a-z0-9_]{3,24}$/.test(trimmed)) {
+      setUsernameStatus('idle');
+      return;
+    }
+    setUsernameStatus('checking');
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const res = await api(`/api/auth/username-check?username=${trimmed}`);
+        if (res.available) {
+          setUsernameStatus('available');
+        } else {
+          setUsernameStatus('taken');
+        }
+      } catch (err) {
+        setUsernameStatus('idle');
+      }
+    }, 450);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [profile.username]);
+
+  async function syncSupabaseSession(token, signupData = null) {
     setLoading(true);
     setError('');
     try {
-      const result = await loginWithSupabase({ accessToken: token });
+      const syncPayload = { accessToken: token };
+      if (signupData) {
+        syncPayload.name = signupData.username;
+        syncPayload.username = signupData.username;
+        syncPayload.age = ageFromDob(signupData.dob);
+        syncPayload.gender = signupData.gender;
+      }
+      const result = await loginWithSupabase(syncPayload);
       finishAuth(result.token);
     } catch (err) {
       if (err.body && err.body.code === 'PROFILE_REQUIRED') {
@@ -92,7 +143,7 @@ export default function Auth() {
         const hasLocalToken = Boolean(getToken());
         // Only trigger sync if we don't have a token or if we are completing profile
         if (!hasLocalToken) {
-          await syncSupabaseSession(session.access_token);
+          await syncSupabaseSession(session.access_token, authSubMode === 'signup' ? profile : null);
         }
       }
     });
@@ -100,7 +151,7 @@ export default function Auth() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [isSupabaseEnabled]);
+  }, [isSupabaseEnabled, authSubMode, profile]);
 
   async function signInWithGoogle() {
     setError('');
@@ -139,6 +190,76 @@ export default function Auth() {
     }
   }
 
+  async function handleEmailSignup(event) {
+    if (event) event.preventDefault();
+    setError('');
+    
+    if (!isUsernameValid) {
+      setError('Please enter a valid username (3-24 characters, lowercase, numbers, underscores).');
+      return;
+    }
+    if (usernameStatus !== 'available') {
+      setError('Selected username is not available.');
+      return;
+    }
+    if (!isEmailValid) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!profile.dob) {
+      setError('Date of birth is required.');
+      return;
+    }
+    if (ageFromDob(profile.dob) < 18) {
+      setError('You must be 18 years or older to join.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setOtpSending(true);
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: email.toLowerCase(),
+        password: password
+      });
+      if (signUpError) throw signUpError;
+      setOtpSent(true);
+      setEmailHint('6-digit verification code sent to your email to verify your signup.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setOtpSending(false);
+    }
+  }
+
+  async function handleEmailPasswordLogin(event) {
+    if (event) event.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase(),
+        password: password
+      });
+      if (loginError) throw loginError;
+      if (data.session) {
+        await syncSupabaseSession(data.session.access_token, null);
+      } else {
+        throw new Error('Login succeeded, but no session was returned.');
+      }
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
   async function verifyEmailOtp() {
     setError('');
     setLoading(true);
@@ -146,11 +267,11 @@ export default function Auth() {
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
         email: email.toLowerCase(),
         token: emailCode,
-        type: 'email'
+        type: authSubMode === 'signup' ? 'signup' : 'email'
       });
       if (verifyError) throw verifyError;
       if (data.session) {
-        await syncSupabaseSession(data.session.access_token);
+        await syncSupabaseSession(data.session.access_token, authSubMode === 'signup' ? profile : null);
       } else {
         throw new Error('Verification succeeded, but no session was returned.');
       }
@@ -238,93 +359,307 @@ export default function Auth() {
           
           {/* Header/Logo section */}
           <div>
-            <div className="flex justify-center mb-8">
+            <div className="flex justify-center mb-6">
               <BrandLogo className="text-white [&_.text-text-primary]:text-white [&_.text-text-muted]:text-zinc-500 [&_span.bg-surface]:bg-[#111827]/80 [&_span.border-border-default]:border-white/10" />
             </div>
 
+            {/* Sub-mode Tab Selector (Only in Login mode, when OTP not sent) */}
+            {mode === 'login' && !otpSent && (
+              <div className="flex rounded-full bg-[#111827]/60 p-1 border border-white/5 text-xs mb-6 max-w-sm mx-auto font-bold">
+                <button
+                  type="button"
+                  onClick={() => switchSubMode('login')}
+                  className={`flex-1 py-2.5 rounded-full text-center transition-all ${authSubMode === 'login' ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-md' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Log In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchSubMode('signup')}
+                  className={`flex-1 py-2.5 rounded-full text-center transition-all ${authSubMode === 'signup' ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-md' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Sign Up
+                </button>
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
               <motion.div
-                key={mode}
+                key={`${mode}-${authSubMode}`}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.22 }}
-                className="space-y-6"
+                className="space-y-5"
               >
                 {/* Form Headline */}
-                <div className="space-y-2 text-center">
-                  <h2 className="text-3xl font-extrabold tracking-tight text-white animate-fadeIn">
-                    {mode === 'login' ? 'Welcome to Blippr' : ''}
+                <div className="space-y-1.5 text-center">
+                  <h2 className="text-2xl font-extrabold tracking-tight text-white">
                     {mode === 'guest' ? 'Guest Setup' : ''}
                     {mode === 'completeProfile' ? 'Complete Profile' : ''}
+                    {mode === 'login' && (authSubMode === 'login' ? 'Welcome Back' : 'Create Account')}
                   </h2>
-                  <p className="text-xs font-semibold text-zinc-400 max-w-md mx-auto leading-relaxed animate-fadeIn">
-                    {mode === 'login' && 'Log in or sign up instantly via Google or OTP verification.'}
+                  <p className="text-xs font-semibold text-zinc-400 max-w-md mx-auto leading-relaxed">
                     {mode === 'guest' && 'Enter instantly without an email address.'}
                     {mode === 'completeProfile' && 'Choose your unique username, gender, and date of birth to complete setup.'}
+                    {mode === 'login' && (authSubMode === 'login' ? 'Access your account instantly via Google, OTP, or Password.' : 'Sign up via email verification and customize your profile.')}
                   </p>
                 </div>
 
-                <form onSubmit={
-                  mode === 'completeProfile' ? submitCompleteProfile :
-                  mode === 'guest' ? continueAsGuest :
-                  (e) => e.preventDefault()
-                } className="space-y-5 pt-2">
+                <form onSubmit={(e) => e.preventDefault()} className="space-y-4 pt-1">
                   
-                  {/* Google OAuth Button */}
+                  {/* Google OAuth Button (if not otpSent) */}
                   {mode === 'login' && !otpSent && (
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-1 gap-4">
-                        {/* Google button */}
-                        <button
-                          type="button"
-                          disabled={loading}
-                          onClick={signInWithGoogle}
-                          className="h-14 px-6 rounded-full border border-white/10 hover:border-accent/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white disabled:opacity-50"
-                        >
-                          <GoogleIcon />
-                          <span>Continue with Google</span>
-                        </button>
-                      </div>
+                    <div className="space-y-4">
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={signInWithGoogle}
+                        className="w-full h-13 px-6 rounded-full border border-white/10 hover:border-accent/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-xs text-white disabled:opacity-50"
+                      >
+                        <GoogleIcon />
+                        <span>Continue with Google</span>
+                      </button>
 
                       {/* Divider */}
-                      <div className="flex items-center gap-4 py-2">
+                      <div className="flex items-center gap-4 py-1">
                         <div className="h-[1px] flex-1 bg-white/10" />
-                        <span className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">Or login/signup via</span>
+                        <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Or</span>
                         <div className="h-[1px] flex-1 bg-white/10" />
                       </div>
                     </div>
                   )}
-                  
-                  {/* LOGIN WITH OTP FIELDS */}
-                  {mode === 'login' && (
+
+                  {/* LOGIN SUB-MODE SURFACES */}
+                  {mode === 'login' && authSubMode === 'login' && (
                     <div className="space-y-4">
-                      {/* Email Input */}
+                      
+                      {/* Login Method Toggle */}
                       {!otpSent && (
-                        <div className="flex gap-2 items-center">
-                          <div className="flex-1">
-                            <UnderlinedInput 
-                              value={email} 
-                              onChange={setEmail} 
-                              placeholder="Email Address" 
-                              type="email" 
-                              isValid={isEmailValid}
-                              disabled={loading || otpSending}
-                            />
-                          </div>
+                        <div className="flex items-center justify-center gap-6 text-[11px] font-bold text-zinc-500 mb-2 select-none">
                           <button
                             type="button"
-                            disabled={!isEmailValid || loading || otpSending}
-                            onClick={sendEmailOtp}
-                            className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
+                            onClick={() => setLoginMethod('otp')}
+                            className={`pb-1 border-b-2 transition ${loginMethod === 'otp' ? 'text-accent border-accent' : 'border-transparent hover:text-zinc-300'}`}
                           >
-                            {otpSending ? 'Sending...' : 'Send OTP'}
+                            OTP Code
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLoginMethod('password')}
+                            className={`pb-1 border-b-2 transition ${loginMethod === 'password' ? 'text-accent border-accent' : 'border-transparent hover:text-zinc-300'}`}
+                          >
+                            Password
                           </button>
                         </div>
                       )}
 
-                      {/* OTP Verification Box */}
-                      {otpSent && (
+                      {/* OTP Login Method */}
+                      {loginMethod === 'otp' ? (
+                        <div className="space-y-4">
+                          {!otpSent ? (
+                            <div className="flex gap-2 items-center">
+                              <div className="flex-1">
+                                <UnderlinedInput 
+                                  value={email} 
+                                  onChange={setEmail} 
+                                  placeholder="Email Address" 
+                                  type="email" 
+                                  isValid={isEmailValid}
+                                  disabled={loading || otpSending}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                disabled={!isEmailValid || loading || otpSending}
+                                onClick={sendEmailOtp}
+                                className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
+                              >
+                                {otpSending ? 'Sending...' : 'Send OTP'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4 animate-fadeIn">
+                              <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
+                                {emailHint || 'Verification code sent.'}
+                              </p>
+                              <div className="flex gap-2 items-center">
+                                <div className="flex-1">
+                                  <UnderlinedInput 
+                                    value={emailCode} 
+                                    onChange={setEmailCode} 
+                                    placeholder="6-digit OTP code" 
+                                    inputMode="numeric" 
+                                    isValid={emailCode.length === 6}
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={emailCode.length !== 6 || loading}
+                                  onClick={verifyEmailOtp}
+                                  className="h-14 px-6 rounded-full bg-gradient-to-r from-accent to-accent-hover text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                                >
+                                  {loading ? 'Verifying...' : 'Verify'}
+                                </button>
+                              </div>
+                              <div className="text-center pt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => { setOtpSent(false); setEmailCode(''); }}
+                                  className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition underline"
+                                >
+                                  Change email address
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* Password Login Method */
+                        <div className="space-y-4 animate-fadeIn">
+                          <UnderlinedInput 
+                            value={email} 
+                            onChange={setEmail} 
+                            placeholder="Email Address" 
+                            type="email" 
+                            isValid={isEmailValid}
+                            disabled={loading}
+                          />
+                          <UnderlinedInput 
+                            value={password} 
+                            onChange={setPassword} 
+                            placeholder="Password" 
+                            type="password" 
+                            isValid={password.length >= 8}
+                            disabled={loading}
+                          />
+                          <button
+                            type="submit"
+                            onClick={handleEmailPasswordLogin}
+                            disabled={loading || !isEmailValid || password.length < 8}
+                            className="w-full h-14 bg-gradient-to-r from-accent to-accent-hover text-white font-bold rounded-full shadow-lg shadow-accent/25 active:scale-95 transition disabled:opacity-50 text-xs"
+                          >
+                            {loading ? 'Signing in...' : 'Sign In'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* SIGN UP SUB-MODE SURFACES */}
+                  {mode === 'login' && authSubMode === 'signup' && (
+                    <div className="space-y-4">
+                      {!otpSent ? (
+                        <div className="space-y-4 animate-fadeIn">
+                          {/* Username with availability checker */}
+                          <div className="relative">
+                            <UnderlinedInput 
+                              value={profile.username} 
+                              onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
+                              placeholder="Choose Username" 
+                              prefix="@"
+                              isValid={usernameStatus === 'available'}
+                            />
+                            {usernameStatus === 'checking' && (
+                              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold animate-pulse">Checking...</span>
+                            )}
+                            {usernameStatus === 'taken' && (
+                              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-red-500 text-xs font-bold">Taken</span>
+                            )}
+                            {usernameStatus === 'available' && (
+                              <span className="absolute right-12 top-1/2 -translate-y-1/2 text-emerald-500 text-[10px] font-bold">Available</span>
+                            )}
+                          </div>
+
+                          {/* Email input */}
+                          <UnderlinedInput 
+                            value={email} 
+                            onChange={setEmail} 
+                            placeholder="Email Address" 
+                            type="email" 
+                            isValid={isEmailValid}
+                          />
+
+                          {/* Age / DOB Input */}
+                          <div className="grid grid-cols-[1.1fr_0.9fr] gap-3 items-center">
+                            <UnderlinedInput 
+                              value={profile.dob} 
+                              onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
+                              placeholder="Date of Birth" 
+                              type="date" 
+                              isValid={profile.dob && ageFromDob(profile.dob) >= 18}
+                            />
+                            
+                            {/* Gender Select */}
+                            <div className="grid grid-cols-2 gap-0.5 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-[11px] h-14 items-center">
+                              {['female', 'male'].map((value) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => setProfile((c) => ({ ...c, gender: value }))}
+                                  className={`group relative rounded-full py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                                >
+                                  {profile.gender === value && (
+                                    <motion.span
+                                      layoutId="signup-gender-pill"
+                                      className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
+                                      transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                                    />
+                                  )}
+                                  {value}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Password & Matcher Effect */}
+                          <UnderlinedInput 
+                            value={password} 
+                            onChange={setPassword} 
+                            placeholder="Password (8+ chars)" 
+                            type="password" 
+                            isValid={password.length >= 8}
+                          />
+                          <div className="relative">
+                            <input 
+                              type="password" 
+                              value={confirmPassword} 
+                              onChange={(e) => setConfirmPassword(e.target.value)} 
+                              className={`w-full bg-[#111827]/40 border rounded-full py-4 px-6 pr-12 text-sm text-white placeholder:text-zinc-500 outline-none focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold ${passwordsMatch ? 'border-emerald-500/80 focus:border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.15)]' : confirmPassword.length >= 8 ? 'border-red-500/80 focus:border-red-500' : 'border-white/10 focus:border-accent/80'}`}
+                              placeholder="Confirm Password"
+                            />
+                            {passwordsMatch && (
+                              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500 flex-shrink-0 animate-fadeIn">
+                                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              </span>
+                            )}
+                          </div>
+
+                          {confirmPassword && !passwordsMatch && (
+                            <p className="text-[10px] text-red-400 font-semibold pl-4">
+                              {password.length < 8 ? 'Password must be at least 8 characters' : 'Passwords do not match'}
+                            </p>
+                          )}
+                          {passwordsMatch && (
+                            <p className="text-[10px] text-emerald-400 font-semibold pl-4 flex items-center gap-1.5 animate-fadeIn">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                              Passwords match!
+                            </p>
+                          )}
+
+                          <button
+                            type="submit"
+                            onClick={handleEmailSignup}
+                            disabled={otpSending || usernameStatus !== 'available' || !isEmailValid || !profile.dob || ageFromDob(profile.dob) < 18 || password.length < 8 || password !== confirmPassword}
+                            className="w-full h-14 bg-gradient-to-r from-accent to-accent-hover text-white font-bold rounded-full shadow-lg shadow-accent/25 active:scale-95 transition disabled:opacity-50 text-xs mt-2"
+                          >
+                            {otpSending ? 'Sending OTP...' : 'Send Signup OTP'}
+                          </button>
+                        </div>
+                      ) : (
+                        /* OTP Verification Box for Signup */
                         <div className="space-y-4 animate-fadeIn">
                           <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
                             {emailHint || 'Verification code sent.'}
@@ -354,7 +689,7 @@ export default function Auth() {
                               onClick={() => { setOtpSent(false); setEmailCode(''); }}
                               className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition underline"
                             >
-                              Change email address
+                              Go back to signup
                             </button>
                           </div>
                         </div>
@@ -467,7 +802,7 @@ export default function Auth() {
                     <motion.p 
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-2xl animate-fadeIn"
+                      className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-2xl animate-fadeIn text-center"
                     >
                       {error}
                     </motion.p>

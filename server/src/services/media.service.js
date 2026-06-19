@@ -3,13 +3,41 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import mongoose from 'mongoose';
 import { cloudinary } from '../config/cloudinary.js';
+import { supabase } from '../config/supabase.js';
 
 function cloudinaryReady() {
   return Boolean(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
 }
 
+async function uploadToSupabase(file) {
+  const ext = path.extname(file.originalname || '');
+  const secureFilename = `${randomUUID()}${ext}`;
+  const bucketName = process.env.SUPABASE_BUCKET || 'media';
+  
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(secureFilename, file.buffer, {
+      contentType: file.mimetype,
+      upsert: true
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(secureFilename);
+
+  return {
+    secure_url: publicUrl,
+    public_id: secureFilename,
+    resource_type: resourceTypeFor(file.mimetype),
+    storage: 'supabase'
+  };
+}
+
 export function uploadBuffer(file, baseUrl = '') {
   const urlBase = (process.env.PUBLIC_API_URL || process.env.API_URL || baseUrl).replace(/\/$/, '');
+  if (supabase) return uploadToSupabase(file);
   if (!cloudinaryReady()) return uploadToGridFs(file, urlBase);
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -80,7 +108,18 @@ function resourceTypeFor(mimeType = '') {
 export async function deleteMediaByUrl(url) {
   if (!url) return;
   try {
-    if (url.includes('/api/media/files/')) {
+    if (url.includes('/storage/v1/object/public/')) {
+      const parts = url.split('/storage/v1/object/public/');
+      const pathPart = parts[parts.length - 1];
+      const bucketSeparatorIndex = pathPart.indexOf('/');
+      if (bucketSeparatorIndex > -1) {
+        const bucketName = pathPart.substring(0, bucketSeparatorIndex);
+        const filename = pathPart.substring(bucketSeparatorIndex + 1);
+        if (supabase) {
+          await supabase.storage.from(bucketName).remove([filename]);
+        }
+      }
+    } else if (url.includes('/api/media/files/')) {
       const parts = url.split('/api/media/files/');
       const id = parts[parts.length - 1];
       if (mongoose.Types.ObjectId.isValid(id)) {

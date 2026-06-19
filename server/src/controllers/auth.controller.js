@@ -516,19 +516,35 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
     }
   }
 
+  const isGoogleAuth = supabaseUser.app_metadata?.provider === 'google';
   let isNewUser = false;
 
   if (!user) {
-    // We need to create a new user. Check if required profile fields are present.
-    if (!username || !age || !gender) {
-      return res.status(400).json({
-        ok: false,
-        code: 'PROFILE_REQUIRED',
-        message: 'Profile details (username, age, gender) are required to complete signup.'
-      });
+    let finalUsername = username;
+    let finalAge = age;
+    let finalGender = gender;
+
+    if (isGoogleAuth) {
+      // Auto-generate username for Google sign-ins if not provided
+      if (!finalUsername) {
+        const baseName = supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'google_user';
+        finalUsername = await createUniqueUsername(baseName);
+      }
+      // Provide defaults for age/gender if not specified (since we bypass onboarding)
+      if (!finalAge) finalAge = 18;
+      if (!finalGender) finalGender = 'male'; // fallback
+    } else {
+      // We need to create a new user. Check if required profile fields are present.
+      if (!finalUsername || !finalAge || !finalGender) {
+        return res.status(400).json({
+          ok: false,
+          code: 'PROFILE_REQUIRED',
+          message: 'Profile details (username, age, gender) are required to complete signup.'
+        });
+      }
     }
 
-    const usernameExists = await User.exists({ username: username.toLowerCase() });
+    const usernameExists = await User.exists({ username: finalUsername.toLowerCase() });
     if (usernameExists) {
       const err = new Error('Username is already taken');
       err.status = 409;
@@ -538,13 +554,13 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
     isNewUser = true;
     user = await User.create({
       supabaseId,
-      name: name || username,
+      name: name || supabaseUser.user_metadata?.full_name || finalUsername,
       email: email || undefined,
       contact: phone || undefined,
-      username: username.toLowerCase(),
-      age: Number(age),
-      gender,
-      avatar: avatarForGender(gender, username),
+      username: finalUsername.toLowerCase(),
+      age: Number(finalAge),
+      gender: finalGender,
+      avatar: avatarForGender(finalGender, finalUsername),
       bio: bio || '',
       interests: interests || [],
       emailVerifiedAt: email ? new Date() : undefined,
@@ -563,6 +579,38 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
   user.isGuest = false;
   await recordLogin(req, user);
 
+  // Sync to Supabase Database
+  await syncToSupabaseDb(user);
+
   return sendAuth(res, signJwt(user), user, isNewUser ? 201 : 200);
+});
+
+export const syncToSupabaseDb = async (user) => {
+  if (!supabase || !user.supabaseId) return;
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.supabaseId,
+        username: user.username,
+        name: user.name,
+        avatar_url: user.avatar,
+        updated_at: new Date()
+      });
+    if (error) {
+      console.warn('Supabase DB sync warning:', error.message);
+    }
+  } catch (err) {
+    console.warn('Supabase DB sync error:', err.message);
+  }
+};
+
+export const checkUsernameAvailable = asyncHandler(async (req, res) => {
+  const username = (req.query.username || '').trim().toLowerCase();
+  if (!username || !/^[a-z0-9_]{3,24}$/.test(username)) {
+    return res.json({ ok: true, available: false, message: 'Invalid username format' });
+  }
+  const exists = await User.exists({ username });
+  return res.json({ ok: true, available: !exists });
 });
 

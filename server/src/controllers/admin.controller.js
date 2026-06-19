@@ -6,6 +6,7 @@ import AnalyticsBucket from '../models/AnalyticsBucket.js';
 import AuditLog from '../models/AuditLog.js';
 import { redis } from '../config/redis.js';
 import { cloudinary } from '../config/cloudinary.js';
+import { supabase } from '../config/supabase.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getClientIp } from '../utils/clientIp.js';
 
@@ -398,6 +399,34 @@ export const getFilesList = asyncHandler(async (req, res) => {
     }
   }
 
+  if (supabase && (type === 'all' || type === 'supabase')) {
+    try {
+      const bucketName = process.env.SUPABASE_BUCKET || 'media';
+      const { data, error } = await supabase.storage.from(bucketName).list('', {
+        limit: Number(limit),
+        offset: Number(skip),
+        sortBy: { column: 'created_at', order: 'desc' }
+      });
+      if (error) throw error;
+      if (data) {
+        data.forEach(item => {
+          const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(item.name);
+          files.push({
+            id: item.name,
+            name: item.name,
+            mimeType: item.metadata?.mimetype || 'application/octet-stream',
+            size: item.metadata?.size || 0,
+            url: publicUrl,
+            uploadedAt: item.created_at,
+            provider: 'supabase'
+          });
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to fetch Supabase files:', err.message);
+    }
+  }
+
   res.json({ ok: true, files: files.slice(0, Number(limit)) });
 });
 
@@ -412,6 +441,10 @@ export const deleteFile = asyncHandler(async (req, res) => {
     const db = mongoose.connection.db;
     const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'blippr_media' });
     await bucket.delete(new mongoose.Types.ObjectId(id));
+  } else if (provider === 'supabase') {
+    const bucketName = process.env.SUPABASE_BUCKET || 'media';
+    const { error } = await supabase.storage.from(bucketName).remove([id]);
+    if (error) throw error;
   } else {
     await cloudinary.uploader.destroy(id);
   }
@@ -466,13 +499,35 @@ export const getFileStats = asyncHandler(async (req, res) => {
     }
   }
 
+  let totalSupabaseSize = 0;
+  let supabaseCount = 0;
+  if (supabase) {
+    try {
+      const bucketName = process.env.SUPABASE_BUCKET || 'media';
+      const { data, error } = await supabase.storage.from(bucketName).list();
+      if (error) throw error;
+      if (data) {
+        supabaseCount = data.length;
+        data.forEach(item => {
+          const size = item.metadata?.size || 0;
+          totalSupabaseSize += size;
+          const category = item.metadata?.mimetype ? item.metadata.mimetype.split('/')[0] : 'other';
+          mimeTypeBreakdown[category] = (mimeTypeBreakdown[category] || 0) + size;
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase storage stats warning:', err.message);
+    }
+  }
+
   res.json({
     ok: true,
     stats: {
-      totalSize: totalGridFsSize + totalCloudinarySize,
-      totalCount: gridFsCount + cloudinaryCount,
+      totalSize: totalGridFsSize + totalCloudinarySize + totalSupabaseSize,
+      totalCount: gridFsCount + cloudinaryCount + supabaseCount,
       gridfs: { size: totalGridFsSize, count: gridFsCount },
       cloudinary: { size: totalCloudinarySize, count: cloudinaryCount },
+      supabase: { size: totalSupabaseSize, count: supabaseCount },
       breakdown: mimeTypeBreakdown
     }
   });

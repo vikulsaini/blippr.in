@@ -20,7 +20,8 @@ import {
   upgradeGuest,
   verifyEmail,
   supabaseAuthSchema,
-  supabaseLogin
+  supabaseLogin,
+  checkUsernameAvailable
 } from '../controllers/auth.controller.js';
 import { authLimiter, guestLimiter } from '../middleware/rateLimit.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -38,6 +39,7 @@ router.post('/guest', guestLimiter, validate(guestSchema), continueAsGuest);
 router.post('/guest/upgrade', requireAuth, validate(guestUpgradeSchema), upgradeGuest);
 router.post('/google', authLimiter, validate(googleLoginSchema), googleLogin);
 router.post('/supabase', authLimiter, validate(supabaseAuthSchema), supabaseLogin);
+router.get('/username-check', authLimiter, checkUsernameAvailable);
 router.post('/logout', logout);
 
 export default router;
