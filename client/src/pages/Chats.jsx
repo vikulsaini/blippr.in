@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import CallOverlay from '../components/CallOverlay.jsx';
@@ -27,6 +27,11 @@ export default function Chats() {
   const [loadingChats, setLoadingChats] = useState(!friendChats(readCache('chats', tokenUserId, [])).length);
 
   const currentUserId = normalizeId(me?._id || tokenUserId);
+  const [activeCursor, setActiveCursor] = useState(null);
+  const [hasMoreActive, setHasMoreActive] = useState(false);
+  const [archivedCursor, setArchivedCursor] = useState(null);
+  const [hasMoreArchived, setHasMoreArchived] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const {
     selectedChats,
@@ -149,6 +154,10 @@ export default function Chats() {
           .filter(isFriendChat)
           .filter((chat, index, all) => all.findIndex((item) => item._id === chat._id) === index);
         setChats(loadedChats);
+        setActiveCursor(activeData.pageInfo?.nextCursor || null);
+        setHasMoreActive(!!activeData.pageInfo?.hasMore);
+        setArchivedCursor(archivedData.pageInfo?.nextCursor || null);
+        setHasMoreArchived(!!archivedData.pageInfo?.hasMore);
         writeCache('chats', loadedChats, cacheUserId);
       } catch (err) {
         console.warn('Failed to load chats:', err);
@@ -158,6 +167,39 @@ export default function Chats() {
     }
     load();
   }, [tokenUserId]);
+
+  const loadMore = useCallback(async (isArchived = false) => {
+    if (loadingMore) return;
+    const cursor = isArchived ? archivedCursor : activeCursor;
+    const hasMore = isArchived ? hasMoreArchived : hasMoreActive;
+    if (!hasMore || !cursor) return;
+
+    setLoadingMore(true);
+    try {
+      const url = isArchived 
+        ? `/api/chats?archived=true&cursor=${encodeURIComponent(cursor)}` 
+        : `/api/chats?cursor=${encodeURIComponent(cursor)}`;
+      const data = await api(url);
+      const newChats = (data.chats || []).filter(isFriendChat);
+
+      setChats((current) => {
+        const combined = [...current, ...newChats];
+        return combined.filter((chat, index, all) => all.findIndex((item) => item._id === chat._id) === index);
+      });
+
+      if (isArchived) {
+        setArchivedCursor(data.pageInfo?.nextCursor || null);
+        setHasMoreArchived(!!data.pageInfo?.hasMore);
+      } else {
+        setActiveCursor(data.pageInfo?.nextCursor || null);
+        setHasMoreActive(!!data.pageInfo?.hasMore);
+      }
+    } catch (err) {
+      console.warn('Failed to load more chats:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeCursor, hasMoreActive, archivedCursor, hasMoreArchived, loadingMore]);
 
   useEffect(() => {
     const requestedChatId = new URLSearchParams(location.search).get('chat');
@@ -289,6 +331,10 @@ export default function Chats() {
           onToggleSelect={toggleSelect}
           onOpenProfile={openProfile}
           onFindPeople={() => navigate('/app/stranger')}
+          hasMoreActive={hasMoreActive}
+          hasMoreArchived={hasMoreArchived}
+          loadingMore={loadingMore}
+          onLoadMore={loadMore}
         />
       </div>
       <AnimatePresence>

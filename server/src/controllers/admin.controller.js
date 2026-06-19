@@ -42,10 +42,11 @@ export const searchUsers = asyncHandler(async (req, res) => {
   const { q } = req.query;
   const filter = {};
   if (q) {
+    const escapedQ = String(q || '').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { name: { $regex: q, $options: 'i' } },
-      { username: { $regex: q, $options: 'i' } },
-      { email: { $regex: q, $options: 'i' } }
+      { name: { $regex: '^' + escapedQ, $options: 'i' } },
+      { username: { $regex: '^' + escapedQ, $options: 'i' } },
+      { email: { $regex: '^' + escapedQ, $options: 'i' } }
     ];
   }
 
@@ -87,7 +88,24 @@ export const broadcastMessage = asyncHandler(async (req, res) => {
 
   const io = req.app.get('io');
   if (io) {
-    io.emit('system:broadcast', { message, timestamp: new Date() });
+    io.fetchSockets().then((sockets) => {
+      const batchSize = 100;
+      let index = 0;
+      function sendBatch() {
+        const batch = sockets.slice(index, index + batchSize);
+        if (batch.length === 0) return;
+        for (const s of batch) {
+          s.emit('system:broadcast', { message, timestamp: new Date() });
+        }
+        index += batchSize;
+        if (index < sockets.length) {
+          setTimeout(sendBatch, 50);
+        }
+      }
+      sendBatch();
+    }).catch((err) => {
+      console.error('Failed to fetch sockets for broadcast:', err);
+    });
   }
 
   res.json({ ok: true, message: 'Broadcast sent' });

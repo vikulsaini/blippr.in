@@ -2,103 +2,31 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Camera, Save, UserRound } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { showToast } from '../components/Toast.jsx';
-import { api } from '../lib/api.js';
+import { useUserProfile } from '../hooks/useUserProfile.js';
 
 export default function EditProfile() {
   const navigate = useNavigate();
   const { me, setMe } = useOutletContext() || {};
   const [user, setUser] = useState(me);
-  const [form, setForm] = useState({
-    name: me?.name || '',
-    username: me?.isGuest ? '' : (me?.username || ''),
-    age: me?.age || '',
-    gender: me?.gender || 'female',
-    bio: me?.bio || '',
-    avatar: me?.avatar || ''
-  });
   const [loading, setLoading] = useState(!me);
-  const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
+
+  const {
+    form,
+    photoUploading,
+    setField,
+    uploadProfilePhoto,
+    saveProfile
+  } = useUserProfile(me, setMe, {
+    onSuccess: () => navigate('/app/profile')
+  });
 
   useEffect(() => {
     if (me) {
       setUser(me);
-      setForm({
-        name: me.name || '',
-        username: me.isGuest ? '' : (me.username || ''),
-        age: me.age || '',
-        gender: me.gender || 'female',
-        bio: me.bio || '',
-        avatar: me.avatar || ''
-      });
       setLoading(false);
     }
   }, [me]);
-
-  function setField(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
-  }
-
-  async function uploadProfilePhoto(file) {
-    if (!file) return;
-    if (!file.type?.startsWith('image/')) {
-      showToast('Choose an image from your gallery', 'error');
-      return;
-    }
-    setPhotoUploading(true);
-    showToast('Uploading profile photo...', 'info');
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const { media } = await api('/api/media/upload', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const { user: updated } = await api('/api/users/me', {
-        method: 'PATCH',
-        body: JSON.stringify({ avatar: media.url })
-      });
-      
-      setField('avatar', media.url);
-      setMe?.(updated);
-      showToast('Profile photo updated', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      setPhotoUploading(false);
-    }
-  }
-
-  async function saveProfile(event) {
-    if (event) event.preventDefault();
-    if (form.username.trim() !== '' && form.username.trim().length < 3) {
-      showToast('Username must be at least 3 characters long', 'error');
-      return;
-    }
-    try {
-      const payload = {
-        name: form.name,
-        age: Number(form.age),
-        gender: form.gender,
-        bio: form.bio,
-        avatar: form.avatar
-      };
-      if (form.username.trim() !== '') {
-        payload.username = form.username;
-      }
-      
-      const { user: updated } = await api('/api/users/me', {
-        method: 'PATCH',
-        body: JSON.stringify(payload)
-      });
-      setMe?.(updated);
-      showToast('Profile saved successfully', 'success');
-      navigate('/app/profile');
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  }
 
   if (loading) {
     return (

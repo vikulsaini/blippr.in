@@ -197,8 +197,8 @@ export const searchUsers = asyncHandler(async (req, res) => {
         _id: { $nin: excludedIds },
         blockedUsers: { $ne: req.user._id },
         $or: [
-          { username: { $regex: escapedQ, $options: 'i' } },
-          { name: { $regex: escapedQ, $options: 'i' } }
+          { username: { $regex: '^' + escapedQ, $options: 'i' } },
+          { name: { $regex: '^' + escapedQ, $options: 'i' } }
         ]
       }
     : { _id: { $nin: excludedIds }, blockedUsers: { $ne: req.user._id } };

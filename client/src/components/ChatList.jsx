@@ -45,7 +45,11 @@ export default function ChatList({
   onToggleSelect,
   onOpenProfile,
   onFindPeople,
-  loading = false
+  loading = false,
+  hasMoreActive = false,
+  hasMoreArchived = false,
+  loadingMore = false,
+  onLoadMore
 }) {
   const [tab, setTab] = useState('chats');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -54,6 +58,17 @@ export default function ChatList({
   const [isGeneralOpen, setIsGeneralOpen] = useState(true);
   const [isEventsOpen, setIsEventsOpen] = useState(true);
   const [isPersonalOpen, setIsPersonalOpen] = useState(true);
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 100) {
+      const isArchivedTab = tab === 'archived';
+      const hasMore = isArchivedTab ? hasMoreArchived : hasMoreActive;
+      if (hasMore && !loadingMore && onLoadMore) {
+        onLoadMore(isArchivedTab);
+      }
+    }
+  };
 
   const visibleChats = useMemo(() => {
     const scoped = chats.filter((chat) => {
@@ -181,7 +196,7 @@ export default function ChatList({
         )}
       </div>
 
-      <div data-chat-feed className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin px-4 space-y-4">
+      <div data-chat-feed onScroll={handleScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin px-4 space-y-4">
 
 
         {loading ? (
@@ -212,6 +227,12 @@ export default function ChatList({
                 />
               );
             })}
+            {loadingMore && (
+              <div className="py-4 text-center text-text-muted text-xs font-semibold animate-pulse flex items-center justify-center gap-1.5">
+                <span>Loading more conversations</span>
+                <span className="live-dot h-1.5 w-1.5 rounded-full bg-accent text-accent animate-ping" />
+              </div>
+            )}
             {!loading && personalChats.length === 0 && (
               <div className="py-8 text-center bg-surface/30 rounded-2xl border border-border-default/40 p-6">
                 <p className="text-xs text-text-muted">No personal messages yet.</p>
