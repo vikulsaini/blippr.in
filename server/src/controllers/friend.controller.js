@@ -225,7 +225,8 @@ export const unfriend = asyncHandler(async (req, res) => {
   });
 
   if (chat) {
-    await Chat.deleteOne({ _id: chat._id });
+    chat.temporary = true;
+    await chat.save();
     const io = req.app.get('io');
     chat.members.forEach((memberId) => {
       io?.to(`user:${memberId.toString()}`).emit('chat:removed', { chatId: chat._id });

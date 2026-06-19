@@ -118,7 +118,7 @@ async function updateChatPreference(req, res, field) {
   }
   if (req.body.enabled) chat[field].addToSet(req.user._id);
   else chat[field].pull(req.user._id);
-  await chat.save();
+  await chat.save({ timestamps: false });
   const populatedChat = await Chat.findById(chat._id)
     .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
     .populate('lastMessage')
@@ -400,7 +400,7 @@ export const markChatRead = asyncHandler(async (req, res) => {
 
   if (!chat.unreadCounts) chat.unreadCounts = new Map();
   chat.unreadCounts.set(req.user._id.toString(), 0);
-  await chat.save();
+  await chat.save({ timestamps: false });
   if (req.user.privacy?.readReceipts !== false) {
     await Message.updateMany(
       { chat: chat._id, sender: { $ne: req.user._id }, deletedAt: { $exists: false } },
@@ -449,7 +449,7 @@ export const updateNickname = asyncHandler(async (req, res) => {
   const nickname = req.body.nickname.trim();
   if (nickname) chat.nicknames.set(key, nickname);
   else chat.nicknames.delete(key);
-  await chat.save();
+  await chat.save({ timestamps: false });
 
   const populatedChat = await Chat.findById(chat._id)
     .populate('members', 'name username avatar bio age gender isOnline lastSeenAt')
@@ -495,7 +495,7 @@ export const hideChatFromFeed = asyncHandler(async (req, res) => {
   chat.hiddenFor.addToSet(req.user._id);
   if (!chat.unreadCounts) chat.unreadCounts = new Map();
   chat.unreadCounts.set(req.user._id.toString(), 0);
-  await chat.save();
+  await chat.save({ timestamps: false });
   req.app.get('io')?.to(`user:${req.user._id}`).emit('chat:removed', { chatId: chat._id, hidden: true });
   res.json({ ok: true });
 });

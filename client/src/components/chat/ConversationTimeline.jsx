@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, CheckCheck, Copy, Edit3, Flag, MapPin, MessageCircle, Phone, PhoneMissed, Reply, Trash2, Video, X } from 'lucide-react';
+import { AlertCircle, Clock, Eye, Send, Copy, Edit3, Flag, MapPin, MessageCircle, Phone, PhoneMissed, Reply, Trash2, Video, X } from 'lucide-react';
 import { normalizeId } from '../../lib/chat.js';
 import { useProximity } from '../../hooks/useProximity.js';
 
@@ -310,10 +310,37 @@ function ActionButton({ icon: Icon, label, onClick, tone = 'neutral', disabled =
 }
 
 function StatusIcon({ status }) {
-  if (status === 'failed') return <span className="text-coral font-bold">!</span>;
-  if (status === 'queued') return <span className="text-[9px] text-current/70 font-semibold">queued</span>;
-  if (status === 'sending') return <span className="h-2 w-2 animate-pulse rounded-full bg-current/60" title="Sending" />;
-  return null;
+  if (status === 'failed') {
+    return (
+      <span className="flex items-center gap-0.5 text-[9px] text-red-200 font-semibold" title="Failed">
+        <AlertCircle size={10} />
+        <span>failed</span>
+      </span>
+    );
+  }
+  if (status === 'sending' || status === 'queued') {
+    return (
+      <span className="flex items-center gap-0.5 text-[9px] text-white/70 font-medium" title="Pending">
+        <Clock size={10} className="animate-pulse" />
+        <span>pending</span>
+      </span>
+    );
+  }
+  if (status === 'seen') {
+    return (
+      <span className="flex items-center gap-0.5 text-[9px] text-teal-200 font-bold" title="Seen">
+        <Eye size={10} className="stroke-[2.5]" />
+        <span>seen</span>
+      </span>
+    );
+  }
+  // status === 'sent' / 'delivered' / other
+  return (
+    <span className="flex items-center gap-0.5 text-[9px] text-white/90 font-medium" title="Sent">
+      <Send size={10} />
+      <span>sent</span>
+    </span>
+  );
 }
 
 function CallHistoryItem({ call, currentUserId }) {
@@ -439,8 +466,28 @@ function formatDate(value) {
   if (!value) return 'Today';
   const date = new Date(value);
   const today = new Date();
-  if (date.toDateString() === today.toDateString()) return 'Today';
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  const diffTime = todayStart.getTime() - dateStart.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return 'Today';
+  }
+  if (diffDays === 1) {
+    return 'Yesterday';
+  }
+  if (diffDays > 1 && diffDays < 7) {
+    return date.toLocaleDateString([], { weekday: 'long' });
+  }
+  
+  const options = { month: 'short', day: 'numeric' };
+  if (date.getFullYear() !== today.getFullYear()) {
+    options.year = 'numeric';
+  }
+  return date.toLocaleDateString([], options);
 }
 
 function formatTime(value) {

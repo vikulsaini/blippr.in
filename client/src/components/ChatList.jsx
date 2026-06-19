@@ -281,23 +281,23 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
   const x = useMotionValue(0);
 
   // Archive (Swipe Right): x goes from 0 to positive
-  const archiveBg = useTransform(x, [0, 86], ['rgba(16, 185, 129, 0.1)', 'rgba(16, 185, 129, 1)']);
-  const archiveColor = useTransform(x, [0, 86], ['rgba(52, 211, 153, 1)', 'rgba(255, 255, 255, 1)']);
-  const archiveOpacity = useTransform(x, [0, 15, 86], [0, 0.4, 1]);
-  const archiveScale = useTransform(x, [0, 86, 150], [0.85, 1, 1.12]);
+  const archiveBg = useTransform(x, [0, 120], ['rgba(16, 185, 129, 0.1)', 'rgba(16, 185, 129, 1)']);
+  const archiveColor = useTransform(x, [0, 120], ['rgba(52, 211, 153, 1)', 'rgba(255, 255, 255, 1)']);
+  const archiveOpacity = useTransform(x, [0, 20, 120], [0, 0.4, 1]);
+  const archiveScale = useTransform(x, [0, 120, 180], [0.85, 1, 1.12]);
 
   // Mute (Swipe Left): x goes from 0 to negative
-  const muteBg = useTransform(x, [-86, 0], ['rgba(245, 158, 11, 1)', 'rgba(245, 158, 11, 0.1)']);
-  const muteColor = useTransform(x, [-86, 0], ['rgba(255, 255, 255, 1)', 'rgba(251, 191, 36, 1)']);
-  const muteOpacity = useTransform(x, [-86, -15, 0], [1, 0.4, 0]);
-  const muteScale = useTransform(x, [-150, -86, 0], [1.12, 1, 0.85]);
+  const muteBg = useTransform(x, [-120, 0], ['rgba(245, 158, 11, 1)', 'rgba(245, 158, 11, 0.1)']);
+  const muteColor = useTransform(x, [-120, 0], ['rgba(255, 255, 255, 1)', 'rgba(251, 191, 36, 1)']);
+  const muteOpacity = useTransform(x, [-120, -20, 0], [1, 0.4, 0]);
+  const muteScale = useTransform(x, [-180, -120, 0], [1.12, 1, 0.85]);
 
   function handleSwipeEnd(_, info) {
     const currentX = x.get();
-    if (currentX > 86) {
+    if (currentX > 120) {
       haptics.success();
       onSetChatPreference(chat, 'archive');
-    } else if (currentX < -86) {
+    } else if (currentX < -120) {
       haptics.tap();
       onSetChatPreference(chat, 'mute');
     }
