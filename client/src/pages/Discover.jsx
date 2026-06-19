@@ -7,6 +7,33 @@ import { api, getTokenSubject } from '../lib/api.js';
 import { presenceText } from '../lib/presence.js';
 import { showToast } from '../components/Toast.jsx';
 
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.04
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      stiffness: 350,
+      damping: 28
+    }
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    transition: { duration: 0.15 }
+  }
+};
+
 export default function Discover() {
   const { me } = useOutletContext() || {};
   const [query, setQuery] = useState('');
@@ -182,13 +209,18 @@ export default function Discover() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
+        >
           <AnimatePresence mode="popLayout">
-            {users.map((user, index) => (
-              <UserRow key={user._id} user={user} index={index} status={getUserStatus(user._id)} onProfile={setProfileUser} onAction={toggleRequest} />
+            {users.map((user) => (
+              <UserRow key={user._id} user={user} status={getUserStatus(user._id)} onProfile={setProfileUser} onAction={toggleRequest} />
             ))}
           </AnimatePresence>
-        </div>
+        </motion.div>
       )}
 
       {!query.trim() && (
@@ -196,13 +228,20 @@ export default function Discover() {
           {suggested.filter((u) => !friendIds.has(u._id)).length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-accent pl-1">Suggested People</h3>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {suggested
-                  .filter((u) => !friendIds.has(u._id))
-                  .map((user, index) => (
-                    <UserRow key={user._id} user={user} index={index} status={getUserStatus(user._id)} onProfile={setProfileUser} onAction={toggleRequest} />
-                  ))}
-              </div>
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
+              >
+                <AnimatePresence mode="popLayout">
+                  {suggested
+                    .filter((u) => !friendIds.has(u._id))
+                    .map((user) => (
+                      <UserRow key={user._id} user={user} status={getUserStatus(user._id)} onProfile={setProfileUser} onAction={toggleRequest} />
+                    ))}
+                </AnimatePresence>
+              </motion.div>
             </div>
           )}
         </div>
@@ -254,13 +293,10 @@ export default function Discover() {
   );
 }
 
-function UserRow({ user, status, onProfile, onAction, index }) {
+function UserRow({ user, status, onProfile, onAction }) {
   return (
     <motion.article
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ delay: index * 0.035, duration: 0.22 }}
+      variants={itemVariants}
       className="interactive-card group flex items-center justify-between gap-3 rounded-[18px] p-3"
     >
       <div className="flex min-w-0 items-center gap-3">

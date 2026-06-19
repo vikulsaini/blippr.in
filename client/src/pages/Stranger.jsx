@@ -575,18 +575,27 @@ export default function Stranger() {
             {!session && (
               <EmptyRandom finding={finding} queueText={queueText} onStart={() => requestFindStranger(false)} activeUsers={activeUsers} />
             )}
-            {messages.map((message) => {
-              const mine = (message.sender?._id || message.sender) !== peer?._id;
-              return (
-                <div key={message._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-[#0EA5E9] text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} ${message.pending ? 'opacity-70' : ''}`}>
-                  <p className={mine ? 'text-white' : 'text-text-primary font-medium'}>
-                    {message.text}
-                  </p>
-                </div>
-                </div>
-              );
-            })}
+            <AnimatePresence initial={false}>
+              {messages.map((message) => {
+                const mine = (message.sender?._id || message.sender) !== peer?._id;
+                return (
+                  <motion.div
+                    key={message._id}
+                    initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                    className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-[#0EA5E9] text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} ${message.pending ? 'opacity-70' : ''}`}>
+                      <p className={mine ? 'text-white' : 'text-text-primary font-medium'}>
+                        {message.text}
+                      </p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
             <div ref={messagesEndRef} />
           </div>
 

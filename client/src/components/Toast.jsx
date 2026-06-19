@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const TOAST_DURATION = 3000;
 let toastId = 0;
@@ -32,42 +33,40 @@ export default function ToastProvider() {
 
   return (
     <div className="toast-container" role="status" aria-live="polite">
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onDismiss={() => dismiss(toast.id)} />
-      ))}
+      <AnimatePresence>
+        {toasts.map((toast) => (
+          <ToastItem key={toast.id} toast={toast} onDismiss={() => dismiss(toast.id)} />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
 
 function ToastItem({ toast, onDismiss }) {
   const timerRef = useRef(null);
-  const [exiting, setExiting] = useState(false);
   const Icon = icons[toast.variant] || icons.info;
 
   useEffect(() => {
-    timerRef.current = setTimeout(() => {
-      setExiting(true);
-      setTimeout(onDismiss, 250);
-    }, TOAST_DURATION);
+    timerRef.current = setTimeout(onDismiss, TOAST_DURATION);
     return () => clearTimeout(timerRef.current);
   }, [onDismiss]);
 
-  function handleDismiss() {
-    clearTimeout(timerRef.current);
-    setExiting(true);
-    setTimeout(onDismiss, 250);
-  }
-
   return (
-    <div className={`toast toast-${toast.variant} ${exiting ? 'toast-exit' : ''}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 15, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.15 } }}
+      className={`toast toast-${toast.variant}`}
+    >
       <span className="toast-icon">
         <Icon size={16} />
       </span>
       <span className="min-w-0 flex-1">{toast.message}</span>
-      <button onClick={handleDismiss} className="shrink-0 rounded-lg p-1 text-text-faint hover:text-text-secondary transition cursor-pointer" aria-label="Dismiss">
+      <button onClick={onDismiss} className="shrink-0 rounded-lg p-1 text-text-faint hover:text-text-secondary transition cursor-pointer" aria-label="Dismiss">
         <X size={14} />
       </button>
       <span className="toast-progress" />
-    </div>
+    </motion.div>
   );
 }
+

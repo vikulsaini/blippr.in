@@ -16,14 +16,24 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 10, height: 'auto' },
   show: {
     opacity: 1,
     y: 0,
+    height: 'auto',
     transition: {
       type: 'spring',
       stiffness: 350,
       damping: 28
+    }
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    height: 0,
+    marginBottom: 0,
+    transition: {
+      duration: 0.2
     }
   }
 };
@@ -203,31 +213,34 @@ export default function ChatList({
           <ChatSkeleton />
         ) : (
           <div className="space-y-4">
-          <div className="space-y-1.5">
-            {personalChats.map((chat) => {
-              const other = getOtherMember(chat, currentUserId);
-              const displayName = getNickname(chat, currentUserId, other);
-              return (
-                <SwipeChatRow
-                  key={chat._id}
-                  chat={chat}
-                  selected={selectedChats.has(chat._id)}
-                  currentUserId={currentUserId}
-                  typing={!!typingChats?.[chat._id]}
-                  displayName={displayName}
-                  other={other}
-                  onOpen={() => onOpenChat(chat)}
-                  onProfile={() => other && onOpenProfile(other, chat)}
-                  onSelect={() => {
-                    haptics.select();
-                    onToggleSelect(chat._id);
-                  }}
-                  onPreference={onPreference}
-                  onSetChatPreference={onSetChatPreference}
-                />
-              );
-            })}
-            {loadingMore && (
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1.5">
+            <AnimatePresence initial={false}>
+              {personalChats.map((chat) => {
+                const other = getOtherMember(chat, currentUserId);
+                const displayName = getNickname(chat, currentUserId, other);
+                return (
+                  <SwipeChatRow
+                    key={chat._id}
+                    chat={chat}
+                    selected={selectedChats.has(chat._id)}
+                    currentUserId={currentUserId}
+                    typing={!!typingChats?.[chat._id]}
+                    displayName={displayName}
+                    other={other}
+                    onOpen={() => onOpenChat(chat)}
+                    onProfile={() => other && onOpenProfile(other, chat)}
+                    onSelect={() => {
+                      haptics.select();
+                      onToggleSelect(chat._id);
+                    }}
+                    onPreference={onPreference}
+                    onSetChatPreference={onSetChatPreference}
+                  />
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+          {loadingMore && (
               <div className="py-4 text-center text-text-muted text-xs font-semibold animate-pulse flex items-center justify-center gap-1.5">
                 <span>Loading more conversations</span>
                 <span className="live-dot h-1.5 w-1.5 rounded-full bg-accent text-accent animate-ping" />
@@ -241,7 +254,6 @@ export default function ChatList({
                 </button>
               </div>
             )}
-          </div>
           </div>
         )}
       </div>

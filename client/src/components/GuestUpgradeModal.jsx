@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { LockKeyhole, Mail, Save } from 'lucide-react';
 import { api, setToken } from '../lib/api.js';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function GuestUpgradeModal({ me }) {
   const [open, setOpen] = useState(false);
@@ -73,46 +74,64 @@ export default function GuestUpgradeModal({ me }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-end bg-black/40 backdrop-blur-md px-4 pb-4 sm:place-items-center">
-      <form onSubmit={submit} className="elevated-card max-h-[92vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 border border-slate-200 bg-white">
-        <div className="flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-tint text-accent"><LockKeyhole size={21} /></span>
-          <div>
-            <h2 className="text-xl font-semibold text-text-primary">Create account to continue</h2>
-            <p className="text-sm text-text-secondary">Guest access is limited. Register to unlock full Blippr.</p>
-          </div>
-        </div>
-        <div className="mt-5 space-y-3">
-          <Field label="Full name" value={form.name} onChange={(value) => update('name', value)} />
-          <Field label="Email" value={form.email} onChange={(value) => update('email', value)} type="email" icon={Mail} />
-          <Field label="Password" value={form.password} onChange={(value) => update('password', value)} type="password" />
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Date of birth" value={form.dob} onChange={(value) => update('dob', value)} type="date" />
-            <Field label="Contact" value={form.contact} onChange={(value) => update('contact', value)} />
-          </div>
-          <div>
-            <span className="text-xs text-text-muted">Gender</span>
-            <div className="mt-1.5 grid grid-cols-2 gap-2 rounded-[16px] border border-border-default bg-bg p-1">
-              {['female', 'male'].map((gender) => (
-                <button key={gender} type="button" onClick={() => update('gender', gender)} className={`rounded-[12px] py-2 text-sm font-semibold capitalize ${form.gender === gender ? 'btn-primary' : 'text-text-muted'}`}>
-                  {gender}
-                </button>
-              ))}
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] grid place-items-center bg-black/55 p-4"
+        >
+          <motion.form
+            onSubmit={submit}
+            initial={{ y: 50, scale: 0.95, opacity: 0 }}
+            animate={{ y: 0, scale: 1, opacity: 1 }}
+            exit={{ y: 50, scale: 0.95, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-[24px] bg-surface p-5 shadow-elevated border border-border-default"
+          >
+            <div className="flex items-center gap-3">
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-tint text-accent">
+                <LockKeyhole size={21} />
+              </span>
+              <div>
+                <h2 className="text-xl font-semibold text-text-primary">Create account to continue</h2>
+                <p className="text-sm text-text-secondary">Guest access is limited. Register to unlock full Blippr.</p>
+              </div>
             </div>
-          </div>
-          <Field label="Hobbies, comma separated" value={form.hobbies} onChange={(value) => update('hobbies', value)} />
-          <label className="block">
-            <span className="text-xs text-text-muted">Short bio</span>
-            <textarea value={form.bio} onChange={(event) => update('bio', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[16px] px-4 py-3 outline-none text-sm transition" placeholder="Tell people about you" maxLength={160} />
-          </label>
-        </div>
-        {message && <p className="mt-3 rounded-[14px] border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{message}</p>}
-        <button disabled={loading} className="btn-primary mt-5 flex w-full items-center justify-center gap-2 rounded-[16px] py-3 font-semibold disabled:opacity-55">
-          <Save size={18} />
-          {loading ? 'Creating account...' : 'Register and continue'}
-        </button>
-      </form>
-    </div>
+            <div className="mt-5 space-y-3">
+              <Field label="Full name" value={form.name} onChange={(value) => update('name', value)} />
+              <Field label="Email" value={form.email} onChange={(value) => update('email', value)} type="email" icon={Mail} />
+              <Field label="Password" value={form.password} onChange={(value) => update('password', value)} type="password" />
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Date of birth" value={form.dob} onChange={(value) => update('dob', value)} type="date" />
+                <Field label="Contact" value={form.contact} onChange={(value) => update('contact', value)} />
+              </div>
+              <div>
+                <span className="text-xs text-text-muted">Gender</span>
+                <div className="mt-1.5 grid grid-cols-2 gap-2 rounded-[16px] border border-border-default bg-bg p-1">
+                  {['female', 'male'].map((gender) => (
+                    <button key={gender} type="button" onClick={() => update('gender', gender)} className={`rounded-[12px] py-2 text-sm font-semibold capitalize ${form.gender === gender ? 'btn-primary' : 'text-text-muted'}`}>
+                      {gender}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Field label="Hobbies, comma separated" value={form.hobbies} onChange={(value) => update('hobbies', value)} />
+              <label className="block">
+                <span className="text-xs text-text-muted">Short bio</span>
+                <textarea value={form.bio} onChange={(event) => update('bio', event.target.value)} className="mt-1.5 min-h-20 w-full resize-none rounded-[16px] px-4 py-3 outline-none text-sm transition" placeholder="Tell people about you" maxLength={160} />
+              </label>
+            </div>
+            {message && <p className="mt-3 rounded-[14px] border border-danger/25 bg-danger/10 px-3 py-2 text-sm text-danger">{message}</p>}
+            <button disabled={loading} className="btn-primary mt-5 flex w-full items-center justify-center gap-2 rounded-[16px] py-3 font-semibold disabled:opacity-55">
+              <Save size={18} />
+              {loading ? 'Creating account...' : 'Register and continue'}
+            </button>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

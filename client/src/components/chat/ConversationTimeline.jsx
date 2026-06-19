@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, memo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Clock, Eye, Send, Copy, Edit3, Flag, MapPin, MessageCircle, Phone, PhoneMissed, Reply, Trash2, Video, X } from 'lucide-react';
 import { normalizeId } from '../../lib/chat.js';
 import { useProximity } from '../../hooks/useProximity.js';
@@ -64,34 +64,48 @@ export default function ConversationTimeline({
 
   return (
     <>
-    <div className="space-y-2.5" style={{ transition: 'all 0.2s ease-out' }}>
-        {visibleTimeline.map((item, index) => {
-          const showDate = shouldShowDate(visibleTimeline[index - 1], item);
-          if (item.kind === 'call') {
+      <div className="space-y-2.5" style={{ transition: 'all 0.2s ease-out' }}>
+        <AnimatePresence initial={false}>
+          {visibleTimeline.map((item, index) => {
+            const showDate = shouldShowDate(visibleTimeline[index - 1], item);
+            if (item.kind === 'call') {
+              return (
+                <motion.div
+                  key={`call-${item.call._id}`}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {showDate && <DateDivider value={item.createdAt} />}
+                  <CallHistoryItem call={item.call} currentUserId={currentUserId} />
+                </motion.div>
+              );
+            }
+            const message = item.message;
+            const mine = normalizeId(message.sender) === myId;
+            const isOptimistic = message.status === 'sending' || message.status === 'queued' || message.status === 'failed';
             return (
-              <div key={`call-${item.call._id}`}>
+              <motion.div
+                key={`message-${message._id}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.15 }}
+              >
                 {showDate && <DateDivider value={item.createdAt} />}
-                <CallHistoryItem call={item.call} currentUserId={currentUserId} />
-              </div>
+                <MessageBubble
+                  message={message}
+                  mine={mine}
+                  onLongPress={isOptimistic ? undefined : setActionTarget}
+                  onSwipeRight={isOptimistic ? undefined : onReply}
+                  isLastSeen={message._id === lastSeenMessageId}
+                  otherMember={otherMember}
+                />
+              </motion.div>
             );
-          }
-          const message = item.message;
-          const mine = normalizeId(message.sender) === myId;
-          const isOptimistic = message.status === 'sending' || message.status === 'queued' || message.status === 'failed';
-          return (
-            <div key={`message-${message._id}`}>
-              {showDate && <DateDivider value={item.createdAt} />}
-              <MessageBubble
-                message={message}
-                mine={mine}
-                onLongPress={isOptimistic ? undefined : setActionTarget}
-                onSwipeRight={isOptimistic ? undefined : onReply}
-                isLastSeen={message._id === lastSeenMessageId}
-                otherMember={otherMember}
-              />
-            </div>
-          );
-        })}
+          })}
+        </AnimatePresence>
         {isTyping && <TypingBubble />}
         <div ref={endRef} />
       </div>

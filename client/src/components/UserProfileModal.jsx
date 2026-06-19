@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Ban, Flag, Music, Save, UserMinus, Volume2, X, Search, MessageCircle, Bell, MoreHorizontal, Image, Link, FileText } from 'lucide-react';
+import { Ban, Flag, Music, Save, UserMinus, Volume2, X, Search, MessageCircle, Bell, MoreHorizontal, Image, Link, FileText, Hash } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { presenceText } from '../lib/presence.js';
 import { previewSound } from '../lib/sounds.js';
 import { getRingtoneForFriend, mediaToSound, packSound, setFriendRingtone, soundPack } from '../lib/soundPrefs.js';
@@ -28,8 +29,6 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
     setNotice('');
   }, [chat, currentUserId, user]);
 
-  if (!user) return null;
-
   async function runAction(action, handler) {
     try {
       setBusyAction(action);
@@ -55,8 +54,23 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
   }
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-40 grid place-items-end bg-black/55 px-4 pb-4 sm:place-items-center animate-fadeIn">
-      <section onClick={(event) => event.stopPropagation()} className="surface-card max-h-[92vh] w-full max-w-md overflow-y-auto rounded-[24px] p-5 shadow-elevated bg-surface border border-border-default">
+    <AnimatePresence>
+      {user && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-40 grid place-items-end bg-black/55 px-4 pb-4 sm:place-items-center"
+        >
+          <motion.section
+            initial={{ y: 50, scale: 0.95, opacity: 0 }}
+            animate={{ y: 0, scale: 1, opacity: 1 }}
+            exit={{ y: 50, scale: 0.95, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            onClick={(event) => event.stopPropagation()}
+            className="surface-card max-h-[92vh] w-full max-w-md overflow-y-auto rounded-[24px] p-5 shadow-elevated bg-surface border border-border-default flex flex-col"
+          >
         {/* Cancel/Save Top Bar */}
         <div className="flex items-center justify-between mb-4 border-b border-border-default pb-3 shrink-0">
           <button 
@@ -278,8 +292,10 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
             <p className="mt-1 text-xs text-text-muted leading-relaxed max-w-xs mx-auto">No {activeTab} shared in this chat workspace yet.</p>
           </div>
         )}
-      </section>
-    </div>
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

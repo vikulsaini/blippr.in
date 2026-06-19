@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Save, Sparkles } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { showToast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 
@@ -94,17 +95,27 @@ export default function Interests() {
           {interestsText.split(',').filter(item => item.trim()).length > 0 && (
             <div className="pt-2">
               <span className="text-[10px] font-bold text-text-muted block mb-2">Preview Tags:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {interestsText.split(',').map((item, idx) => {
-                  const cleaned = item.trim().toLowerCase();
-                  if (!cleaned) return null;
-                  return (
-                    <span key={idx} className="inline-flex items-center gap-1 rounded-lg border border-accent/20 bg-accent/5 px-2.5 py-1 text-[10px] font-bold text-accent">
-                      {cleaned}
-                    </span>
-                  );
-                })}
-              </div>
+              <motion.div layout className="flex flex-wrap gap-1.5">
+                <AnimatePresence>
+                  {interestsText.split(',').map((item, idx) => {
+                    const cleaned = item.trim().toLowerCase();
+                    if (!cleaned) return null;
+                    return (
+                      <motion.span
+                        layout
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        key={`${cleaned}-${idx}`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-accent/20 bg-accent/5 px-2.5 py-1 text-[10px] font-bold text-accent"
+                      >
+                        {cleaned}
+                      </motion.span>
+                    );
+                  })}
+                </AnimatePresence>
+              </motion.div>
             </div>
           )}
         </div>
