@@ -6,7 +6,7 @@ import AnalyticsBucket from '../models/AnalyticsBucket.js';
 import AuditLog from '../models/AuditLog.js';
 import { redis } from '../config/redis.js';
 import { cloudinary } from '../config/cloudinary.js';
-import { supabase } from '../config/supabase.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getClientIp } from '../utils/clientIp.js';
 
@@ -399,10 +399,10 @@ export const getFilesList = asyncHandler(async (req, res) => {
     }
   }
 
-  if (supabase && (type === 'all' || type === 'supabase')) {
+  if (supabaseAdmin && (type === 'all' || type === 'supabase')) {
     try {
       const bucketName = process.env.SUPABASE_BUCKET || 'media';
-      const { data, error } = await supabase.storage.from(bucketName).list('', {
+      const { data, error } = await supabaseAdmin.storage.from(bucketName).list('', {
         limit: Number(limit),
         offset: Number(skip),
         sortBy: { column: 'created_at', order: 'desc' }
@@ -410,7 +410,7 @@ export const getFilesList = asyncHandler(async (req, res) => {
       if (error) throw error;
       if (data) {
         data.forEach(item => {
-          const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(item.name);
+          const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(item.name);
           files.push({
             id: item.name,
             name: item.name,
@@ -443,7 +443,7 @@ export const deleteFile = asyncHandler(async (req, res) => {
     await bucket.delete(new mongoose.Types.ObjectId(id));
   } else if (provider === 'supabase') {
     const bucketName = process.env.SUPABASE_BUCKET || 'media';
-    const { error } = await supabase.storage.from(bucketName).remove([id]);
+    const { error } = await supabaseAdmin.storage.from(bucketName).remove([id]);
     if (error) throw error;
   } else {
     await cloudinary.uploader.destroy(id);
@@ -501,10 +501,10 @@ export const getFileStats = asyncHandler(async (req, res) => {
 
   let totalSupabaseSize = 0;
   let supabaseCount = 0;
-  if (supabase) {
+  if (supabaseAdmin) {
     try {
       const bucketName = process.env.SUPABASE_BUCKET || 'media';
-      const { data, error } = await supabase.storage.from(bucketName).list();
+      const { data, error } = await supabaseAdmin.storage.from(bucketName).list();
       if (error) throw error;
       if (data) {
         supabaseCount = data.length;

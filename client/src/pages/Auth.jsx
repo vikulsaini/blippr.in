@@ -51,6 +51,18 @@ export default function Auth() {
   const [emailHint, setEmailHint] = useState('');
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(initialProfile);
+
+  const syncingTokenRef = useRef(null);
+  const profileRef = useRef(profile);
+  const authSubModeRef = useRef(authSubMode);
+
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+
+  useEffect(() => {
+    authSubModeRef.current = authSubMode;
+  }, [authSubMode]);
   const [error, setError] = useState('');
   const [guestTermsAccepted, setGuestTermsAccepted] = useState(false);
 
@@ -111,6 +123,9 @@ export default function Auth() {
   }, [profile.username]);
 
   async function syncSupabaseSession(token, signupData = null) {
+    if (syncingTokenRef.current === token) return;
+    syncingTokenRef.current = token;
+
     setLoading(true);
     setError('');
     try {
@@ -124,6 +139,7 @@ export default function Auth() {
       const result = await loginWithSupabase(syncPayload);
       finishAuth(result.token);
     } catch (err) {
+      syncingTokenRef.current = null; // reset to allow retrying on error
       if (err.body && err.body.code === 'PROFILE_REQUIRED') {
         setSupabaseAccessToken(token);
         setMode('completeProfile');
@@ -143,7 +159,7 @@ export default function Auth() {
         const hasLocalToken = Boolean(getToken());
         // Only trigger sync if we don't have a token or if we are completing profile
         if (!hasLocalToken) {
-          await syncSupabaseSession(session.access_token, authSubMode === 'signup' ? profile : null);
+          await syncSupabaseSession(session.access_token, authSubModeRef.current === 'signup' ? profileRef.current : null);
         }
       }
     });
@@ -151,7 +167,7 @@ export default function Auth() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [isSupabaseEnabled, authSubMode, profile]);
+  }, [isSupabaseEnabled]);
 
   async function signInWithGoogle() {
     setError('');

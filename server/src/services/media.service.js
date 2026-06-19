@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import mongoose from 'mongoose';
 import { cloudinary } from '../config/cloudinary.js';
-import { supabase } from '../config/supabase.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
 
 function cloudinaryReady() {
   return Boolean(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
@@ -14,7 +14,7 @@ async function uploadToSupabase(file) {
   const secureFilename = `${randomUUID()}${ext}`;
   const bucketName = process.env.SUPABASE_BUCKET || 'media';
   
-  const { data, error } = await supabase.storage
+  const { data, error } = await supabaseAdmin.storage
     .from(bucketName)
     .upload(secureFilename, file.buffer, {
       contentType: file.mimetype,
@@ -25,7 +25,7 @@ async function uploadToSupabase(file) {
     throw error;
   }
 
-  const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(secureFilename);
+  const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(secureFilename);
 
   return {
     secure_url: publicUrl,
@@ -115,8 +115,8 @@ export async function deleteMediaByUrl(url) {
       if (bucketSeparatorIndex > -1) {
         const bucketName = pathPart.substring(0, bucketSeparatorIndex);
         const filename = pathPart.substring(bucketSeparatorIndex + 1);
-        if (supabase) {
-          await supabase.storage.from(bucketName).remove([filename]);
+        if (supabaseAdmin) {
+          await supabaseAdmin.storage.from(bucketName).remove([filename]);
         }
       }
     } else if (url.includes('/api/media/files/')) {

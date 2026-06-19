@@ -12,7 +12,7 @@ import { issueEmailVerification, verifyEmailCode } from '../services/emailVerifi
 import { issuePasswordReset, validatePasswordReset } from '../services/passwordReset.service.js';
 import { notifyUser, sendDirectPushNotification } from '../services/notification.service.js';
 import { clearAuthCookie, setAuthCookie, readAuthCookie } from '../utils/authCookie.js';
-import { supabase } from '../config/supabase.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
 
 
 export const googleLoginSchema = Joi.object({
@@ -586,9 +586,9 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
 });
 
 export const syncToSupabaseDb = async (user) => {
-  if (!supabase || !user.supabaseId) return;
+  if (!supabaseAdmin || !user.supabaseId) return;
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('profiles')
       .upsert({
         id: user.supabaseId,

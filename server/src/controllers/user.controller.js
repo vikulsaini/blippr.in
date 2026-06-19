@@ -11,6 +11,8 @@ import NotificationSubscription from '../models/NotificationSubscription.js';
 import { deleteMediaByUrl } from '../services/media.service.js';
 import { clearAuthCookie } from '../utils/authCookie.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { supabaseAdmin } from '../config/supabase.js';
+import { syncToSupabaseDb } from './auth.controller.js';
 
 export const updateProfileSchema = Joi.object({
   name: Joi.string().max(80).optional(),
@@ -99,6 +101,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
   }
   Object.assign(req.user, req.body);
   await req.user.save();
+  await syncToSupabaseDb(req.user);
   res.json({ user: req.user });
 });
 
@@ -175,7 +178,15 @@ export const deleteAccount = asyncHandler(async (req, res) => {
     Report.deleteMany({ $or: [{ reporter: userId }, { reported: userId }] })
   ]);
   
+  const supabaseId = req.user.supabaseId;
   await User.deleteOne({ _id: userId });
+
+  if (supabaseAdmin && supabaseId) {
+    await supabaseAdmin.auth.admin.deleteUser(supabaseId).catch(err => {
+      console.warn(`Failed to delete Supabase Auth user ${supabaseId}: ${err.message}`);
+    });
+  }
+
   clearAuthCookie(res);
   res.json({ ok: true, message: 'Account deleted' });
 });
