@@ -629,6 +629,34 @@ export default function AdminDashboard() {
   // Find users who have safety violation or are unverified for Suggestions card
   const flaggedUsers = users.filter(u => u.role !== 'admin' && (u.safetyViolationCount > 0 || !u.isVerified)).slice(0, 4);
 
+  // Live calculations for rolling real-time charts
+  const rollingRequests = liveRequests.slice(0, 20);
+  const rollingAvgLatency = rollingRequests.length > 0
+    ? Math.round(rollingRequests.reduce((sum, r) => sum + r.duration, 0) / rollingRequests.length)
+    : 0;
+
+  const rollingErrors = rollingRequests.filter(r => r.status >= 400).length;
+  const rollingErrorRate = rollingRequests.length > 0
+    ? Math.round((rollingErrors / rollingRequests.length) * 100)
+    : 0;
+
+  const last50 = liveRequests.slice(0, 50);
+  const total50 = last50.length || 1;
+  const s2xx = last50.filter(r => r.status >= 200 && r.status < 300).length;
+  const s3xx = last50.filter(r => r.status >= 300 && r.status < 400).length;
+  const s4xx = last50.filter(r => r.status >= 400 && r.status < 500).length;
+  const s5xx = last50.filter(r => r.status >= 500).length;
+
+  const chartRequests = [...liveRequests.slice(0, 15)].reverse();
+  const maxDuration = Math.max(...chartRequests.map(r => r.duration), 200);
+  const points = chartRequests.map((r, idx) => {
+    const x = chartRequests.length > 1 ? (idx / (chartRequests.length - 1)) * 100 : 50;
+    const y = 85 - (r.duration / maxDuration) * 70;
+    return `${x},${y}`;
+  });
+  const linePath = points.length > 0 ? `M ${points.join(' L ')}` : '';
+  const areaPath = points.length > 0 ? `M 0,100 L ${points.join(' L ')} L 100,100 Z` : '';
+
   return (
     <div className="min-h-screen bg-bg flex flex-col md:flex-row font-sans antialiased text-text-primary">
       {/* Toast Alert */}
@@ -863,6 +891,106 @@ export default function AdminDashboard() {
           {/* MAIN MODULE: ANALYTICS MONITOR */}
           {activeTab === 'analytics' && (
             <div className="space-y-6">
+              
+              {/* Live Real-time Telemetry Monitor */}
+              <div className="grid md:grid-cols-2 gap-6 animate-fadeIn">
+                {/* Latency Wave Chart */}
+                <div className="surface-card bg-[#090D16] border-[#1e293b] p-5 rounded-[12px] shadow-sm text-left flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between pb-3 border-b border-[#1e293b] mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                        </span>
+                        <h3 className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider">live_api_latency_sparkline</h3>
+                      </div>
+                      <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded font-mono font-bold border border-accent/20">Rolling 15 Requests</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs mb-4 font-mono">
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+                        <span className="text-[9px] text-slate-400 block">Avg Latency (20 reqs)</span>
+                        <span className="text-lg font-black text-accent block mt-1">{rollingAvgLatency} ms</span>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+                        <span className="text-[9px] text-slate-400 block">Max Peak Latency</span>
+                        <span className="text-lg font-black text-slate-200 block mt-1">{Math.round(maxDuration)} ms</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="h-36 relative bg-slate-950/40 rounded-xl border border-slate-800 p-2 overflow-hidden flex items-end">
+                    {points.length > 0 ? (
+                      <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="liveGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d={areaPath} fill="url(#liveGradient)" className="transition-all duration-300" />
+                        <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" className="transition-all duration-300" />
+                      </svg>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-500 font-mono">
+                        Awaiting network telemetry...
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* HTTP Status Bar Chart */}
+                <div className="surface-card bg-[#090D16] border-[#1e293b] p-5 rounded-[12px] shadow-sm text-left flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between pb-3 border-b border-[#1e293b] mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                        </span>
+                        <h3 className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider">live_http_status_codes</h3>
+                      </div>
+                      <span className="text-[10px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded font-mono font-bold border border-rose-500/20">Rolling 50 Requests</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs mb-4 font-mono">
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+                        <span className="text-[9px] text-slate-400 block">Error Rate (20 reqs)</span>
+                        <span className={`text-lg font-black block mt-1 ${rollingErrorRate > 10 ? 'text-rose-500' : 'text-slate-200'}`}>{rollingErrorRate}%</span>
+                      </div>
+                      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+                        <span className="text-[9px] text-slate-400 block">Status Counts</span>
+                        <span className="text-lg font-black text-slate-200 block mt-1">Total {last50.length}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-36 relative bg-slate-950/40 rounded-xl border border-slate-800 p-4 overflow-hidden flex items-end justify-between gap-4">
+                    {[
+                      { count: s2xx, label: '2xx', color: 'bg-emerald-500' },
+                      { count: s3xx, label: '3xx', color: 'bg-sky-500' },
+                      { count: s4xx, label: '4xx', color: 'bg-amber-500' },
+                      { count: s5xx, label: '5xx', color: 'bg-rose-500' }
+                    ].map((item) => {
+                      const percentageHeight = last50.length > 0 ? (item.count / last50.length) * 100 : 0;
+                      return (
+                        <div key={item.label} className="flex-1 flex flex-col items-center justify-end h-full gap-2 font-mono">
+                          <span className="text-[10px] font-bold text-slate-400">{item.count}</span>
+                          <div className="w-full bg-slate-800/40 rounded-t-lg h-20 flex items-end overflow-hidden">
+                            <motion.div
+                              className={`w-full rounded-t-lg ${item.color}`}
+                              initial={{ height: 0 }}
+                              animate={{ height: `${percentageHeight}%` }}
+                              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-extrabold text-slate-400">{item.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               {/* Donut, Bar Chart & Sidebar Grid */}
               <div className="grid lg:grid-cols-4 gap-6">
                 {/* Audience Reached Donut Chart */}
