@@ -52,6 +52,11 @@ import {
 import { getRealtimeSocket } from '../lib/realtime.js';
 
 export default function AdminDashboard() {
+  const getInitials = (name) => {
+    if (!name) return 'AD';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -100,6 +105,13 @@ export default function AdminDashboard() {
   // Broadcast
   const [broadcastMessage, setBroadcastMessage] = useState('');
 
+  // Calculate aggregated analytics metrics
+  const minuteData = metrics.minute || [];
+  const totalRequests = minuteData.reduce((sum, d) => sum + (d.requestCount || 0), 0);
+  const totalDuration = minuteData.reduce((sum, d) => sum + (d.responseTimeSum || 0), 0);
+  const avgLatency = totalRequests > 0 ? Math.round(totalDuration / totalRequests) : 0;
+  const totalErrors = minuteData.reduce((sum, d) => sum + (d.errorCount || 0), 0);
+
   function showToast(message, type = 'success') {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -123,7 +135,7 @@ export default function AdminDashboard() {
         loadAuditLogs();
       }
     } catch (err) {
-      if (err.status === 403 || err.status === 401) {
+      if (err.status === 403 || err.status === 401 || err.message?.includes('Forbidden') || err.message?.includes('Unauthorized')) {
         setError('unauthorized');
       } else {
         setError(err.message || 'Failed to connect');
@@ -443,16 +455,18 @@ export default function AdminDashboard() {
     );
   };
 
-  // Render Nilova Audience Reached Donut Chart
+  // Render Nilova Audience Reached Donut Chart representing verification status
   const renderPresenceDonut = () => {
     const total = stats ? stats.totalUsers : 1;
-    const online = stats ? stats.activeUsers : 0;
-    const offline = Math.max(0, total - online);
-    const onlinePercent = Math.min(100, Math.round((online / total) * 100));
+    const verified = stats ? stats.verifiedUsers : 0;
+    const guests = stats ? stats.guestUsers : 0;
     
-    // Circular calculations
+    const verifiedPercent = total > 0 ? Math.min(100, Math.round((verified / total) * 100)) : 0;
+    const guestPercent = total > 0 ? Math.min(100, Math.round((guests / total) * 100)) : 0;
+    
+    // Circular calculations based on verified percentage
     const radius = 15.9155;
-    const strokeDashoffset = 100 - onlinePercent;
+    const strokeDashoffset = 100 - verifiedPercent;
 
     return (
       <div className="flex flex-col h-full justify-between py-2 text-left">
@@ -473,8 +487,8 @@ export default function AdminDashboard() {
             />
           </svg>
           <div className="absolute text-center">
-            <span className="text-[9px] text-text-muted uppercase font-bold tracking-wider font-sans">Audience</span>
-            <div className="text-xl font-black text-text-primary leading-none mt-0.5">{total}</div>
+            <span className="text-[9px] text-text-muted uppercase font-bold tracking-wider font-sans">Verified</span>
+            <div className="text-xl font-black text-text-primary leading-none mt-0.5">{verifiedPercent}%</div>
           </div>
         </div>
 
@@ -483,13 +497,13 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1] inline-block" />
               <div className="text-xs">
-                <span className="font-bold text-text-primary block">Active Users</span>
-                <span className="text-[10px] text-text-muted">Presence online now</span>
+                <span className="font-bold text-text-primary block">Verified Users</span>
+                <span className="text-[10px] text-text-muted">ID verified members</span>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-xs font-black text-text-primary block">{online}</span>
-              <span className="text-[9.5px] text-[#10b981] font-bold">+{onlinePercent}%</span>
+              <span className="text-xs font-black text-text-primary block">{verified}</span>
+              <span className="text-[9.5px] text-[#10b981] font-bold">+{verifiedPercent}%</span>
             </div>
           </div>
 
@@ -497,13 +511,13 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-border inline-block" />
               <div className="text-xs">
-                <span className="font-bold text-text-primary block">Offline Accounts</span>
-                <span className="text-[10px] text-text-muted">Registered inactive</span>
+                <span className="font-bold text-text-primary block">Guest Accounts</span>
+                <span className="text-[10px] text-text-muted">Unconverted guests</span>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-xs font-black text-text-primary block">{offline}</span>
-              <span className="text-[9.5px] text-[#ef4444] font-bold">-{100 - onlinePercent}%</span>
+              <span className="text-xs font-black text-text-primary block">{guests}</span>
+              <span className="text-[9.5px] text-[#ef4444] font-bold">-{guestPercent}%</span>
             </div>
           </div>
         </div>
@@ -551,8 +565,8 @@ export default function AdminDashboard() {
     );
   }
 
-  // Find users who are guest or have safety violation for Suggestions card
-  const flaggedUsers = users.filter(u => u.role !== 'admin').slice(0, 4);
+  // Find users who have safety violation or are unverified for Suggestions card
+  const flaggedUsers = users.filter(u => u.role !== 'admin' && (u.safetyViolationCount > 0 || !u.isVerified)).slice(0, 4);
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] dark:bg-[#030712] flex flex-col md:flex-row font-sans antialiased text-text-primary">
@@ -578,7 +592,7 @@ export default function AdminDashboard() {
               <div className="w-8 h-8 rounded-lg bg-[#6366f1] flex items-center justify-center shadow-md">
                 <Shield className="w-4.5 h-4.5 text-white" />
               </div>
-              <span className="font-extrabold text-lg text-text-primary tracking-tight">NILOVA</span>
+              <span className="font-extrabold text-lg text-text-primary tracking-tight">BLIPPR</span>
             </div>
           )}
           <button 
@@ -624,13 +638,17 @@ export default function AdminDashboard() {
           </a>
 
           {!sidebarCollapsed && (
-            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border-default/40">
-              <div className="w-8 h-8 rounded-full bg-[#f59e0b]/20 flex items-center justify-center font-bold text-xs text-[#f59e0b] border border-[#f59e0b]/20">
-                TP
-              </div>
+            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border-default/40 text-left">
+              {stats?.adminUser?.avatar ? (
+                <img src={stats.adminUser.avatar} className="w-8 h-8 rounded-full object-cover border border-border" alt="" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-[#6366f1]/20 flex items-center justify-center font-bold text-xs text-[#6366f1] border border-[#6366f1]/20">
+                  {getInitials(stats?.adminUser?.name || 'Admin')}
+                </div>
+              )}
               <div className="min-w-0 flex-1 text-left">
-                <p className="text-xs font-bold text-text-primary leading-none truncate">Tom Philip</p>
-                <p className="text-[9.5px] text-text-muted truncate mt-1">tomphillip32@gmail.com</p>
+                <p className="text-xs font-bold text-text-primary leading-none truncate">{stats?.adminUser?.name || 'Administrator'}</p>
+                <p className="text-[9.5px] text-text-muted truncate mt-1">{stats?.adminUser?.email || 'admin@blippr.in'}</p>
               </div>
               <ChevronRight className="w-4 h-4 text-text-faint" />
             </div>
@@ -665,12 +683,16 @@ export default function AdminDashboard() {
             </button>
             <div className="h-8 w-px bg-border" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#f59e0b]/20 flex items-center justify-center font-bold text-xs text-[#f59e0b] border border-[#f59e0b]/20">
-                TP
-              </div>
+              {stats?.adminUser?.avatar ? (
+                <img src={stats.adminUser.avatar} className="w-8 h-8 rounded-full object-cover border border-border" alt="" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-[#6366f1]/20 flex items-center justify-center font-bold text-xs text-[#6366f1] border border-[#6366f1]/20">
+                  {getInitials(stats?.adminUser?.name || 'Admin')}
+                </div>
+              )}
               <div className="text-left hidden md:block">
-                <span className="text-xs font-bold text-text-primary block leading-none">Tom Philip</span>
-                <span className="text-[9px] text-text-muted mt-1 block">tomphillip32@gmail.com</span>
+                <span className="text-xs font-bold text-text-primary block leading-none">{stats?.adminUser?.name || 'Administrator'}</span>
+                <span className="text-[9px] text-text-muted mt-1 block">{stats?.adminUser?.email || 'admin@blippr.in'}</span>
               </div>
             </div>
           </div>
@@ -711,18 +733,18 @@ export default function AdminDashboard() {
                       <span className="text-[10.5px] bg-[#6366f1]/10 text-[#6366f1] px-2.5 py-1 rounded font-bold border border-[#6366f1]/20">Hourly Metrics</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 mt-4 text-xs font-semibold text-text-muted">
-                    <div>
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1] inline-block mr-1.5" />
-                      <span>2xx Success</span>
+                  <div className="grid grid-cols-3 gap-3 mt-4 text-xs">
+                    <div className="bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl p-3 text-left">
+                      <span className="text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">Total API Calls</span>
+                      <span className="text-base font-black text-text-primary block mt-1">{totalRequests.toLocaleString()}</span>
                     </div>
-                    <div>
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#818cf8] inline-block mr-1.5" />
-                      <span>3xx/4xx Warnings</span>
+                    <div className="bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl p-3 text-left">
+                      <span className="text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">Avg Latency</span>
+                      <span className="text-base font-black text-[#6366f1] block mt-1">{avgLatency} ms</span>
                     </div>
-                    <div>
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#c7d2fe] inline-block mr-1.5" />
-                      <span>5xx Errors</span>
+                    <div className="bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl p-3 text-left">
+                      <span className="text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">Errors (5xx)</span>
+                      <span className={`text-base font-black block mt-1 ${totalErrors > 0 ? 'text-[#ef4444]' : 'text-text-primary'}`}>{totalErrors}</span>
                     </div>
                   </div>
                   <div className="h-56 relative bg-[#f8f9fa] dark:bg-[#0b121f] rounded-xl border border-border p-2 mt-4">
@@ -788,11 +810,11 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div className="space-y-4">
-                    <ProgressItem label="Auth Services (/api/auth/*)" value={78} color="bg-[#6366f1]" />
-                    <ProgressItem label="Chats Exchange (/api/chats/*)" value={64} color="bg-[#8b5cf6]" />
-                    <ProgressItem label="User Services (/api/users/*)" value={45} color="bg-[#10b981]" />
-                    <ProgressItem label="Media Deliveries (/api/media/*)" value={32} color="bg-[#f59e0b]" />
-                    <ProgressItem label="WebRTC Signaling (/api/calls/*)" value={18} color="bg-[#ef4444]" />
+                    <ProgressItem label="Auth Services (/api/auth/*)" value={stats?.endpointPercentages?.auth ?? 0} color="bg-[#6366f1]" />
+                    <ProgressItem label="Chats Exchange (/api/chats/*)" value={stats?.endpointPercentages?.chats ?? 0} color="bg-[#8b5cf6]" />
+                    <ProgressItem label="User Services (/api/users/*)" value={stats?.endpointPercentages?.users ?? 0} color="bg-[#10b981]" />
+                    <ProgressItem label="Media Deliveries (/api/media/*)" value={stats?.endpointPercentages?.media ?? 0} color="bg-[#f59e0b]" />
+                    <ProgressItem label="WebRTC Signaling (/api/calls/*)" value={stats?.endpointPercentages?.calls ?? 0} color="bg-[#ef4444]" />
                   </div>
                 </div>
 
@@ -855,30 +877,36 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                    {flaggedUsers.map((fu, i) => (
-                      <div key={i} className="flex items-center justify-between gap-2.5 py-1.5 border-b border-border-default/20 last:border-b-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {fu.avatar ? (
-                            <img src={fu.avatar} className="w-8.5 h-8.5 rounded-full object-cover shrink-0 border border-border" alt="" />
-                          ) : (
-                            <div className="w-8.5 h-8.5 rounded-full bg-indigo-150 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
-                              {fu.name?.charAt(0)}
-                            </div>
-                          )}
-                          <div className="min-w-0 text-left">
-                            <span className="font-bold text-xs text-text-primary block truncate leading-none">{fu.name}</span>
-                            <span className="text-[9.5px] text-text-muted mt-1 block truncate">@{fu.username}</span>
-                          </div>
-                        </div>
-
-                        <button 
-                          onClick={() => toggleVerify(fu)}
-                          className="px-2.5 py-1 bg-[#6366f1] hover:bg-[#4f46e5] text-white text-[9.5px] font-bold rounded-lg transition-colors shrink-0"
-                        >
-                          Verify
-                        </button>
+                    {flaggedUsers.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-text-muted text-xs text-center py-8">
+                        No pending user verification or moderation needed.
                       </div>
-                    ))}
+                    ) : (
+                      flaggedUsers.map((fu, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2.5 py-1.5 border-b border-border-default/20 last:border-b-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {fu.avatar ? (
+                              <img src={fu.avatar} className="w-8.5 h-8.5 rounded-full object-cover shrink-0 border border-border" alt="" />
+                            ) : (
+                              <div className="w-8.5 h-8.5 rounded-full bg-indigo-150 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
+                                {fu.name?.charAt(0)}
+                              </div>
+                            )}
+                            <div className="min-w-0 text-left">
+                              <span className="font-bold text-xs text-text-primary block truncate leading-none">{fu.name}</span>
+                              <span className="text-[9.5px] text-text-muted mt-1 block truncate">@{fu.username}</span>
+                            </div>
+                          </div>
+
+                          <button 
+                            onClick={() => toggleVerify(fu)}
+                            className="px-2.5 py-1 bg-[#6366f1] hover:bg-[#4f46e5] text-white text-[9.5px] font-bold rounded-lg transition-colors shrink-0"
+                          >
+                            Verify
+                          </button>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

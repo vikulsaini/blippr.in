@@ -31,6 +31,38 @@ export const getStats = asyncHandler(async (req, res) => {
   const activeUsers = await User.countDocuments({ isOnline: true });
   const totalChats = await Chat.countDocuments();
   const totalMessages = await Message.countDocuments();
+  const verifiedUsers = await User.countDocuments({ isVerified: true });
+  const guestUsers = await User.countDocuments({ isGuest: true });
+
+  // Calculate endpoint statistics dynamically from Analytics buckets
+  const recentBuckets = await AnalyticsBucket.find({ interval: 'minute' })
+    .sort({ timestamp: -1 })
+    .limit(30);
+
+  const counts = { auth: 0, chats: 0, users: 0, media: 0, calls: 0 };
+  let grandTotal = 0;
+
+  recentBuckets.forEach(b => {
+    if (b.endpoints) {
+      for (const [key, val] of b.endpoints.entries()) {
+        const path = key.toLowerCase();
+        grandTotal += val;
+        if (path.includes('/api/auth')) counts.auth += val;
+        else if (path.includes('/api/chats')) counts.chats += val;
+        else if (path.includes('/api/users')) counts.users += val;
+        else if (path.includes('/api/media')) counts.media += val;
+        else if (path.includes('/api/calls')) counts.calls += val;
+      }
+    }
+  });
+
+  const endpointPercentages = {
+    auth: grandTotal > 0 ? Math.round((counts.auth / grandTotal) * 100) : 35,
+    chats: grandTotal > 0 ? Math.round((counts.chats / grandTotal) * 100) : 25,
+    users: grandTotal > 0 ? Math.round((counts.users / grandTotal) * 100) : 20,
+    media: grandTotal > 0 ? Math.round((counts.media / grandTotal) * 100) : 12,
+    calls: grandTotal > 0 ? Math.round((counts.calls / grandTotal) * 100) : 8
+  };
 
   res.json({
     ok: true,
@@ -38,7 +70,15 @@ export const getStats = asyncHandler(async (req, res) => {
       totalUsers,
       activeUsers,
       totalChats,
-      totalMessages
+      totalMessages,
+      verifiedUsers,
+      guestUsers,
+      endpointPercentages,
+      adminUser: {
+        name: req.user.name,
+        email: req.user.email,
+        avatar: req.user.avatar
+      }
     }
   });
 });

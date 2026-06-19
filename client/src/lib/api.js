@@ -76,6 +76,7 @@ export async function api(path, options = {}) {
     const error = new Error(body.message || 'Request failed');
     error.code = body.code;
     error.body = body;
+    error.status = res.status;
     if (res.status === 401) handleUnauthorized(path);
     if (error.code === 'GUEST_EXPIRED') markGuestExpired();
     throw error;
