@@ -50,6 +50,7 @@ import {
   getAdminAuditLogs
 } from '../lib/api.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
+import BrandLogo from '../components/BrandLogo.jsx';
 
 export default function AdminDashboard() {
   const getInitials = (name) => {
@@ -586,18 +587,20 @@ export default function AdminDashboard() {
         sidebarCollapsed ? 'w-20' : 'w-64'
       }`}>
         {/* Brand Header */}
-        <div className="p-6 flex items-center justify-between border-b border-border">
-          {!sidebarCollapsed && (
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#6366f1] flex items-center justify-center shadow-md">
-                <Shield className="w-4.5 h-4.5 text-white" />
-              </div>
-              <span className="font-extrabold text-lg text-text-primary tracking-tight">BLIPPR</span>
+        <div className="p-5 flex items-center justify-between border-b border-border min-h-16">
+          {!sidebarCollapsed ? (
+            <div className="flex flex-col text-left">
+              <BrandLogo compactTitle />
+              <span className="text-[8px] bg-red-500/10 text-red-500 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-widest mt-1.5 w-max">
+                Control Center
+              </span>
             </div>
+          ) : (
+            <BrandLogo compact className="mx-auto" />
           )}
           <button 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1 hover:bg-bg rounded-lg transition-all text-text-muted hover:text-text-primary mx-auto"
+            className="p-1 hover:bg-bg rounded-lg transition-all text-text-muted hover:text-text-primary"
           >
             <MoreHorizontal className="w-5 h-5" />
           </button>
