@@ -80,3 +80,29 @@ export async function notifyUser(userId, payload) {
 
   return { sent: results.filter((result) => result.status === 'fulfilled').length, notification };
 }
+
+export async function sendDirectPushNotification(subscription, payload) {
+  if (!pushEnabled) {
+    console.warn('Push notifications are not enabled/configured on the server');
+    return false;
+  }
+  try {
+    const body = JSON.stringify({
+      badge: '/favicon.svg',
+      icon: '/favicon.svg',
+      ...payload
+    });
+    await webPush.sendNotification(
+      {
+        endpoint: subscription.endpoint,
+        keys: subscription.keys
+      },
+      body
+    );
+    return true;
+  } catch (error) {
+    console.warn(`Failed to send direct push notification: ${error.message}`);
+    return false;
+  }
+}
+

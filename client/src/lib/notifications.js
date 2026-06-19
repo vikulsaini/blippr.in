@@ -57,3 +57,30 @@ async function subscribeDevice(publicKey) {
 
   return subscription;
 }
+
+export async function getAnonymousPushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return null;
+  }
+  try {
+    const { publicKey } = await api('/api/notifications/public-key');
+    if (!publicKey) return null;
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return null;
+
+    const registration = await navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
+    const subscription =
+      existing ||
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      }));
+    return subscription;
+  } catch (err) {
+    console.warn('Failed to get anonymous push subscription:', err);
+    return null;
+  }
+}
+

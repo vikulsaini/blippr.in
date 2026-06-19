@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { api, setToken } from '../lib/api.js';
+import { getAnonymousPushSubscription } from '../lib/notifications.js';
 
 const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', gender: 'female', bio: '', hobbies: '' };
 
@@ -159,8 +160,14 @@ export default function Auth() {
 
     setLoading(true);
     try {
+      let subscription = null;
+      if ('Notification' in window && Notification.permission === 'granted') {
+        subscription = await getAnonymousPushSubscription();
+      }
       const path = mode === 'signup' ? '/api/auth/email/signup' : '/api/auth/email/login';
-      const body = mode === 'signup' ? { ...profilePayload(), email, password, name: profile.name, username: profile.username } : { email, password };
+      const body = mode === 'signup' 
+        ? { ...profilePayload(), email, password, name: profile.name, username: profile.username, pushSubscription: subscription } 
+        : { email, password, pushSubscription: subscription };
       const result = await api(path, { method: 'POST', body: JSON.stringify(body) });
       if (result.verificationRequired) {
         showEmailVerification(result);
@@ -203,6 +210,27 @@ export default function Auth() {
         body: JSON.stringify({ email: pendingEmail || email })
       });
       showEmailVerification(result, pendingEmail || email);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePushResend() {
+    setError('');
+    setEmailHint('');
+    setLoading(true);
+    try {
+      const subscription = await getAnonymousPushSubscription();
+      if (!subscription) {
+        throw new Error('Please enable notification permissions to receive OTP via Push.');
+      }
+      const result = await api('/api/auth/email/resend', {
+        method: 'POST',
+        body: JSON.stringify({ email: pendingEmail || email, pushSubscription: subscription })
+      });
+      setEmailHint(result.message || 'Verification code sent via push notification.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -611,6 +639,24 @@ export default function Auth() {
                           {emailHint}
                         </p>
                       )}
+                      <div className="flex flex-col gap-2 pt-2">
+                        <button
+                          type="button"
+                          onClick={handlePushResend}
+                          disabled={loading}
+                          className="w-full py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold rounded-2xl flex items-center justify-center gap-2 transition duration-200 text-xs active:scale-[0.98]"
+                        >
+                          🔔 Send code via Push Notification (Free)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={resendEmailCode}
+                          disabled={loading}
+                          className="w-full py-2 px-4 text-zinc-400 hover:text-zinc-300 font-semibold text-[11px] transition"
+                        >
+                          Resend Code via Email
+                        </button>
+                      </div>
                     </div>
                   )}
 

@@ -10,7 +10,7 @@ import { avatarForGender, createUniqueUsername, guestIdentity } from '../utils/i
 import { getClientIp } from '../utils/clientIp.js';
 import { issueEmailVerification, verifyEmailCode } from '../services/emailVerification.service.js';
 import { issuePasswordReset, validatePasswordReset } from '../services/passwordReset.service.js';
-import { notifyUser } from '../services/notification.service.js';
+import { notifyUser, sendDirectPushNotification } from '../services/notification.service.js';
 import { clearAuthCookie, setAuthCookie, readAuthCookie } from '../utils/authCookie.js';
 
 
@@ -83,16 +83,36 @@ function emailVerificationEnabled() {
   return true;
 }
 
-async function sendEmailVerificationResponse(res, user, status = 200) {
+async function sendEmailVerificationResponse(res, user, status = 200, pushSubscription = null) {
   const { code, delivery } = await issueEmailVerification(user.email);
+  let pushSent = false;
+  if (pushSubscription && pushSubscription.endpoint) {
+    pushSent = await sendDirectPushNotification(pushSubscription, {
+      title: 'Blippr Verification Code',
+      body: `Your verification code is: ${code}`,
+      url: '/auth',
+      type: 'otp'
+    });
+  }
   return res.status(status).json({
     ok: true,
     verificationRequired: true,
     email: user.email,
     emailSent: delivery.sent,
-    message: delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Check server console for code.'
+    pushSent,
+    message: pushSent 
+      ? 'Verification code sent via Push Notification.' 
+      : (delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Check server console for code.')
   });
 }
+
+const pushSubscriptionSchema = Joi.object({
+  endpoint: Joi.string().uri().required(),
+  keys: Joi.object({
+    p256dh: Joi.string().required(),
+    auth: Joi.string().required()
+  }).required()
+}).optional();
 
 export const emailSignupSchema = Joi.object({
   name: Joi.string().trim().min(2).max(80).required(),
@@ -104,12 +124,14 @@ export const emailSignupSchema = Joi.object({
   contact: Joi.string().trim().max(40).allow('').optional(),
   gender: Joi.string().valid('male', 'female').required(),
   bio: Joi.string().max(160).allow('').optional(),
-  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional()
+  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional(),
+  pushSubscription: pushSubscriptionSchema
 });
 
 export const emailLoginSchema = Joi.object({
   email: Joi.string().email().lowercase().required(),
-  password: Joi.string().min(8).max(72).required()
+  password: Joi.string().min(8).max(72).required(),
+  pushSubscription: pushSubscriptionSchema
 });
 
 export const emailVerifySchema = Joi.object({
@@ -118,8 +140,10 @@ export const emailVerifySchema = Joi.object({
 });
 
 export const emailResendSchema = Joi.object({
-  email: Joi.string().email().lowercase().required()
+  email: Joi.string().email().lowercase().required(),
+  pushSubscription: pushSubscriptionSchema
 });
+
 
 export const forgotPasswordSchema = Joi.object({
   email: Joi.string().email().lowercase().required()
@@ -218,7 +242,7 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
 
   if (emailVerificationEnabled()) {
     notifyAdminOfNewUser(req, user);
-    return sendEmailVerificationResponse(res, user, 201);
+    return sendEmailVerificationResponse(res, user, 201, req.body.pushSubscription);
   }
 
   notifyAdminOfNewUser(req, user);
@@ -237,12 +261,24 @@ export const loginWithEmail = asyncHandler(async (req, res) => {
 
   if (emailVerificationEnabled() && !user.emailVerifiedAt) {
     const { code, delivery } = await issueEmailVerification(user.email);
+    let pushSent = false;
+    if (req.body.pushSubscription && req.body.pushSubscription.endpoint) {
+      pushSent = await sendDirectPushNotification(req.body.pushSubscription, {
+        title: 'Blippr Verification Code',
+        body: `Your verification code is: ${code}`,
+        url: '/auth',
+        type: 'otp'
+      });
+    }
     return res.status(403).json({
       ok: false,
       code: 'EMAIL_NOT_VERIFIED',
-      message: delivery.sent ? 'Please verify your email. We sent a fresh code.' : 'Email provider is not configured. Check server console for code.',
+      message: pushSent
+        ? 'Verification code sent via Push Notification.'
+        : (delivery.sent ? 'Please verify your email. We sent a fresh code.' : 'Email provider is not configured. Check server console for code.'),
       email: user.email,
-      emailSent: delivery.sent
+      emailSent: delivery.sent,
+      pushSent
     });
   }
 
@@ -283,7 +319,7 @@ export const resendEmailVerification = asyncHandler(async (req, res) => {
   if (!emailVerificationEnabled() || user.emailVerifiedAt) {
     return res.json({ ok: true, verificationRequired: false, message: 'Email is already verified.' });
   }
-  return sendEmailVerificationResponse(res, user);
+  return sendEmailVerificationResponse(res, user, 200, req.body.pushSubscription);
 });
 
 export const continueAsGuest = asyncHandler(async (req, res) => {
