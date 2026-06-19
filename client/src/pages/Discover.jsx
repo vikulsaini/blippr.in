@@ -20,8 +20,9 @@ export default function Discover() {
   const [receivedRequestIds, setReceivedRequestIds] = useState(new Set());
 
   async function fetchRelations() {
+    const myId = getTokenSubject();
+    if (!myId) return;
     try {
-      const myId = getTokenSubject();
       const [sentRes, receivedRes, chatsRes] = await Promise.all([
         api('/api/friends/requests/sent'),
         api('/api/friends/requests'),
@@ -49,6 +50,7 @@ export default function Discover() {
   }
 
   useEffect(() => {
+    if (!getTokenSubject()) return;
     api('/api/users/suggested')
       .then(({ users }) => setSuggested(users))
       .catch(() => {});
@@ -56,6 +58,7 @@ export default function Discover() {
   }, []);
 
   useEffect(() => {
+    if (!getTokenSubject()) return;
     if (!query.trim()) {
       setUsers([]);
       setSearching(false);

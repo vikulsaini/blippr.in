@@ -68,12 +68,15 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       setCalls([]);
       return;
     }
+    if (!currentUserId) {
+      setMessages([]);
+      setCalls([]);
+      return;
+    }
     const socket = getRealtimeSocket();
     socket.emit('chat:join', { chatId: activeChat._id });
-    if (currentUserId) {
-      setMessages(readCache(`messages:${activeChat._id}`, currentUserId, []));
-      setCalls(readCache(`calls:${activeChat._id}`, currentUserId, []));
-    }
+    setMessages(readCache(`messages:${activeChat._id}`, currentUserId, []));
+    setCalls(readCache(`calls:${activeChat._id}`, currentUserId, []));
     Promise.all([
       api(`/api/chats/${activeChat._id}/messages`),
       api(`/api/chats/${activeChat._id}/calls`)
@@ -82,19 +85,12 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
         if (activeChatIdRef.current !== activeChat._id) return;
         setMessages(messageData.messages);
         setCalls(callData.calls || []);
-        if (currentUserId) {
-          writeCache(`messages:${activeChat._id}`, messageData.messages, currentUserId);
-          writeCache(`calls:${activeChat._id}`, callData.calls || [], currentUserId);
-        }
+        writeCache(`messages:${activeChat._id}`, messageData.messages, currentUserId);
+        writeCache(`calls:${activeChat._id}`, callData.calls || [], currentUserId);
         await api(`/api/chats/${activeChat._id}/read`, { method: 'PATCH' });
         setChats((current) => current.map((chat) => (chat._id === activeChat._id ? { ...chat, unreadCount: 0 } : chat)));
       })
-      .catch(() => {
-        if (!currentUserId) {
-          setMessages([]);
-          setCalls([]);
-        }
-      });
+      .catch(() => {});
   }, [activeChat, currentUserId, setChats]);
 
   useEffect(() => {

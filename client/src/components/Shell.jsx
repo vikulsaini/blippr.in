@@ -10,7 +10,7 @@ import NotificationBell from './NotificationBell.jsx';
 import SocketStateBanner from './SocketStateBanner.jsx';
 import ToastProvider from './Toast.jsx';
 import { refreshPushSubscriptionIfAllowed } from '../lib/notifications.js';
-import { api } from '../lib/api.js';
+import { api, getToken } from '../lib/api.js';
 
 const tabs = [
   { to: '/app', label: 'Chats', icon: MessageCircle },
@@ -25,6 +25,7 @@ export default function Shell() {
   const [me, setMe] = useState(null);
 
   useEffect(() => {
+    if (!getToken()) return;
     api('/api/users/me')
       .then(({ user }) => setMe(user))
       .catch(() => {});

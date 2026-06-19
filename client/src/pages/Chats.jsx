@@ -130,31 +130,34 @@ export default function Chats() {
   }
 
   useEffect(() => {
-    const cachedMe = readCache('me', 'global');
-    if (cachedMe) setMe(cachedMe);
-    const cacheUserId = normalizeId(cachedMe?._id || tokenUserId);
-    if (cacheUserId) {
-      const cachedChats = friendChats(readCache('chats', cacheUserId, []));
-      if (cachedChats.length) setChats(cachedChats);
+    const cacheUserId = tokenUserId;
+    if (!cacheUserId) {
+      setLoadingChats(false);
+      return;
     }
+    const cachedChats = friendChats(readCache('chats', cacheUserId, []));
+    if (cachedChats.length) setChats(cachedChats);
 
     async function load() {
       setLoadingChats(true);
-      const [activeData, archivedData] = await Promise.all([
-        api('/api/chats'),
-        api('/api/chats?archived=true')
-      ]);
-      const loadedChats = [...(activeData.chats || []), ...(archivedData.chats || [])]
-        .filter(isFriendChat)
-        .filter((chat, index, all) => all.findIndex((item) => item._id === chat._id) === index);
-      setChats(loadedChats);
-      if (me) {
-        writeCache('chats', loadedChats, me._id);
+      try {
+        const [activeData, archivedData] = await Promise.all([
+          api('/api/chats'),
+          api('/api/chats?archived=true')
+        ]);
+        const loadedChats = [...(activeData.chats || []), ...(archivedData.chats || [])]
+          .filter(isFriendChat)
+          .filter((chat, index, all) => all.findIndex((item) => item._id === chat._id) === index);
+        setChats(loadedChats);
+        writeCache('chats', loadedChats, cacheUserId);
+      } catch (err) {
+        console.warn('Failed to load chats:', err);
+      } finally {
+        setLoadingChats(false);
       }
-      setLoadingChats(false);
     }
-    load().catch(() => setLoadingChats(false));
-  }, [tokenUserId, me]);
+    load();
+  }, [tokenUserId]);
 
   useEffect(() => {
     const requestedChatId = new URLSearchParams(location.search).get('chat');

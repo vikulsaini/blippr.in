@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, LogIn, ShieldCheck, UserCheck, UserPlus, X } from 'lucide-react';
-import { api } from '../lib/api.js';
+import { api, getToken } from '../lib/api.js';
 import { showNativeNotification } from '../lib/native.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 
@@ -23,6 +23,10 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(true);
 
   async function loadFeed() {
+    if (!getToken()) {
+      setLoading(false);
+      return;
+    }
     try {
       const [requestData, notificationData] = await Promise.all([
         api('/api/friends/requests'),

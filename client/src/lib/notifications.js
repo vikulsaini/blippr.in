@@ -1,4 +1,4 @@
-import { api } from './api.js';
+import { api, getToken } from './api.js';
 import { isNativeApp, requestNativeNotificationPermission } from './native.js';
 
 function urlBase64ToUint8Array(base64String) {
@@ -29,6 +29,7 @@ export async function enablePushNotifications() {
 }
 
 export async function refreshPushSubscriptionIfAllowed() {
+  if (!getToken()) return null;
   if (isNativeApp()) requestNativeNotificationPermission().catch(() => {});
   if (!('Notification' in window) || Notification.permission !== 'granted') return null;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
