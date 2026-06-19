@@ -27,9 +27,11 @@ import {
   TrendingUp,
   Settings,
   Bell,
-  Mail,
   MoreHorizontal,
-  UserCheck
+  UserCheck,
+  UserX,
+  FileCode,
+  TrendingDown
 } from 'lucide-react';
 import { 
   claimAdmin, 
@@ -57,6 +59,9 @@ export default function AdminDashboard() {
   const [error, setError] = useState(null);
   const [claimSecret, setClaimSecret] = useState('');
   const [activeTab, setActiveTab] = useState('analytics');
+
+  // Sidebar collapse
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Toasts
   const [toast, setToast] = useState(null);
@@ -394,8 +399,8 @@ export default function AdminDashboard() {
     return 'text-[#10b981]';
   };
 
-  // Render Nilova-Style Columns Bar Chart
-  const renderColumnsChart = (data, valKey) => {
+  // Render Stacked Columns Bar Chart matching Nilova (segmented bars)
+  const renderStackedColumnsChart = (data, valKey) => {
     if (!data || data.length === 0) {
       return <div className="h-full flex items-center justify-center text-xs text-text-muted">No metrics available</div>;
     }
@@ -407,19 +412,28 @@ export default function AdminDashboard() {
       <div className="flex h-full items-end justify-between px-2 pt-6">
         {chartData.map((d, i) => {
           const val = d[valKey] || 0;
-          const percentage = (val / maxVal) * 100;
+          const totalHeight = (val / maxVal) * 110; // scale height max 110px
+
+          // Stack segment ratios based on response groups
+          const s1Ratio = d.status2xx ? d.status2xx / val : 0.7;
+          const s2Ratio = d.status3xx || d.status4xx ? (d.status3xx + d.status4xx) / val : 0.2;
+          const s3Ratio = d.status5xx ? d.status5xx / val : 0.1;
+
+          const h1 = Math.max(3, totalHeight * s1Ratio);
+          const h2 = Math.max(2, totalHeight * s2Ratio);
+          const h3 = Math.max(2, totalHeight * s3Ratio);
+
           return (
             <div key={i} className="flex flex-col items-center flex-1 group relative">
-              <div 
-                className="w-2 sm:w-3.5 bg-gradient-to-t from-accent to-accent-hover rounded-t-full transition-all duration-500 relative"
-                style={{ height: `${Math.max(8, percentage * 0.8)}px` }}
-              >
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-[#0f172a] text-white text-[9px] px-2 py-1 rounded shadow font-sans z-10 whitespace-nowrap">
-                  {val.toLocaleString()}
-                </div>
+              <div className="w-3.5 flex flex-col justify-end items-center rounded-full overflow-hidden transition-all duration-500" style={{ height: `${Math.max(10, totalHeight)}px` }}>
+                {/* Segment 3: Light Purple (Top) */}
+                <div className="w-full bg-[#c7d2fe] dark:bg-indigo-900" style={{ height: `${h3}px` }} />
+                {/* Segment 2: Medium Purple (Middle) */}
+                <div className="w-full bg-[#818cf8] dark:bg-indigo-700" style={{ height: `${h2}px` }} />
+                {/* Segment 1: Dark Purple (Bottom) */}
+                <div className="w-full bg-[#6366f1] dark:bg-indigo-500" style={{ height: `${h1}px` }} />
               </div>
-              <span className="text-[8px] text-text-muted font-sans mt-2">
+              <span className="text-[8.5px] text-text-muted font-sans mt-2">
                 {new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -438,12 +452,11 @@ export default function AdminDashboard() {
     
     // Circular calculations
     const radius = 15.9155;
-    const circumference = 2 * Math.PI * radius; // 100
     const strokeDashoffset = 100 - onlinePercent;
 
     return (
-      <div className="flex flex-col items-center justify-center h-full py-4">
-        <div className="relative w-36 h-36 flex items-center justify-center">
+      <div className="flex flex-col h-full justify-between py-2 text-left">
+        <div className="relative w-36 h-36 mx-auto flex items-center justify-center mt-3">
           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
             <circle cx="18" cy="18" r={radius} fill="none" stroke="var(--border)" strokeWidth="3" />
             <circle 
@@ -451,7 +464,7 @@ export default function AdminDashboard() {
               cy="18" 
               r={radius} 
               fill="none" 
-              stroke="var(--accent)" 
+              stroke="#6366f1" 
               strokeWidth="3.5" 
               strokeDasharray="100" 
               strokeDashoffset={strokeDashoffset} 
@@ -460,26 +473,38 @@ export default function AdminDashboard() {
             />
           </svg>
           <div className="absolute text-center">
-            <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Presence</span>
-            <div className="text-2xl font-black text-text-primary">{onlinePercent}%</div>
-            <span className="text-[9px] text-[#10b981] font-bold">{online} Active</span>
+            <span className="text-[9px] text-text-muted uppercase font-bold tracking-wider font-sans">Audience</span>
+            <div className="text-xl font-black text-text-primary leading-none mt-0.5">{total}</div>
           </div>
         </div>
 
-        <div className="w-full grid grid-cols-2 gap-4 mt-6 text-xs border-t border-border pt-4">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent inline-block" />
-              <span className="text-text-muted font-bold">Online Users</span>
+        <div className="space-y-4 mt-6 pt-4 border-t border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1] inline-block" />
+              <div className="text-xs">
+                <span className="font-bold text-text-primary block">Active Users</span>
+                <span className="text-[10px] text-text-muted">Presence online now</span>
+              </div>
             </div>
-            <div className="font-extrabold text-text-primary">{online}</div>
+            <div className="text-right">
+              <span className="text-xs font-black text-text-primary block">{online}</span>
+              <span className="text-[9.5px] text-[#10b981] font-bold">+{onlinePercent}%</span>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-border inline-block" />
-              <span className="text-text-muted font-bold">Offline Users</span>
+              <div className="text-xs">
+                <span className="font-bold text-text-primary block">Offline Accounts</span>
+                <span className="text-[10px] text-text-muted">Registered inactive</span>
+              </div>
             </div>
-            <div className="font-extrabold text-text-primary">{offline}</div>
+            <div className="text-right">
+              <span className="text-xs font-black text-text-primary block">{offline}</span>
+              <span className="text-[9.5px] text-[#ef4444] font-bold">-{100 - onlinePercent}%</span>
+            </div>
           </div>
         </div>
       </div>
@@ -490,8 +515,8 @@ export default function AdminDashboard() {
     return (
       <div className="grid h-screen place-items-center text-text-muted bg-bg">
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-accent mx-auto mb-4" />
-          <p className="text-sm font-semibold tracking-wide">Syncing Control Console...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-[#6366f1] mx-auto mb-4" />
+          <p className="text-sm font-semibold tracking-wide">Connecting Dashboard Pipeline...</p>
         </div>
       </div>
     );
@@ -499,10 +524,10 @@ export default function AdminDashboard() {
 
   if (error === 'unauthorized') {
     return (
-      <div className="grid min-h-screen place-items-center bg-bg px-4 py-12">
+      <div className="grid min-h-screen place-items-center bg-[#f3f4f6] px-4 py-12">
         <div className="w-full max-w-md">
-          <div className="surface-card rounded-[28px] p-8 bg-surface border border-border shadow-elevated text-center relative overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-1.5 animated-gradient" />
+          <div className="bg-white rounded-[16px] p-8 border border-border shadow-md text-center relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-[#6366f1]" />
             <ShieldAlert className="mx-auto h-14 w-14 text-danger mb-4 shrink-0" />
             <h2 className="text-2xl font-bold text-text-primary mb-2">Access Restrained</h2>
             <p className="text-text-muted mb-8 text-sm leading-relaxed">
@@ -514,9 +539,9 @@ export default function AdminDashboard() {
                 placeholder="Access Claim Token"
                 value={claimSecret}
                 onChange={(e) => setClaimSecret(e.target.value)}
-                className="w-full bg-bg border border-border rounded-xl px-4 py-3.5 text-sm font-mono focus:outline-none focus:border-accent text-center"
+                className="w-full bg-[#f8f9fa] border border-border rounded-xl px-4 py-3.5 text-sm font-mono focus:outline-none focus:border-[#6366f1] text-center"
               />
-              <button type="submit" className="w-full py-3.5 btn-primary rounded-xl font-bold text-sm tracking-wide shadow-glow">
+              <button type="submit" className="w-full py-3.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-xl font-bold text-sm tracking-wide transition-colors">
                 Claim Admin Key
               </button>
             </form>
@@ -526,13 +551,16 @@ export default function AdminDashboard() {
     );
   }
 
+  // Find users who are guest or have safety violation for Suggestions card
+  const flaggedUsers = users.filter(u => u.role !== 'admin').slice(0, 4);
+
   return (
     <div className="min-h-screen bg-[#f3f4f6] dark:bg-[#030712] flex flex-col md:flex-row font-sans antialiased text-text-primary">
       {/* Toast Alert */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-elevated border flex items-center gap-3 animate-fadeSlideUp ${
-          toast.type === 'error' ? 'bg-danger-bg text-danger border-danger-border' : 
-          toast.type === 'info' ? 'bg-accent-tint text-accent border-accent-ring' : 'bg-surface text-text-primary border-border'
+          toast.type === 'error' ? 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20' : 
+          toast.type === 'info' ? 'bg-[#6366f1]/10 text-[#6366f1] border-[#6366f1]/20' : 'bg-surface text-text-primary border-border'
         }`}>
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="text-xs font-semibold">{toast.message}</span>
@@ -540,53 +568,73 @@ export default function AdminDashboard() {
       )}
 
       {/* Left Sidebar Menu - Twin layout of Nilova */}
-      <aside className="w-full md:w-64 bg-surface border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0">
+      <aside className={`bg-surface border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0 transition-all duration-300 ${
+        sidebarCollapsed ? 'w-20' : 'w-64'
+      }`}>
         {/* Brand Header */}
         <div className="p-6 flex items-center justify-between border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shadow-glow">
-              <Shield className="w-4.5 h-4.5 text-white" />
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#6366f1] flex items-center justify-center shadow-md">
+                <Shield className="w-4.5 h-4.5 text-white" />
+              </div>
+              <span className="font-extrabold text-lg text-text-primary tracking-tight">NILOVA</span>
             </div>
-            <span className="font-extrabold text-lg text-text-primary tracking-tight font-sans">NILOVA</span>
-          </div>
-          <span className="bg-accent/15 text-accent text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider uppercase">VARTA</span>
+          )}
+          <button 
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1 hover:bg-bg rounded-lg transition-all text-text-muted hover:text-text-primary mx-auto"
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Sidebar Navigation items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {/* Main items */}
           <div>
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider px-3 block mb-2">Main</span>
+            {!sidebarCollapsed && <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider px-3 block mb-2 text-left">Main</span>}
             <nav className="space-y-1">
-              <SidebarItem icon={<Activity />} label="Dashboards" id="analytics" active={activeTab} onClick={setActiveTab} />
-              <SidebarItem icon={<Users />} label="Users & Sessions" id="users" active={activeTab} onClick={setActiveTab} />
-              <SidebarItem icon={<Database />} label="Database Visualizer" id="database" active={activeTab} onClick={setActiveTab} />
+              <SidebarItem icon={<Activity />} label="Dashboards" id="analytics" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<Users />} label="Users & Sessions" id="users" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<Database />} label="Database Visualizer" id="database" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
             </nav>
           </div>
 
           {/* Web Apps items */}
           <div>
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider px-3 block mb-2">Web Apps</span>
+            {!sidebarCollapsed && <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider px-3 block mb-2 text-left">Web Apps</span>}
             <nav className="space-y-1">
-              <SidebarItem icon={<Folder />} label="File Storage" id="files" active={activeTab} onClick={setActiveTab} />
-              <SidebarItem icon={<FileText />} label="System Audit Logs" id="audit" active={activeTab} onClick={setActiveTab} />
-              <SidebarItem icon={<Send />} label="System Broadcast" id="broadcast" active={activeTab} onClick={setActiveTab} />
+              <SidebarItem icon={<Folder />} label="File Storage" id="files" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<FileText />} label="System Audit Logs" id="audit" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
+              <SidebarItem icon={<Send />} label="System Broadcast" id="broadcast" active={activeTab} onClick={setActiveTab} collapsed={sidebarCollapsed} />
             </nav>
           </div>
         </div>
 
-        {/* User profile bottom widget */}
-        <div className="p-4 border-t border-border bg-bg/15 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center shrink-0 border border-accent/20">
-            <UserCheck className="w-4 h-4 text-accent" />
-          </div>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-xs font-bold text-text-primary leading-tight truncate">Tom Philip</p>
-            <p className="text-[10px] text-text-muted truncate">tomphilip@gmail.com</p>
-          </div>
-          <a href="/app" className="p-1.5 text-text-muted hover:text-accent rounded-lg border border-transparent hover:bg-bg transition-all" title="Return to Blippr">
-            <LogOut className="w-4 h-4" />
+        {/* Bottom Menu Items */}
+        <div className="p-4 border-t border-border bg-bg/15 space-y-2">
+          <button className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-text-secondary hover:text-text-primary rounded-lg transition-colors text-left">
+            <Settings className="w-4.5 h-4.5" />
+            {!sidebarCollapsed && <span>Theme Settings</span>}
+          </button>
+          <a href="/app" className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-text-secondary hover:text-text-primary rounded-lg transition-colors text-left">
+            <LogOut className="w-4.5 h-4.5" />
+            {!sidebarCollapsed && <span>Logout</span>}
           </a>
+
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border-default/40">
+              <div className="w-8 h-8 rounded-full bg-[#f59e0b]/20 flex items-center justify-center font-bold text-xs text-[#f59e0b] border border-[#f59e0b]/20">
+                TP
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-xs font-bold text-text-primary leading-none truncate">Tom Philip</p>
+                <p className="text-[9.5px] text-text-muted truncate mt-1">tomphillip32@gmail.com</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-text-faint" />
+            </div>
+          )}
         </div>
       </aside>
 
@@ -594,24 +642,23 @@ export default function AdminDashboard() {
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Navbar */}
         <header className="h-16 bg-surface border-b border-border px-6 flex items-center justify-between shrink-0">
-          {/* Left search */}
           <div className="relative w-64 flex items-center hidden sm:flex">
             <Search className="absolute left-3 w-4.5 h-4.5 text-text-faint" />
             <input 
               type="text" 
               placeholder="What are you Looking For ?" 
-              className="w-full bg-[#f8f9fa] dark:bg-[#090d16] border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-accent"
+              className="w-full bg-[#f8f9fa] dark:bg-[#090d16] border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#6366f1] transition-colors"
             />
           </div>
 
           {/* Right actions */}
           <div className="flex items-center gap-4 ml-auto">
-            <button onClick={handleRefresh} className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary hover:text-accent hover:rotate-180 duration-500">
+            <button onClick={handleRefresh} className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary hover:text-[#6366f1] hover:rotate-180 duration-500">
               <RefreshCw className="w-4.5 h-4.5" />
             </button>
             <button className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary relative">
               <Bell className="w-4.5 h-4.5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent live-dot" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#6366f1] live-dot" />
             </button>
             <button className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary">
               <Settings className="w-4.5 h-4.5" />
@@ -621,7 +668,10 @@ export default function AdminDashboard() {
               <div className="w-8 h-8 rounded-full bg-[#f59e0b]/20 flex items-center justify-center font-bold text-xs text-[#f59e0b] border border-[#f59e0b]/20">
                 TP
               </div>
-              <span className="text-xs font-bold text-text-primary hidden md:inline">Tom Philip</span>
+              <div className="text-left hidden md:block">
+                <span className="text-xs font-bold text-text-primary block leading-none">Tom Philip</span>
+                <span className="text-[9px] text-text-muted mt-1 block">tomphillip32@gmail.com</span>
+              </div>
             </div>
           </div>
         </header>
@@ -642,10 +692,10 @@ export default function AdminDashboard() {
           {/* MAIN MODULE: ANALYTICS MONITOR */}
           {activeTab === 'analytics' && (
             <div className="space-y-6">
-              {/* Donut and Bar Charts Side-by-Side */}
-              <div className="grid md:grid-cols-3 gap-6">
+              {/* Donut, Bar Chart & Sidebar Grid */}
+              <div className="grid lg:grid-cols-4 gap-6">
                 {/* Audience Reached Donut Chart */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-1 shadow-sm text-left">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Audience Reached</h3>
                     <MoreHorizontal className="w-4 h-4 text-text-faint" />
@@ -653,21 +703,82 @@ export default function AdminDashboard() {
                   {renderPresenceDonut()}
                 </div>
 
-                {/* Profile Visits Column Bar Chart */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-2 shadow-sm flex flex-col justify-between text-left">
+                {/* Profile Visits Stacked Column Bar Chart */}
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-2 shadow-sm flex flex-col justify-between text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border">
-                    <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Profile Visits & Performance</h3>
+                    <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Profile Visits & Aggregates</h3>
                     <div className="flex gap-2">
-                      <span className="text-[10px] bg-bg px-2.5 py-1 rounded text-text-secondary border border-border">Hourly Stats</span>
+                      <span className="text-[10.5px] bg-[#6366f1]/10 text-[#6366f1] px-2.5 py-1 rounded font-bold border border-[#6366f1]/20">Hourly Metrics</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mt-4 text-xs font-semibold text-text-muted">
+                    <div>
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1] inline-block mr-1.5" />
+                      <span>2xx Success</span>
+                    </div>
+                    <div>
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#818cf8] inline-block mr-1.5" />
+                      <span>3xx/4xx Warnings</span>
+                    </div>
+                    <div>
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#c7d2fe] inline-block mr-1.5" />
+                      <span>5xx Errors</span>
                     </div>
                   </div>
                   <div className="h-56 relative bg-[#f8f9fa] dark:bg-[#0b121f] rounded-xl border border-border p-2 mt-4">
-                    {renderColumnsChart(metrics.minute, 'requestCount')}
+                    {renderStackedColumnsChart(metrics.minute, 'requestCount')}
+                  </div>
+                </div>
+
+                {/* Growth Drive Widget */}
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm text-left flex flex-col justify-between h-full">
+                  <div>
+                    <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+                      <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Growth Drive</h3>
+                      <span className="bg-[#10b981]/15 text-[#10b981] text-[9px] px-2 py-0.5 rounded-full font-bold">Active</span>
+                    </div>
+                    <p className="text-[11px] text-text-secondary leading-relaxed">
+                      Track new accounts registration targets and active user engagement metrics.
+                    </p>
+                  </div>
+
+                  <div className="my-4 space-y-3.5">
+                    <div>
+                      <span className="text-xl font-black text-text-primary block leading-none">{stats?.totalUsers || 2539}</span>
+                      <span className="text-[9.5px] text-text-muted uppercase font-bold tracking-wider block mt-1">New Registrations</span>
+                    </div>
+                    <div>
+                      <span className="text-xl font-black text-[#6366f1] block leading-none">43,000</span>
+                      <span className="text-[9.5px] text-text-muted uppercase font-bold tracking-wider block mt-1">Growth Target</span>
+                    </div>
+                  </div>
+
+                  {/* Stack of overlapping avatars of recent users */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-border">
+                    <div className="flex -space-x-2.5 overflow-hidden">
+                      {users.slice(0, 4).map((u, i) => (
+                        <div key={i} className="inline-block h-7 w-7 rounded-full ring-2 ring-white">
+                          {u.avatar ? (
+                            <img src={u.avatar} className="h-full w-full rounded-full object-cover" alt="" />
+                          ) : (
+                            <div className="h-full w-full rounded-full bg-indigo-200 text-indigo-800 text-[10px] font-black flex items-center justify-center">
+                              {u.name?.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {users.length > 4 && (
+                        <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-[#e0e7ff] text-[#4f46e5] text-[10px] font-extrabold flex items-center justify-center">
+                          +{users.length - 4}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-accent font-bold hover:underline cursor-pointer">View Details</span>
                   </div>
                 </div>
               </div>
 
-              {/* Lower Section: Traffic Sources + Table */}
+              {/* Lower Section: Traffic Sources + Table + Suggestions */}
               <div className="grid lg:grid-cols-3 gap-6">
                 {/* Left Traffic Progress Bars */}
                 <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm text-left">
@@ -677,68 +788,97 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div className="space-y-4">
-                    <ProgressItem label="Auth Services (/api/auth/*)" value={78} color="bg-[#10b981]" />
-                    <ProgressItem label="Chats Exchange (/api/chats/*)" value={64} color="bg-[#3b82f6]" />
-                    <ProgressItem label="User Services (/api/users/*)" value={45} color="bg-[#f59e0b]" />
-                    <ProgressItem label="Media Deliveries (/api/media/*)" value={32} color="bg-[#8b5cf6]" />
+                    <ProgressItem label="Auth Services (/api/auth/*)" value={78} color="bg-[#6366f1]" />
+                    <ProgressItem label="Chats Exchange (/api/chats/*)" value={64} color="bg-[#8b5cf6]" />
+                    <ProgressItem label="User Services (/api/users/*)" value={45} color="bg-[#10b981]" />
+                    <ProgressItem label="Media Deliveries (/api/media/*)" value={32} color="bg-[#f59e0b]" />
                     <ProgressItem label="WebRTC Signaling (/api/calls/*)" value={18} color="bg-[#ef4444]" />
                   </div>
                 </div>
 
-                {/* Right Registrations / Actions Insight Table */}
-                <div className="surface-card bg-surface rounded-[12px] border border-border lg:col-span-2 shadow-sm flex flex-col h-[340px]">
+                {/* Center Registrations Table */}
+                <div className="surface-card bg-surface rounded-[12px] border border-border lg:col-span-1 shadow-sm flex flex-col h-[340px]">
                   <div className="p-5 border-b border-border flex items-center justify-between bg-surface/50">
-                    <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Recent Registered Accounts</h3>
-                    <button onClick={() => setActiveTab('users')} className="text-[10px] text-accent font-bold hover:underline">
-                      View All
+                    <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Registrations Feed</h3>
+                    <button onClick={() => setActiveTab('users')} className="text-[10px] text-[#6366f1] font-bold hover:underline">
+                      See All
                     </button>
                   </div>
 
                   <div className="flex-1 overflow-y-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-border bg-[#f8f9fa] dark:bg-[#0b121f] text-[9px] uppercase tracking-wider text-text-muted font-bold font-mono">
-                          <th className="p-3 pl-5">User</th>
-                          <th className="p-3">Username</th>
+                        <tr className="border-b border-border bg-[#f8f9fa] dark:bg-[#0b121f] text-[9px] uppercase tracking-wider text-text-muted font-bold">
+                          <th className="p-3 pl-4">User</th>
                           <th className="p-3">Role</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3 pr-5 text-right">Registered Date</th>
+                          <th className="p-3 pr-4 text-right">Registered</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border text-xs">
                         {users.slice(0, 5).map((u, i) => (
                           <tr key={i} className="hover:bg-bg/40 transition-colors">
-                            <td className="p-3 pl-5 flex items-center gap-3.5">
+                            <td className="p-3 pl-4 flex items-center gap-2.5">
                               {u.avatar ? (
-                                <img src={u.avatar} alt="" className="w-7.5 h-7.5 rounded-full object-cover border border-border" />
+                                <img src={u.avatar} alt="" className="w-7 h-7 rounded-full object-cover border border-border" />
                               ) : (
-                                <div className="w-7.5 h-7.5 rounded-full bg-accent/15 flex items-center justify-center font-bold text-xs text-accent">
+                                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-[10px] text-indigo-700">
                                   {u.name?.charAt(0)}
                                 </div>
                               )}
-                              <span className="font-bold text-text-primary">{u.name}</span>
+                              <div>
+                                <span className="font-bold text-text-primary block leading-none">{u.name}</span>
+                                <span className="text-[9.5px] text-text-muted mt-1 block">@{u.username}</span>
+                              </div>
                             </td>
-                            <td className="p-3 font-mono text-text-muted">@{u.username}</td>
                             <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
                                 u.role === 'admin' ? 'bg-[#ef4444]/10 text-[#ef4444]' : 'bg-[#3b82f6]/10 text-[#3b82f6]'
                               }`}>
                                 {u.role}
                               </span>
                             </td>
-                            <td className="p-3">
-                              <div className="flex items-center gap-1.5">
-                                <span className={`w-2 h-2 rounded-full ${u.isOnline ? 'bg-[#10b981]' : 'bg-text-faint'}`} />
-                                <span className="text-[10px] text-text-secondary">{u.isOnline ? 'Online' : 'Offline'}</span>
-                              </div>
-                            </td>
-                            <td className="p-3 pr-5 text-right text-[10px] text-text-faint font-mono">
+                            <td className="p-3 pr-4 text-right text-[9.5px] text-text-faint font-mono">
                               {new Date(u.createdAt).toLocaleDateString()}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+
+                {/* Right Suggestions widget (Flagged Accounts Audit) */}
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm flex flex-col justify-between h-[340px] text-left">
+                  <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
+                    <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Suggestions for You</h3>
+                    <span className="text-[9px] text-[#6366f1] font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('users')}>See All</span>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                    {flaggedUsers.map((fu, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2.5 py-1.5 border-b border-border-default/20 last:border-b-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {fu.avatar ? (
+                            <img src={fu.avatar} className="w-8.5 h-8.5 rounded-full object-cover shrink-0 border border-border" alt="" />
+                          ) : (
+                            <div className="w-8.5 h-8.5 rounded-full bg-indigo-150 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
+                              {fu.name?.charAt(0)}
+                            </div>
+                          )}
+                          <div className="min-w-0 text-left">
+                            <span className="font-bold text-xs text-text-primary block truncate leading-none">{fu.name}</span>
+                            <span className="text-[9.5px] text-text-muted mt-1 block truncate">@{fu.username}</span>
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={() => toggleVerify(fu)}
+                          className="px-2.5 py-1 bg-[#6366f1] hover:bg-[#4f46e5] text-white text-[9.5px] font-bold rounded-lg transition-colors shrink-0"
+                        >
+                          Verify
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -799,7 +939,7 @@ export default function AdminDashboard() {
                         placeholder="Filter accounts..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-[#f8f9fa] border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-accent"
+                        className="w-full bg-[#f8f9fa] border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#6366f1]"
                       />
                     </div>
                   </div>
@@ -827,7 +967,7 @@ export default function AdminDashboard() {
                                 <p className="font-bold text-xs text-text-primary truncate">{u.name}</p>
                                 {u.isVerified && <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />}
                                 {u.role === 'admin' && (
-                                  <span className="bg-danger-bg text-danger border border-danger-border text-[9px] px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                  <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 text-[9px] px-1.5 py-0.5 rounded font-black uppercase shrink-0">
                                     Admin
                                   </span>
                                 )}
@@ -846,8 +986,8 @@ export default function AdminDashboard() {
                               onClick={() => toggleVerify(u)}
                               className={`p-2 rounded-xl border text-[10px] font-bold transition-all ${
                                 u.isVerified 
-                                  ? 'bg-bg text-text-muted border-border hover:bg-danger-bg hover:text-danger hover:border-danger-border' 
-                                  : 'bg-accent-tint text-accent border-accent-ring hover:bg-accent hover:text-white'
+                                  ? 'bg-bg text-text-muted border-border hover:bg-[#ef4444]/10 hover:text-[#ef4444] hover:border-[#ef4444]/20' 
+                                  : 'bg-[#6366f1]/10 text-[#6366f1] border-[#6366f1]/20 hover:bg-[#6366f1] hover:text-white'
                               }`}
                               title={u.isVerified ? 'Revoke verification badge' : 'Grant verification badge'}
                             >
@@ -867,8 +1007,8 @@ export default function AdminDashboard() {
                               disabled={u.role === 'admin'}
                               className={`p-2 border rounded-xl transition-all disabled:opacity-50 ${
                                 u.bannedUntil 
-                                  ? 'bg-danger text-white border-danger hover:bg-danger/90' 
-                                  : 'bg-danger-bg text-danger border-danger-border hover:bg-danger hover:text-white'
+                                  ? 'bg-[#ef4444] text-white border-[#ef4444] hover:bg-[#ef4444]/90' 
+                                  : 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20 hover:bg-[#ef4444] hover:text-white'
                               }`}
                               title={u.bannedUntil ? 'Lift suspension' : 'Suspend account'}
                             >
@@ -886,7 +1026,7 @@ export default function AdminDashboard() {
               <div className="space-y-6 md:col-span-1">
                 <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[600px] flex flex-col">
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
-                    <Activity className="w-4 h-4 text-accent" />
+                    <Activity className="w-4 h-4 text-[#6366f1]" />
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Registration Log Feed</h3>
                   </div>
 
@@ -901,8 +1041,8 @@ export default function AdminDashboard() {
                           {reg.avatar ? (
                             <img src={reg.avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-border" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
-                              <span className="text-accent font-bold text-xs">{reg.name?.charAt(0)}</span>
+                            <div className="w-8 h-8 rounded-full bg-[#6366f1]/20 flex items-center justify-center shrink-0">
+                              <span className="text-[#6366f1] font-bold text-xs">{reg.name?.charAt(0)}</span>
                             </div>
                           )}
                           <div className="min-w-0 text-left">
@@ -936,7 +1076,7 @@ export default function AdminDashboard() {
                       <div key={i} className="p-3 bg-[#f8f9fa] dark:bg-[#0b121f] border border-border hover:border-accent-ring rounded-xl transition-all">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-extrabold text-text-primary font-mono">{c.name}</span>
-                          <span className="text-[10px] bg-accent/15 text-accent font-bold px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] bg-[#6366f1]/15 text-[#6366f1] font-bold px-2 py-0.5 rounded-full">
                             {c.count} docs
                           </span>
                         </div>
@@ -967,7 +1107,7 @@ export default function AdminDashboard() {
                       <select 
                         value={queryCollection} 
                         onChange={(e) => setQueryCollection(e.target.value)}
-                        className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-accent outline-none"
+                        className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-[#6366f1] outline-none"
                       >
                         {dbStats.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                       </select>
@@ -978,7 +1118,7 @@ export default function AdminDashboard() {
                       <select 
                         value={queryAction} 
                         onChange={(e) => setQueryAction(e.target.value)}
-                        className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-accent outline-none"
+                        className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-[#6366f1] outline-none"
                       >
                         <option value="find">find()</option>
                         <option value="updateOne">updateOne()</option>
@@ -992,7 +1132,7 @@ export default function AdminDashboard() {
                         value={queryFilter}
                         onChange={(e) => setQueryFilter(e.target.value)}
                         rows="3"
-                        className="w-full bg-[#f8f9fa] border border-border rounded-xl p-3 text-xs font-mono focus:border-accent outline-none"
+                        className="w-full bg-[#f8f9fa] border border-border rounded-xl p-3 text-xs font-mono focus:border-[#6366f1] outline-none"
                       />
                     </div>
 
@@ -1003,7 +1143,7 @@ export default function AdminDashboard() {
                           value={queryUpdate}
                           onChange={(e) => setQueryUpdate(e.target.value)}
                           rows="3"
-                          className="w-full bg-[#f8f9fa] border border-border rounded-xl p-3 text-xs font-mono focus:border-accent outline-none"
+                          className="w-full bg-[#f8f9fa] border border-border rounded-xl p-3 text-xs font-mono focus:border-[#6366f1] outline-none"
                         />
                       </div>
                     )}
@@ -1016,7 +1156,7 @@ export default function AdminDashboard() {
                             value={queryProjection}
                             onChange={(e) => setQueryProjection(e.target.value)}
                             rows="2"
-                            className="w-full bg-[#f8f9fa] border border-border rounded-xl p-2.5 text-xs font-mono focus:border-accent outline-none"
+                            className="w-full bg-[#f8f9fa] border border-border rounded-xl p-2.5 text-xs font-mono focus:border-[#6366f1] outline-none"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -1026,7 +1166,7 @@ export default function AdminDashboard() {
                               type="number" 
                               value={queryLimit}
                               onChange={(e) => setQueryLimit(Number(e.target.value))}
-                              className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-accent outline-none"
+                              className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-[#6366f1] outline-none"
                             />
                           </div>
                           <div>
@@ -1035,7 +1175,7 @@ export default function AdminDashboard() {
                               type="number" 
                               value={querySkip}
                               onChange={(e) => setQuerySkip(Number(e.target.value))}
-                              className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-accent outline-none"
+                              className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-[#6366f1] outline-none"
                             />
                           </div>
                         </div>
@@ -1083,7 +1223,7 @@ export default function AdminDashboard() {
                     {slowQueries.length === 0 && activeOps.length === 0 ? (
                       <div className="h-full flex items-center justify-center text-text-muted text-xs py-12 text-center">
                         <div>
-                          <CheckCircle2 className="w-6 h-6 text-accent mx-auto mb-2" />
+                          <CheckCircle2 className="w-6 h-6 text-[#6366f1] mx-auto mb-2" />
                           No slow queries detected.
                         </div>
                       </div>
@@ -1184,7 +1324,7 @@ export default function AdminDashboard() {
                             </a>
                             <button 
                               onClick={() => handleDeleteFile(file)}
-                              className="p-1.5 text-text-muted hover:text-danger rounded-lg border border-transparent hover:border-danger-border transition-all"
+                              className="p-1.5 text-text-muted hover:text-[#ef4444] rounded-lg border border-transparent hover:border-[#ef4444]/25 transition-all"
                               title="Delete File"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1213,7 +1353,7 @@ export default function AdminDashboard() {
                     placeholder="Filter actions..."
                     value={auditSearch}
                     onChange={(e) => setAuditSearch(e.target.value)}
-                    className="w-full bg-[#f8f9fa] border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-accent"
+                    className="w-full bg-[#f8f9fa] border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#6366f1]"
                   />
                 </div>
               </div>
@@ -1278,12 +1418,12 @@ export default function AdminDashboard() {
                     value={broadcastMessage}
                     onChange={(e) => setBroadcastMessage(e.target.value)}
                     placeholder="Dispatch system transmission text..."
-                    className="w-full bg-[#f8f9fa] border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-accent min-h-[140px] resize-none"
+                    className="w-full bg-[#f8f9fa] border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-[#6366f1] min-h-[140px] resize-none"
                   />
                   <button
                     type="submit"
                     disabled={!broadcastMessage.trim()}
-                    className="w-full py-3.5 btn-primary rounded-xl font-bold text-xs tracking-wide shadow-glow flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-xl font-bold text-xs tracking-wide transition-colors flex items-center justify-center gap-2 shadow-glow"
                   >
                     <Send className="w-4 h-4" />
                     Dispatch Global Broadcast
@@ -1299,22 +1439,24 @@ export default function AdminDashboard() {
 }
 
 // Subcomponents matching Nilova styles
-function SidebarItem({ icon, label, id, active, onClick }) {
+function SidebarItem({ icon, label, id, active, onClick, collapsed }) {
   const isSelected = active === id;
   return (
     <button
       onClick={() => onClick(id)}
       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-all ${
         isSelected 
-          ? 'bg-accent/10 text-accent font-extrabold shadow-sm' 
+          ? 'bg-[#6366f1]/10 text-[#6366f1] font-extrabold shadow-sm' 
           : 'text-text-secondary hover:bg-bg/50 hover:text-text-primary'
       }`}
     >
       <div className="flex items-center gap-2.5">
-        <span className={isSelected ? 'text-accent' : 'text-text-faint'}>{icon}</span>
-        <span>{label}</span>
+        <span className={isSelected ? 'text-[#6366f1]' : 'text-text-faint'}>{icon}</span>
+        {!collapsed && <span>{label}</span>}
       </div>
-      <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'text-accent rotate-90' : 'text-text-faint opacity-0 group-hover:opacity-100'}`} />
+      {!collapsed && (
+        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'text-[#6366f1] rotate-90' : 'text-text-faint opacity-0'}`} />
+      )}
     </button>
   );
 }
@@ -1323,11 +1465,11 @@ function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
   return (
     <div className="surface-card bg-surface p-4.5 rounded-[12px] border border-border flex flex-col justify-between text-left shadow-sm hover:shadow transition-shadow relative overflow-hidden group">
       {isAccent && (
-        <div className="absolute top-0 inset-x-0 h-[3px] bg-accent" />
+        <div className="absolute top-0 inset-x-0 h-[3.5px] bg-[#6366f1]" />
       )}
       <div className="flex items-center justify-between mb-3">
         <div className="w-8 h-8 rounded-lg bg-[#f8f9fa] dark:bg-[#0b121f] flex items-center justify-center border border-border group-hover:border-accent-ring transition-colors">
-          <span className="text-text-secondary group-hover:text-accent transition-colors">{icon}</span>
+          <span className="text-text-secondary group-hover:text-[#6366f1] transition-colors">{icon}</span>
         </div>
         <div className="flex items-center gap-1">
           <TrendingUp className="w-3.5 h-3.5 text-[#10b981]" />
@@ -1335,7 +1477,7 @@ function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
         </div>
       </div>
       <div>
-        <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider block">{label}</span>
+        <span className="text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">{label}</span>
         <span className="text-lg font-black text-text-primary block mt-1 leading-none">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </span>
@@ -1344,12 +1486,13 @@ function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
   );
 }
 
+// Progress Bar matching Nilova
 function ProgressItem({ label, value, color }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="text-text-secondary font-medium">{label}</span>
-        <span className="text-text-primary font-bold">{value}%</span>
+      <div className="flex items-center justify-between text-[10.5px]">
+        <span className="text-text-secondary font-semibold">{label}</span>
+        <span className="text-text-primary font-extrabold">{value}%</span>
       </div>
       <div className="w-full bg-[#f8f9fa] dark:bg-[#0b121f] h-2 rounded-full border border-border overflow-hidden">
         <div 
@@ -1368,7 +1511,7 @@ function FilterBtn({ label, id, current, onClick }) {
       onClick={() => onClick(id)}
       className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
         isSelected 
-          ? 'bg-accent text-white border-accent' 
+          ? 'bg-[#6366f1] text-white border-[#6366f1]' 
           : 'bg-[#f8f9fa] text-text-secondary border-border hover:bg-surface-hover hover:text-text-primary'
       }`}
     >
