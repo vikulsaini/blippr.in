@@ -37,8 +37,6 @@ export default function Auth() {
   
   // Supported modes: 'login' | 'guest' | 'completeProfile' | 'forgotPassword' | 'resetPassword'
   const [mode, setMode] = useState('login'); 
-  const [authMethod, setAuthMethod] = useState('email'); // 'email' | 'phone'
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   
   const [otpSent, setOtpSent] = useState(false);
@@ -54,7 +52,6 @@ export default function Auth() {
   // Validation States
   const isUsernameValid = /^[a-z0-9_]{3,24}$/.test(profile.username);
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isPhoneValid = /^\+?[1-9]\d{1,14}$/.test(phone.replace(/\s+/g, ''));
 
   function finishAuth(token, isGuest = false) {
     setToken(token, isGuest);
@@ -67,7 +64,6 @@ export default function Auth() {
     setEmailHint('');
     setOtpSent(false);
     setEmailCode('');
-    setPhone('');
   }
 
   async function syncSupabaseSession(token) {
@@ -151,49 +147,6 @@ export default function Auth() {
         email: email.toLowerCase(),
         token: emailCode,
         type: 'email'
-      });
-      if (verifyError) throw verifyError;
-      if (data.session) {
-        await syncSupabaseSession(data.session.access_token);
-      } else {
-        throw new Error('Verification succeeded, but no session was returned.');
-      }
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
-  }
-
-  async function sendPhoneOtp() {
-    setError('');
-    setOtpSending(true);
-    try {
-      const formattedPhone = phone.trim();
-      if (!formattedPhone.startsWith('+') || formattedPhone.length < 10) {
-        throw new Error('Please enter a valid phone number with country code (e.g., +919876543210).');
-      }
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone
-      });
-      if (otpError) throw otpError;
-      setOtpSent(true);
-      setEmailHint('6-digit verification code sent to your phone.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setOtpSending(false);
-    }
-  }
-
-  async function verifyPhoneOtp() {
-    setError('');
-    setLoading(true);
-    try {
-      const formattedPhone = phone.trim();
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        phone: formattedPhone,
-        token: emailCode,
-        type: 'sms'
       });
       if (verifyError) throw verifyError;
       if (data.session) {
@@ -346,42 +299,8 @@ export default function Auth() {
                   {/* LOGIN WITH OTP FIELDS */}
                   {mode === 'login' && (
                     <div className="space-y-4">
-                      {/* Method Selector Tabs */}
-                      {!otpSent && (
-                        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => { setAuthMethod('email'); setError(''); }}
-                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${authMethod === 'email' ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
-                          >
-                            {authMethod === 'email' && (
-                              <motion.span
-                                layoutId="auth-method-pill"
-                                className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
-                                transition={{ type: 'spring', stiffness: 450, damping: 26 }}
-                              />
-                            )}
-                            Email Address
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { setAuthMethod('phone'); setError(''); }}
-                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${authMethod === 'phone' ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
-                          >
-                            {authMethod === 'phone' && (
-                              <motion.span
-                                layoutId="auth-method-pill"
-                                className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
-                                transition={{ type: 'spring', stiffness: 450, damping: 26 }}
-                              />
-                            )}
-                            Phone Number
-                          </button>
-                        </div>
-                      )}
-
                       {/* Email Input */}
-                      {authMethod === 'email' && !otpSent && (
+                      {!otpSent && (
                         <div className="flex gap-2 items-center">
                           <div className="flex-1">
                             <UnderlinedInput 
@@ -397,30 +316,6 @@ export default function Auth() {
                             type="button"
                             disabled={!isEmailValid || loading || otpSending}
                             onClick={sendEmailOtp}
-                            className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
-                          >
-                            {otpSending ? 'Sending...' : 'Send OTP'}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Phone Input */}
-                      {authMethod === 'phone' && !otpSent && (
-                        <div className="flex gap-2 items-center">
-                          <div className="flex-1">
-                            <UnderlinedInput 
-                              value={phone} 
-                              onChange={setPhone} 
-                              placeholder="Phone Number (e.g. +919876543210)" 
-                              type="tel" 
-                              isValid={isPhoneValid}
-                              disabled={loading || otpSending}
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            disabled={!isPhoneValid || loading || otpSending}
-                            onClick={sendPhoneOtp}
                             className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
                           >
                             {otpSending ? 'Sending...' : 'Send OTP'}
@@ -447,7 +342,7 @@ export default function Auth() {
                             <button
                               type="button"
                               disabled={emailCode.length !== 6 || loading}
-                              onClick={authMethod === 'email' ? verifyEmailOtp : verifyPhoneOtp}
+                              onClick={verifyEmailOtp}
                               className="h-14 px-6 rounded-full bg-gradient-to-r from-accent to-accent-hover text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                             >
                               {loading ? 'Verifying...' : 'Verify'}
@@ -459,7 +354,7 @@ export default function Auth() {
                               onClick={() => { setOtpSent(false); setEmailCode(''); }}
                               className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition underline"
                             >
-                              Change {authMethod === 'email' ? 'email' : 'phone number'}
+                              Change email address
                             </button>
                           </div>
                         </div>
@@ -680,7 +575,7 @@ export default function Auth() {
               </button>
               <button
                 type="button"
-                onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+                onClick={() => switchMode(mode === 'login' ? 'guest' : 'login')}
                 className="w-12 h-12 rounded-full bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent flex items-center justify-center text-white shadow-lg shadow-accent/25 active:scale-95 transition"
               >
                 <ChevronRight size={20} />
@@ -690,117 +585,6 @@ export default function Auth() {
         </div>
 
       </div>
-
-      {/* SOCIAL OAUTH REAL GOOGLE MODAL */}
-      <AnimatePresence>
-        {socialModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !loading && setSocialModal(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Modal Box */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-[#0e1322] shadow-2xl p-6 z-10"
-            >
-              {/* Close Button */}
-              {!loading && (
-                <button
-                  onClick={() => setSocialModal(null)}
-                  className="absolute top-4 right-4 rounded-full p-1.5 text-zinc-500 hover:bg-white/5 transition"
-                >
-                  <X size={18} />
-                </button>
-              )}
-
-              {loading ? (
-                <div className="py-8 text-center space-y-4">
-                  <div className="mx-auto h-12 w-12 rounded-full border-4 border-cyan-500/25 border-t-cyan-500 animate-spin" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-white">Connecting to Google...</p>
-                    <p className="text-xs text-zinc-500">Verifying secure Google authentication token</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-cyan-400">
-                    <Sparkles size={20} />
-                    <h3 className="text-lg font-bold text-white">Google Profile Setup</h3>
-                  </div>
-                  <p className="text-xs text-zinc-400 leading-relaxed font-semibold">
-                    Age and gender are required to secure our chat channels. Please complete these details:
-                  </p>
-
-                  <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-4">
-                    <div className="grid grid-cols-2 gap-3.5">
-                      <UnderlinedInput 
-                        value={googleAge} 
-                        onChange={setGoogleAge} 
-                        placeholder="Age (18+)" 
-                        type="number" 
-                        isValid={isGoogleInputValid}
-                      />
-                      <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
-                        {['female', 'male'].map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => setGoogleGender(value)}
-                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${googleGender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
-                          >
-                            {googleGender === value && (
-                              <motion.span
-                                layoutId="google-gender-pill"
-                                className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
-                                transition={{ type: 'spring', stiffness: 450, damping: 26 }}
-                              />
-                            )}
-                            {value}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <textarea 
-                      value={googleBio} 
-                      onChange={(event) => setGoogleBio(event.target.value)} 
-                      className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-500 focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
-                      placeholder="Write a short bio (optional)..." 
-                      maxLength={160} 
-                    />
-                  </div>
-
-                  {isGoogleInputValid ? (
-                    <div className="flex flex-col items-center justify-center p-4 border border-dashed border-white/10 rounded-2xl bg-black/20 transition-colors duration-[350ms]">
-                      <p className="text-[10px] text-zinc-500 font-bold mb-2.5">Continue with Google:</p>
-                      <div id="google-signin-button" className="w-full flex justify-center py-1"></div>
-                    </div>
-                  ) : (
-                    <div className="text-center p-3 rounded-2xl border border-red-500/20 bg-red-500/5 text-red-400 text-xs font-semibold">
-                      You must be 18 years or older to sign in.
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => setSocialModal(null)}
-                    className="w-full py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-xs font-bold mt-2 text-zinc-400 hover:text-white transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </main>
   );
 }
