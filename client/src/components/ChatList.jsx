@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X, Users, LockKeyhole, Hash, ChevronDown, ChevronRight, Mail } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
@@ -301,6 +301,8 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
       haptics.tap();
       onSetChatPreference(chat, 'mute');
     }
+    // Smoothly spring snap back to 0 when released
+    animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 });
   }
 
   return (
@@ -347,8 +349,8 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
       <motion.article
         drag="x"
         style={{ x }}
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={1}
+        dragConstraints={{ left: -120, right: 120 }}
+        dragElastic={0.2}
         dragMomentum={false}
         onDragEnd={handleSwipeEnd}
         onContextMenu={(event) => {
