@@ -12,6 +12,7 @@ import { issueEmailVerification, verifyEmailCode } from '../services/emailVerifi
 import { issuePasswordReset, validatePasswordReset } from '../services/passwordReset.service.js';
 import { notifyUser, sendDirectPushNotification } from '../services/notification.service.js';
 import { clearAuthCookie, setAuthCookie, readAuthCookie } from '../utils/authCookie.js';
+import { supabase } from '../config/supabase.js';
 
 
 export const googleLoginSchema = Joi.object({
@@ -462,3 +463,77 @@ export const logout = asyncHandler(async (req, res) => {
   clearAuthCookie(res);
   res.json({ ok: true });
 });
+
+export const supabaseAuthSchema = Joi.object({
+  accessToken: Joi.string().required(),
+  name: Joi.string().trim().min(2).max(80).optional(),
+  username: Joi.string().lowercase().pattern(/^[a-z0-9_]{3,24}$/).optional(),
+  age: Joi.number().integer().min(18).max(120).optional(),
+  gender: Joi.string().valid('male', 'female').optional(),
+  bio: Joi.string().max(160).allow('').optional(),
+  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional()
+});
+
+export const supabaseLogin = asyncHandler(async (req, res) => {
+  const { accessToken, name, username, age, gender, bio, interests } = req.body;
+
+  // Verify access token with Supabase Auth
+  const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(accessToken);
+  
+  if (error || !supabaseUser) {
+    const err = new Error(error?.message || 'Invalid Supabase access token');
+    err.status = 401;
+    throw err;
+  }
+
+  const email = supabaseUser.email.toLowerCase();
+
+  // Find or create user in MongoDB
+  let user = await User.findOne({ email }).select('+lastIp +ipHistory');
+  let isNewUser = false;
+
+  if (!user) {
+    isNewUser = true;
+
+    // Validate that we have the required profile fields for a new signup
+    if (!name || !username || !age || !gender) {
+      const err = new Error('Profile details (name, username, age, gender) are required to complete signup.');
+      err.status = 400;
+      throw err;
+    }
+
+    const usernameExists = await User.exists({ username: username.toLowerCase() });
+    if (usernameExists) {
+      const err = new Error('Username is already taken');
+      err.status = 409;
+      throw err;
+    }
+
+    user = await User.create({
+      name,
+      email,
+      username: username.toLowerCase(),
+      age: Number(age),
+      gender,
+      avatar: avatarForGender(gender, username),
+      bio: bio || '',
+      interests: interests || [],
+      emailVerifiedAt: new Date(),
+      isGuest: false
+    });
+
+    notifyAdminOfNewUser(req, user);
+  } else {
+    // User already exists, ensure emailVerifiedAt is set
+    if (!user.emailVerifiedAt) {
+      user.emailVerifiedAt = new Date();
+      await user.save();
+    }
+  }
+
+  user.isGuest = false;
+  await recordLogin(req, user);
+
+  return sendAuth(res, signJwt(user), user, isNewUser ? 201 : 200);
+});
+

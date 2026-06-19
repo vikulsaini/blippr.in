@@ -23,14 +23,16 @@ import {
   MessageCircle
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
-import { api, setToken } from '../lib/api.js';
+import { api, setToken, loginWithSupabase } from '../lib/api.js';
 import { getAnonymousPushSubscription } from '../lib/notifications.js';
+import { supabase } from '../lib/supabase.js';
 
 const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', gender: 'female', bio: '', hobbies: '' };
 
 const SOCIAL_PROFILES = [];
 
 export default function Auth() {
+  const isSupabaseEnabled = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
   const navigate = useNavigate();
   const [mode, setMode] = useState('signup'); // 'signup' | 'login' | 'guest' | 'verifyEmail' | 'forgotPassword' | 'resetPassword'
   const [signupStep, setSignupStep] = useState(1);
@@ -150,7 +152,7 @@ export default function Auth() {
 
     // Handle multi-step signup check
     if (mode === 'signup' && signupStep === 1) {
-      if (!isNameValid || !isUsernameValid || !isEmailValid || !isPasswordValid) {
+      if (!isNameValid || !isUsernameValid || !isEmailValid || (!isSupabaseEnabled && !isPasswordValid)) {
         setError('Please satisfy all validation checks to continue.');
         return;
       }
@@ -160,6 +162,22 @@ export default function Auth() {
 
     setLoading(true);
     try {
+      if (isSupabaseEnabled) {
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email: email.toLowerCase(),
+          options: {
+            shouldCreateUser: true
+          }
+        });
+        if (otpError) throw otpError;
+
+        showEmailVerification({
+          email: email.toLowerCase(),
+          message: '6-digit OTP code sent to your email via Supabase.'
+        });
+        return;
+      }
+
       let subscription = null;
       if ('Notification' in window && Notification.permission === 'granted') {
         subscription = await getAnonymousPushSubscription();
@@ -188,6 +206,30 @@ export default function Auth() {
     setError('');
     setLoading(true);
     try {
+      if (isSupabaseEnabled) {
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          email: (pendingEmail || email).toLowerCase(),
+          token: emailCode,
+          type: 'email'
+        });
+        if (verifyError) throw verifyError;
+
+        const accessToken = data.session.access_token;
+
+        const result = await loginWithSupabase({
+          accessToken,
+          name: profile.name,
+          username: profile.username,
+          age: Number(profile.age || 18),
+          gender: profile.gender,
+          bio: profile.bio || '',
+          interests: profile.hobbies.split(',').map((i) => i.trim()).filter(Boolean)
+        });
+
+        finishAuth(result.token);
+        return;
+      }
+
       const { token } = await api('/api/auth/email/verify', {
         method: 'POST',
         body: JSON.stringify({ email: pendingEmail || email, code: emailCode })
@@ -205,6 +247,19 @@ export default function Auth() {
     setEmailHint('');
     setLoading(true);
     try {
+      if (isSupabaseEnabled) {
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email: (pendingEmail || email).toLowerCase(),
+          options: {
+            shouldCreateUser: true
+          }
+        });
+        if (otpError) throw otpError;
+
+        setEmailHint('New verification code sent via Supabase.');
+        return;
+      }
+
       const result = await api('/api/auth/email/resend', {
         method: 'POST',
         body: JSON.stringify({ email: pendingEmail || email })
@@ -425,38 +480,40 @@ export default function Auth() {
                         type="email" 
                         isValid={isEmailValid}
                       />
-                      <div className="space-y-3">
-                        <UnderlinedInput 
-                          value={password} 
-                          onChange={setPassword} 
-                          placeholder="Password" 
-                          type={showPassword ? 'text' : 'password'} 
-                          suffix={
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="text-zinc-500 hover:text-zinc-300 transition p-1"
-                            >
-                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                          }
-                          isValid={isPasswordValid}
-                        />
-                        {/* Real-time Checklist matching Dribbble spec */}
-                        <div className="space-y-1.5 pt-1">
-                          <PasswordRule met={hasMinLength} text="Least 8 characters" />
-                          <PasswordRule met={hasNumOrSymbol} text="Least one number (0-9) or a symbol" />
-                          <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
-                          {/* Password strength bar */}
-                          {password.length > 0 && (
-                            <div className="mt-2 flex gap-1">
-                              {[hasMinLength, hasNumOrSymbol, hasMixedCase].map((met, i) => (
-                                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                              ))}
-                            </div>
-                          )}
+                      {!isSupabaseEnabled && (
+                        <div className="space-y-3">
+                          <UnderlinedInput 
+                            value={password} 
+                            onChange={setPassword} 
+                            placeholder="Password" 
+                            type={showPassword ? 'text' : 'password'} 
+                            suffix={
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="text-zinc-500 hover:text-zinc-300 transition p-1"
+                              >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            }
+                            isValid={isPasswordValid}
+                          />
+                          {/* Real-time Checklist matching Dribbble spec */}
+                          <div className="space-y-1.5 pt-1">
+                            <PasswordRule met={hasMinLength} text="Least 8 characters" />
+                            <PasswordRule met={hasNumOrSymbol} text="Least one number (0-9) or a symbol" />
+                            <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
+                            {/* Password strength bar */}
+                            {password.length > 0 && (
+                              <div className="mt-2 flex gap-1">
+                                {[hasMinLength, hasNumOrSymbol, hasMixedCase].map((met, i) => (
+                                  <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </>
                   )}
 
@@ -484,27 +541,29 @@ export default function Auth() {
                         type="email" 
                         isValid={isEmailValid}
                       />
-                      <div className="space-y-2">
-                        <UnderlinedInput 
-                          value={password} 
-                          onChange={setPassword} 
-                          placeholder="Password" 
-                          type={showPassword ? 'text' : 'password'} 
-                          suffix={
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="text-zinc-500 hover:text-zinc-300 transition p-1"
-                            >
-                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                          }
-                          isValid={password.length >= 6}
-                        />
-                        <div className="flex justify-end">
-                          <button type="button" onClick={() => switchMode('forgotPassword')} className="text-[11px] font-bold text-cyan-400 hover:underline">Forgot password?</button>
+                      {!isSupabaseEnabled && (
+                        <div className="space-y-2">
+                          <UnderlinedInput 
+                            value={password} 
+                            onChange={setPassword} 
+                            placeholder="Password" 
+                            type={showPassword ? 'text' : 'password'} 
+                            suffix={
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="text-zinc-500 hover:text-zinc-300 transition p-1"
+                              >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            }
+                            isValid={password.length >= 6}
+                          />
+                          <div className="flex justify-end">
+                            <button type="button" onClick={() => switchMode('forgotPassword')} className="text-[11px] font-bold text-cyan-400 hover:underline">Forgot password?</button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                       
                       {emailHint && (
                         <p className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs text-cyan-400 font-semibold leading-relaxed">
@@ -640,14 +699,16 @@ export default function Auth() {
                         </p>
                       )}
                       <div className="flex flex-col gap-2 pt-2">
-                        <button
-                          type="button"
-                          onClick={handlePushResend}
-                          disabled={loading}
-                          className="w-full py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold rounded-2xl flex items-center justify-center gap-2 transition duration-200 text-xs active:scale-[0.98]"
-                        >
-                          🔔 Send code via Push Notification (Free)
-                        </button>
+                        {!isSupabaseEnabled && (
+                          <button
+                            type="button"
+                            onClick={handlePushResend}
+                            disabled={loading}
+                            className="w-full py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold rounded-2xl flex items-center justify-center gap-2 transition duration-200 text-xs active:scale-[0.98]"
+                          >
+                            🔔 Send code via Push Notification (Free)
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={resendEmailCode}

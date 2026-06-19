@@ -101,3 +101,7 @@ export const deleteAdminFile = (id, provider) => api(`/api/admin/files/${id}?pro
 export const getAdminFileStats = () => api('/api/admin/files/stats');
 export const revokeAdminUserSessions = (id) => api(`/api/admin/users/${id}/revoke`, { method: 'POST' });
 export const getAdminAuditLogs = () => api('/api/admin/audit-logs');
+
+// Supabase Auth
+export const loginWithSupabase = (body) => api('/api/auth/supabase', { method: 'POST', body: JSON.stringify(body) });
+
