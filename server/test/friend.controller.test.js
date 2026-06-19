@@ -28,9 +28,11 @@ test('sending a friend request validates blocking, upserts request, emits socket
     }
   };
   mock.method(User, 'findById', () => chainable({ _id: userB, blockedUsers: [] }, ['select']));
-  mock.method(FriendRequest, 'findOneAndUpdate', (_filter, update, options) => {
-    assert.equal(update.status, 'pending');
-    assert.equal(options.upsert, true);
+  mock.method(FriendRequest, 'findOne', () => Promise.resolve(null));
+  mock.method(FriendRequest, 'create', (payload) => {
+    assert.equal(payload.status, 'pending');
+    assert.equal(payload.from, userA);
+    assert.equal(payload.to, userB);
     return Promise.resolve(request);
   });
   mock.method(Notification, 'create', (payload) =>
@@ -95,6 +97,79 @@ test('accepting a friend request creates a direct chat and notifies sender', asy
   assert.equal(request.saveCalls, 1);
   assert.equal(res.body.chat._id, chatId);
   assert.ok(io.emissions.some((item) => item.room === `user:${userB}` && item.event === 'friend:request:accepted'));
+  assert.ok(io.emissions.some((item) => item.room === `user:${userB}` && item.event === 'friend:request:accepted'));
   assert.ok(io.emissions.some((item) => item.room === `user:${userA}` && item.event === 'chat:updated'));
   assert.ok(io.emissions.some((item) => item.room === `user:${userB}` && item.event === 'notification:new'));
 });
+
+test('sending friend request to oneself fails', async () => {
+  const res = makeRes();
+  const { error } = await callHandler(
+    sendFriendRequest,
+    makeReq({ body: { userId: userA } }),
+    res
+  );
+  assert.ok(error);
+  assert.equal(error.status, 400);
+  assert.match(error.message, /Cannot send friend request to yourself/i);
+});
+
+test('sending friend request when already friends fails', async () => {
+  mock.method(User, 'findById', () => chainable({ _id: userB, blockedUsers: [] }, ['select']));
+  mock.method(FriendRequest, 'findOne', () => Promise.resolve({ status: 'accepted', from: userA, to: userB }));
+  
+  const res = makeRes();
+  const { error } = await callHandler(
+    sendFriendRequest,
+    makeReq({ body: { userId: userB } }),
+    res
+  );
+  assert.ok(error);
+  assert.equal(error.status, 400);
+  assert.match(error.message, /You are already friends/i);
+});
+
+test('sending friend request when request already sent by current user fails', async () => {
+  mock.method(User, 'findById', () => chainable({ _id: userB, blockedUsers: [] }, ['select']));
+  mock.method(FriendRequest, 'findOne', () => Promise.resolve({ status: 'pending', from: userA, to: userB }));
+  
+  const res = makeRes();
+  const { error } = await callHandler(
+    sendFriendRequest,
+    makeReq({ body: { userId: userB } }),
+    res
+  );
+  assert.ok(error);
+  assert.equal(error.status, 400);
+  assert.match(error.message, /request already sent/i);
+});
+
+test('sending friend request when request already received from target user fails', async () => {
+  mock.method(User, 'findById', () => chainable({ _id: userB, blockedUsers: [] }, ['select']));
+  mock.method(FriendRequest, 'findOne', () => Promise.resolve({ status: 'pending', from: userB, to: userA }));
+  
+  const res = makeRes();
+  const { error } = await callHandler(
+    sendFriendRequest,
+    makeReq({ body: { userId: userB } }),
+    res
+  );
+  assert.ok(error);
+  assert.equal(error.status, 400);
+  assert.match(error.message, /already have a pending friend request/i);
+});
+
+test('responding to already processed friend request fails', async () => {
+  mock.method(FriendRequest, 'findOne', () => Promise.resolve({ status: 'accepted', from: userB, to: userA }));
+  
+  const res = makeRes();
+  const { error } = await callHandler(
+    respondFriendRequest,
+    makeReq({ params: { id: requestId }, body: { status: 'accepted' } }),
+    res
+  );
+  assert.ok(error);
+  assert.equal(error.status, 400);
+  assert.match(error.message, /already been responded to/i);
+});
+

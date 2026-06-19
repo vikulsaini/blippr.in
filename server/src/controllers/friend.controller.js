@@ -18,8 +18,19 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
     error.status = 403;
     throw error;
   }
-  const target = await User.findById(req.body.userId).select('blockedUsers isGuest');
-  if (!target || target.blockedUsers.some((userId) => userId.toString() === req.user._id.toString())) {
+  
+  const targetId = req.body.userId;
+  const currentUserId = req.user._id.toString();
+
+  // Prevent sending friend requests to oneself
+  if (currentUserId === targetId) {
+    const error = new Error('Cannot send friend request to yourself.');
+    error.status = 400;
+    throw error;
+  }
+
+  const target = await User.findById(targetId).select('blockedUsers isGuest');
+  if (!target || target.blockedUsers.some((userId) => userId.toString() === currentUserId)) {
     const error = new Error('User not found');
     error.status = 404;
     throw error;
@@ -34,7 +45,7 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
       _id: req.body.sourceChatId,
       type: 'stranger',
       temporary: true,
-      members: { $all: [req.user._id, req.body.userId] }
+      members: { $all: [req.user._id, targetId] }
     }).select('createdAt');
     if (!sourceChat) {
       const error = new Error('Random chat session not found');
@@ -50,14 +61,49 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
     }
   }
 
-  const request = await FriendRequest.findOneAndUpdate(
-    { from: req.user._id, to: req.body.userId },
-    { status: 'pending' },
-    { upsert: true, new: true }
-  );
+  // Check if a relationship/friend request already exists in either direction
+  const existing = await FriendRequest.findOne({
+    $or: [
+      { from: req.user._id, to: targetId },
+      { from: targetId, to: req.user._id }
+    ]
+  });
+
+  let request;
+  if (existing) {
+    if (existing.status === 'accepted') {
+      const error = new Error('You are already friends with this user.');
+      error.status = 400;
+      throw error;
+    }
+    if (existing.status === 'pending') {
+      if (existing.from.toString() === currentUserId) {
+        const error = new Error('Friend request already sent.');
+        error.status = 400;
+        throw error;
+      } else {
+        const error = new Error('You already have a pending friend request from this user.');
+        error.status = 400;
+        throw error;
+      }
+    }
+    // If it was rejected, we reset it to pending and align 'from' and 'to' to the new request direction
+    existing.from = req.user._id;
+    existing.to = targetId;
+    existing.status = 'pending';
+    await existing.save();
+    request = existing;
+  } else {
+    request = await FriendRequest.create({
+      from: req.user._id,
+      to: targetId,
+      status: 'pending'
+    });
+  }
+
   await request.populate('from', 'name username avatar');
-  req.app.get('io')?.to(`user:${req.body.userId}`).emit('friend:request:new', { request });
-  const { notification } = await notifyUser(req.body.userId, {
+  req.app.get('io')?.to(`user:${targetId}`).emit('friend:request:new', { request });
+  const { notification } = await notifyUser(targetId, {
     title: 'New friend request',
     body: `${req.user.name} wants to connect on Blippr`,
     url: '/app/profile',
@@ -65,7 +111,7 @@ export const sendFriendRequest = asyncHandler(async (req, res) => {
     requestId: request._id,
     actor: req.user._id
   });
-  req.app.get('io')?.to(`user:${req.body.userId}`).emit('notification:new', { notification });
+  req.app.get('io')?.to(`user:${targetId}`).emit('notification:new', { notification });
   res.status(201).json({ request });
 });
 
@@ -79,6 +125,11 @@ export const respondFriendRequest = asyncHandler(async (req, res) => {
   if (!request) {
     const error = new Error('Friend request not found');
     error.status = 404;
+    throw error;
+  }
+  if (request.status !== 'pending') {
+    const error = new Error('Friend request has already been responded to.');
+    error.status = 400;
     throw error;
   }
   request.status = req.body.status;
