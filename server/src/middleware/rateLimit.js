@@ -2,7 +2,7 @@ import rateLimit from 'express-rate-limit';
 
 export const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute window
-  limit: Number(process.env.API_LIMIT_MAX || 120), // default 120 requests per minute
+  limit: Number(process.env.API_LIMIT_MAX || 300), // default 300 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, message: 'Too many requests. Please slow down for a moment.' }
@@ -10,7 +10,7 @@ export const apiLimiter = rateLimit({
 
 export const authLimiter = rateLimit({
   windowMs: Number(process.env.AUTH_LIMIT_WINDOW_MS || 15 * 60 * 1000), // 15 minutes window
-  limit: Number(process.env.AUTH_LIMIT_MAX || 5), // default 5 requests per 15 minutes
+  limit: Number(process.env.AUTH_LIMIT_MAX || 30), // default 30 requests per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
@@ -19,7 +19,7 @@ export const authLimiter = rateLimit({
 
 export const guestLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  limit: Number(process.env.GUEST_LOGIN_LIMIT_PER_WINDOW || 12),
+  limit: Number(process.env.GUEST_LOGIN_LIMIT_PER_WINDOW || 60),
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, message: 'Guest login is busy from this network. Please wait a moment and try again.' }
