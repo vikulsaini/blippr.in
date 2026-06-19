@@ -188,63 +188,39 @@ export default function ChatList({
           <ChatSkeleton />
         ) : (
           <div className="space-y-4">
-            {/* Category: Direct Messages */}
-            <div className="space-y-1">
-              <button
-                onClick={() => setIsPersonalOpen(!isPersonalOpen)}
-                className="flex w-full items-center justify-between py-1.5 text-[11px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary transition cursor-pointer"
-              >
-                <div className="flex items-center gap-1.5">
-                  {isPersonalOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  <span>Direct Messages</span>
-                </div>
-                {personalUnread > 0 && (
-                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white badge-pulse">
-                    {personalUnread}
-                  </span>
-                )}
-              </button>
-              <AnimatePresence initial={false}>
-                {isPersonalOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden space-y-1.5 pl-1.5 animate-collapse"
-                  >
-                    {personalChats.map((chat) => {
-                      const other = getOtherMember(chat, currentUserId);
-                      const displayName = getNickname(chat, currentUserId, other);
-                      return (
-                        <SwipeChatRow
-                          key={chat._id}
-                          chat={chat}
-                          selected={selectedChats.has(chat._id)}
-                          currentUserId={currentUserId}
-                          typing={!!typingChats?.[chat._id]}
-                          displayName={displayName}
-                          other={other}
-                          onOpen={() => onOpenChat(chat)}
-                          onProfile={() => other && onOpenProfile(other, chat)}
-                          onSelect={() => {
-                            haptics.select();
-                            onToggleSelect(chat._id);
-                          }}
-                          onPreference={onPreference}
-                          onSetChatPreference={onSetChatPreference}
-                        />
-                      );
-                    })}
-                    {!loading && personalChats.length === 0 && (
-                      <div className="py-2 text-center">
-                        <p className="text-xs text-text-muted">No personal messages yet.</p>
-                        <button onClick={onFindPeople} className="btn-secondary mt-2 px-3 py-1.5 text-xs rounded-full font-semibold">Start Matching</button>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+          <div className="space-y-1.5">
+            {personalChats.map((chat) => {
+              const other = getOtherMember(chat, currentUserId);
+              const displayName = getNickname(chat, currentUserId, other);
+              return (
+                <SwipeChatRow
+                  key={chat._id}
+                  chat={chat}
+                  selected={selectedChats.has(chat._id)}
+                  currentUserId={currentUserId}
+                  typing={!!typingChats?.[chat._id]}
+                  displayName={displayName}
+                  other={other}
+                  onOpen={() => onOpenChat(chat)}
+                  onProfile={() => other && onOpenProfile(other, chat)}
+                  onSelect={() => {
+                    haptics.select();
+                    onToggleSelect(chat._id);
+                  }}
+                  onPreference={onPreference}
+                  onSetChatPreference={onSetChatPreference}
+                />
+              );
+            })}
+            {!loading && personalChats.length === 0 && (
+              <div className="py-8 text-center bg-surface/30 rounded-2xl border border-border-default/40 p-6">
+                <p className="text-xs text-text-muted">No personal messages yet.</p>
+                <button onClick={onFindPeople} className="btn-secondary mt-3 px-4 py-2 text-xs rounded-full font-bold transition shadow-sm">
+                  Start Matching
+                </button>
+              </div>
+            )}
+          </div>
           </div>
         )}
       </div>
@@ -348,7 +324,10 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
 
       <motion.article
         drag="x"
-        style={{ x }}
+        style={{
+          x,
+          transition: 'background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease'
+        }}
         dragConstraints={{ left: -120, right: 120 }}
         dragElastic={0.2}
         dragMomentum={false}
@@ -361,25 +340,41 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
         className={`interactive-card relative flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : ''}`}
       >
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
-          <div className="flex items-center justify-between gap-3">
-            <p className="truncate font-semibold text-text-primary">{displayName || 'Friend'}</p>
-            <span className="flex items-center gap-1">
-              {chat.archived && <Archive size={12} className="text-text-faint" />}
-              {chat.pinned && <Pin size={12} className="text-accent" />}
-              {chat.starred && <Star size={12} className="fill-gold text-gold" />}
-              {chat.muted && <BellOff size={12} className="text-text-faint" />}
-              <span className={`status-dot ${other?.isOnline ? 'online' : 'offline'}`} />
-            </span>
-          </div>
-          <div className="mt-1.5 flex items-center justify-between gap-3">
-            <p className={`truncate text-xs ${typing ? 'font-semibold text-accent' : chat.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
-              {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
-            </p>
-            {chat.unreadCount > 0 && (
-              <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white badge-pulse">
-                {chat.unreadCount}
-              </span>
-            )}
+          <div className="flex items-center gap-3 w-full">
+            {/* Avatar Container with online status dot */}
+            <div className="relative h-10 w-10 shrink-0 rounded-full bg-surface-hover flex items-center justify-center">
+              {other?.avatar ? (
+                <img src={other.avatar} alt="" className="h-full w-full rounded-full object-cover" />
+              ) : (
+                <div className="h-full w-full rounded-full bg-gradient-to-tr from-accent to-accent-light flex items-center justify-center text-white font-bold text-sm">
+                  {displayName ? displayName.charAt(0).toUpperCase() : 'F'}
+                </div>
+              )}
+              <span className={`absolute -bottom-0.5 -right-0.5 status-dot ${other?.isOnline ? 'online' : 'offline'}`} />
+            </div>
+
+            {/* Chat info details */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate font-semibold text-text-primary">{displayName || 'Friend'}</p>
+                <span className="flex items-center gap-1 shrink-0">
+                  {chat.archived && <Archive size={12} className="text-text-faint" />}
+                  {chat.pinned && <Pin size={12} className="text-accent" />}
+                  {chat.starred && <Star size={12} className="fill-gold text-gold" />}
+                  {chat.muted && <BellOff size={12} className="text-text-faint" />}
+                </span>
+              </div>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className={`truncate text-xs ${typing ? 'font-semibold text-accent' : chat.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
+                  {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
+                </p>
+                {chat.unreadCount > 0 && (
+                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white badge-pulse">
+                    {chat.unreadCount}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </ChatRowButton>
       </motion.article>

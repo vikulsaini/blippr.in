@@ -26,6 +26,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const scrollContainerRef = useRef(null);
   const endRef = useRef(null);
   const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
   const recorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const liveLocationRef = useRef({ watchId: null, messageId: null, timer: null, lastSentAt: 0 });
@@ -406,12 +407,12 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
                 behavior: 'smooth'
               });
             }}
-            className="absolute bottom-24 right-4 btn-primary flex items-center gap-1.5 rounded-full px-3 py-2 text-xs shadow-float z-20"
+            className="absolute bottom-24 right-4 btn-primary flex h-10 w-10 items-center justify-center rounded-full shadow-float z-20"
+            aria-label="Scroll to recent messages"
           >
-            <ArrowDown size={14} />
-            <span>Recent Messages</span>
+            <ArrowDown size={18} />
             {chat?.unreadCount > 0 && (
-              <span className="grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[8px] font-bold text-white badge-pulse">
+              <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white shadow-sm badge-pulse">
                 {chat.unreadCount}
               </span>
             )}
@@ -419,7 +420,13 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         )}
       </AnimatePresence>
 
-      <form onSubmit={onSend} className="shrink-0 border-t border-border-default bg-surface px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-card z-10">
+      <form
+        onSubmit={async (event) => {
+          await onSend(event);
+          inputRef.current?.focus();
+        }}
+        className="shrink-0 border-t border-border-default bg-surface px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-card z-10"
+      >
         {replyTo && (
           <div className="mb-2 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent-tint px-3 py-2 text-sm">
             <Reply size={15} className="text-accent" />
@@ -489,6 +496,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </button>
           <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${emojiOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`} aria-label="Emoji"><Smile size={18} /></button>
           <textarea
+            ref={inputRef}
             value={text}
             onChange={(event) => handleTextInput(event.target.value)}
             onFocus={() => setEmojiOpen(false)}

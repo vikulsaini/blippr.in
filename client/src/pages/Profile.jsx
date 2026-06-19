@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Heart, MapPin, Shield, UserRound, LogOut, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, MapPin, Shield, UserRound, LogOut, Settings, Copy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { showToast } from '../components/Toast.jsx';
@@ -70,6 +70,20 @@ export default function Profile() {
               <p className="text-white/70 text-xs mt-0.5 text-center select-none font-medium">
                 {user?.isGuest ? 'Guest account' : user?.email || `@${user?.username}`}
               </p>
+              {!user?.isGuest && user?.username && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const value = `${window.location.origin}/u/${user.username}`;
+                    await navigator.clipboard?.writeText(value);
+                    showToast('Profile link copied!', 'success');
+                  }}
+                  className="mt-2.5 flex items-center gap-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 text-[10px] font-bold transition active:scale-95 shadow-sm border border-white/5"
+                >
+                  <Copy size={11} />
+                  <span>Share my profile</span>
+                </button>
+              )}
             </div>
           </div>
 

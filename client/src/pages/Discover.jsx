@@ -140,12 +140,7 @@ export default function Discover() {
     }
   }
 
-  async function shareProfile() {
-    if (!me?.username) return;
-    const value = `${window.location.origin}/u/${me.username}`;
-    await navigator.clipboard?.writeText(value);
-    showToast('Profile link copied!', 'success');
-  }
+
 
   const getUserStatus = (userId) => {
     if (friendIds.has(userId)) return 'friend';
@@ -195,25 +190,15 @@ export default function Discover() {
 
       {!query.trim() && (
         <div className="space-y-6">
-          <div className="surface-card rounded-[24px] p-6 text-center bg-surface shadow-card">
-            <span className="tone-ring mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent-light text-accent">
-              <UserRound size={21} />
-            </span>
-            <p className="mt-3 font-semibold text-text-primary">Search people</p>
-            <p className="mt-1 text-sm text-text-muted">Example: @vikul or "Riya"</p>
-            <button type="button" onClick={shareProfile} disabled={!me?.username} className="btn-secondary mx-auto mt-4 flex items-center gap-2.5 rounded-full px-6 py-3 text-sm font-bold disabled:opacity-40 transition-all shadow-sm">
-              <Copy size={15} />
-              Share my profile
-            </button>
-          </div>
-
-          {suggested.length > 0 && (
+          {suggested.filter((u) => !friendIds.has(u._id)).length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-accent pl-1">Suggested People</h3>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {suggested.map((user, index) => (
-                  <UserRow key={user._id} user={user} index={index} status={getUserStatus(user._id)} onProfile={setProfileUser} onAction={toggleRequest} />
-                ))}
+                {suggested
+                  .filter((u) => !friendIds.has(u._id))
+                  .map((user, index) => (
+                    <UserRow key={user._id} user={user} index={index} status={getUserStatus(user._id)} onProfile={setProfileUser} onAction={toggleRequest} />
+                  ))}
               </div>
             </div>
           )}

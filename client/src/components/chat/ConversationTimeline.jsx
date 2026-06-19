@@ -185,6 +185,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, o
           drag={onSwipeRight ? "x" : false}
           dragConstraints={{ left: 0, right: 64 }}
           dragElastic={0.25}
+          dragSnapToOrigin={true}
           onDragEnd={(_, info) => {
             if (onSwipeRight && info.offset.x > 42) onSwipeRight();
           }}
@@ -192,9 +193,10 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, o
           onPointerUp={stopPress}
           onPointerCancel={stopPress}
           onPointerLeave={stopPress}
-          className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-accent-hover text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} transition-all duration-300`}
+          className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-accent-hover text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} transition-colors duration-200`}
           style={{
-            opacity: (message.status === 'sending' || message.status === 'queued') ? 0.7 : 1
+            opacity: (message.status === 'sending' || message.status === 'queued') ? 0.7 : 1,
+            transition: 'background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, opacity 200ms ease'
           }}
         >
           {message.replyTo && (

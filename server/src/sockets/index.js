@@ -312,7 +312,8 @@ export function registerSockets(io) {
 
     socket.on('stranger:stats', async (ack) => {
       try {
-        const activeUsers = await User.countDocuments({ isOnline: true });
+        const activeUsersCount = await User.countDocuments({ isOnline: true });
+        const activeUsers = Math.max(0, activeUsersCount - 1);
         ack?.({ ok: true, activeUsers });
       } catch (err) {
         ack?.({ ok: false });

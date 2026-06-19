@@ -506,7 +506,7 @@ export default function Stranger() {
           onPointerMove={revealVideoChrome}
           onPointerDown={revealVideoChrome}
           onTouchStart={revealVideoChrome}
-          className={`${focused ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[14px] border border-border-default bg-bg shadow-card sm:rounded-[16px]' : 'surface-card flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5 bg-surface shadow-card'}`}
+          className={`${focused ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[14px] bg-bg shadow-card sm:rounded-[16px]' : 'flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5 bg-surface shadow-card'}`}
         >
           <div className="relative min-h-0 flex-1">
             <MainVideoStage
@@ -541,13 +541,13 @@ export default function Stranger() {
       )}
 
       {showChat && (
-        <aside className="surface-card flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px] bg-surface shadow-card">
-          <div className="space-y-2 border-b border-border-default p-2 lg:p-3">
+        <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px] bg-surface shadow-card">
+          <div className="space-y-2 p-2 lg:p-3">
             <div className="flex items-center justify-between gap-3">
               {peer ? (
                 <div className="flex min-w-0 items-center gap-3">
                   <button onClick={() => setProfileUser(peer)} className="relative shrink-0">
-                    <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl border border-border-default" />
+                    <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl" />
                     <span className="absolute bottom-0 right-0 status-dot online" />
                   </button>
                   <div className="min-w-0">
@@ -591,7 +591,7 @@ export default function Stranger() {
           </div>
 
           {session ? (
-            <div className="grid grid-cols-2 gap-1.5 border-t border-border-default p-2 lg:gap-2 lg:p-3 bg-surface">
+            <div className="grid grid-cols-2 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-surface">
               <button
                 type="button"
                 onClick={handleRandomAction}
@@ -612,7 +612,7 @@ export default function Stranger() {
               </button>
             </div>
           ) : (
-            <div className="border-t border-border-default p-2 lg:p-3 bg-surface">
+            <div className="p-2 lg:p-3 bg-surface">
               <button
                 type="button"
                 onClick={handleRandomAction}
@@ -634,17 +634,17 @@ export default function Stranger() {
           )}
 
           {peer && (
-            <button type="button" onClick={reportPeer} className="mx-2 mb-2 rounded-2xl border border-danger/20 bg-danger/10 py-2 text-xs font-semibold text-danger">
+            <button type="button" onClick={reportPeer} className="mx-2 mb-2 rounded-2xl bg-danger/10 py-2 text-xs font-semibold text-danger">
               Report unsafe behavior
             </button>
           )}
 
           {session && (
-            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 border-t border-border-default p-2 lg:gap-2 lg:p-3 bg-surface">
+            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-surface">
               <input
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                className="min-w-0 flex-1 rounded-[15px] border border-border-default bg-bg px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 text-text-primary placeholder:text-text-faint font-medium"
+                className="min-w-0 flex-1 rounded-[15px] bg-bg px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 text-text-primary placeholder:text-text-faint font-medium"
                 placeholder="Say something..."
               />
               <button disabled={!text.trim()} className="btn-primary grid h-11 w-11 place-items-center rounded-[15px] disabled:opacity-40 sm:h-12 sm:w-12 sm:rounded-2xl" aria-label="Send">
@@ -665,14 +665,14 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
   const stageHeight = focused || expanded ? 'h-full min-h-0' : 'h-full min-h-0';
 
   return (
-    <div className={`relative overflow-hidden rounded-[14px] border border-white/8 bg-black/80 sm:rounded-[16px] lg:rounded-[20px] ${stageHeight}`}>
+    <div className={`relative overflow-hidden rounded-[14px] bg-black/80 sm:rounded-[16px] lg:rounded-[20px] ${stageHeight}`}>
       {stream ? (
         <video ref={videoRef} autoPlay playsInline className={`h-full w-full object-contain ${stageHeight}`} />
       ) : (
         <div className={`grid h-full place-items-center p-4 text-center lg:p-6 ${stageHeight}`}>
           <div>
             {peer?.avatar ? (
-              <img src={peer.avatar} alt="" className="mx-auto h-20 w-20 rounded-[28px] border border-white/10 object-cover shadow-glow" />
+              <img src={peer.avatar} alt="" className="mx-auto h-20 w-20 rounded-[28px] object-cover shadow-glow" />
             ) : (
               <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/8 text-white/50">
                 {finding ? (
@@ -719,7 +719,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
       <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/70 via-black/20 to-transparent p-2 transition duration-300 sm:p-3 ${chromeVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-start gap-2">
-            <div className="pointer-events-auto min-w-0 rounded-[15px] border border-white/10 bg-black/38 px-2.5 py-1.5 text-left backdrop-blur-md sm:rounded-2xl sm:px-3 sm:py-2">
+            <div className="pointer-events-auto min-w-0 rounded-[15px] bg-black/38 px-2.5 py-1.5 text-left backdrop-blur-md sm:rounded-2xl sm:px-3 sm:py-2">
               <p className="truncate text-xs font-semibold text-white sm:text-base">{peer?.name || (finding ? 'Searching...' : 'Random live')}</p>
               <p className="mt-0.5 text-[11px] font-semibold capitalize text-white/52">{status || 'idle'}</p>
             </div>
@@ -734,7 +734,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
             <button
               type="button"
               onClick={onToggleFocus}
-              className="pointer-events-auto grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-black/42 text-white/82 backdrop-blur-md transition hover:bg-white/12 sm:h-10 sm:w-10"
+              className="pointer-events-auto grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black/42 text-white/82 backdrop-blur-md transition hover:bg-white/12 sm:h-10 sm:w-10"
               aria-label={focused ? 'Exit full screen random chat' : 'Open full screen random chat'}
             >
               {focused ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
@@ -743,7 +743,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
         </div>
       </div>
       <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/78 via-black/22 to-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-10 transition duration-300 sm:px-3 ${chromeVisible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}>
-        <div className="pointer-events-auto mx-auto grid w-full max-w-md grid-cols-3 gap-2 rounded-[24px] border border-white/10 bg-black/38 p-2 backdrop-blur-md sm:max-w-3xl sm:grid-cols-6 sm:gap-3 sm:rounded-full sm:p-2.5">
+        <div className="pointer-events-auto mx-auto grid w-full max-w-md grid-cols-3 gap-2 rounded-[24px] bg-black/38 p-2 backdrop-blur-md sm:max-w-3xl sm:grid-cols-6 sm:gap-3 sm:rounded-full sm:p-2.5">
           {actions}
         </div>
       </div>
@@ -758,7 +758,7 @@ function ModeTabs({ value, onChange, compact = false }) {
   ];
 
   return (
-    <div data-no-tab-swipe className={`flex shrink-0 rounded-full border border-white/10 bg-black/36 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${compact ? 'backdrop-blur-md' : ''}`}>
+    <div data-no-tab-swipe className={`flex shrink-0 rounded-full bg-black/36 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${compact ? 'backdrop-blur-md' : ''}`}>
       {modes.map((mode) => (
         <button
           key={mode.value}
@@ -786,7 +786,7 @@ function LocalPreview({ stream, videoRef, cameraOff, chromeVisible }) {
   }, [stream, videoRef, cameraOff]);
 
   return (
-    <div className={`absolute right-2 top-14 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] transition duration-300 sm:right-4 sm:top-20 sm:h-28 sm:w-24 lg:h-28 lg:w-24 ${chromeVisible ? 'opacity-100' : 'opacity-45'}`}>
+    <div className={`absolute right-2 top-14 z-10 h-20 w-16 overflow-hidden rounded-[14px] bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] transition duration-300 sm:right-4 sm:top-20 sm:h-28 sm:w-24 lg:h-28 lg:w-24 ${chromeVisible ? 'opacity-100' : 'opacity-45'}`}>
       {stream && !cameraOff ? (
         <video ref={videoRef} autoPlay playsInline muted className="h-full w-full scale-x-[-1] object-cover" />
       ) : (
@@ -805,7 +805,7 @@ function CircleControl({ icon: Icon, label, onClick, disabled, primary, danger }
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[10px] font-semibold capitalize disabled:opacity-35 sm:h-12 sm:px-3.5 sm:text-xs ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'border border-white/10 bg-white/10 text-white/82 hover:bg-white/16'} ${label.includes('3:00') ? 'ring-1 ring-mint/45' : ''}`}
+      className={`flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[10px] font-semibold capitalize disabled:opacity-35 sm:h-12 sm:px-3.5 sm:text-xs ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'bg-white/10 text-white/82 hover:bg-white/16'} ${label.includes('3:00') ? 'ring-1 ring-mint/45' : ''}`}
     >
       <Icon size={17} />
       <span className="truncate">{label}</span>
@@ -817,7 +817,7 @@ function ConnectionQualityIndicator({ state }) {
   if (state !== 'connected' && state !== 'connecting') return null;
   const bars = state === 'connected' ? 3 : 1;
   return (
-    <div className="flex items-center gap-1 py-0.5 px-2 bg-surface-hover rounded-xl border border-border-default" title="WebRTC Connection Quality">
+    <div className="flex items-center gap-1 py-0.5 px-2 bg-surface-hover rounded-xl" title="WebRTC Connection Quality">
       <div className="flex items-end gap-0.5 h-3">
         <div className={`w-0.5 rounded-t-sm h-1.5 ${bars >= 1 ? 'bg-success' : 'bg-border-default'}`} />
         <div className={`w-0.5 rounded-t-sm h-2.5 ${bars >= 2 ? 'bg-success' : 'bg-border-default'}`} />
@@ -830,13 +830,13 @@ function ConnectionQualityIndicator({ state }) {
 function EmptyRandom({ finding, queueText, activeUsers }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid h-full min-h-0 place-items-center text-center py-12 px-4">
-      <div className="surface-card rounded-[24px] p-6 max-w-sm bg-surface border border-border-default shadow-card text-center flex flex-col items-center">
+      <div className="rounded-[24px] p-6 max-w-sm bg-surface shadow-card text-center flex flex-col items-center">
         {finding ? (
           <div className="flex flex-col items-center">
             {/* Elegant Radar Ripple Animation */}
             <div className="relative flex items-center justify-center h-28 w-28 mb-4">
               <motion.div
-                className="absolute inset-0 rounded-full bg-accent/10 border border-accent/20"
+                className="absolute inset-0 rounded-full bg-accent/10"
                 animate={{ scale: [1, 2.2], opacity: [0.6, 0] }}
                 transition={{ repeat: Infinity, duration: 2, ease: 'easeOut' }}
               />
@@ -872,7 +872,7 @@ function EmptyRandom({ finding, queueText, activeUsers }) {
               Tap the Start button in the bottom action bar to begin finding a random connection.
             </p>
             {activeUsers > 0 && (
-              <p className="mt-4 text-[11px] font-semibold text-accent/80 bg-accent/10 px-3 py-1.5 rounded-full border border-accent/20 flex items-center gap-1.5 shadow-sm">
+              <p className="mt-4 text-[11px] font-semibold text-accent/80 bg-accent/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
                 <span className="relative flex h-2 w-2 shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
@@ -891,7 +891,7 @@ function SafetyModal({ open, onClose, onAgree }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur">
-      <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="surface-card w-full max-w-sm bg-surface p-5 shadow-elevated border border-border-default">
+      <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full max-w-sm bg-surface p-5 shadow-elevated">
         <span className="tone-ring grid h-12 w-12 place-items-center rounded-2xl bg-accent-light text-accent">
           <ShieldCheck size={23} />
         </span>
