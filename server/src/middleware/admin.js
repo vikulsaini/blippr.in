@@ -1,8 +1,6 @@
-import { User } from '../models/index.js';
-
 export const requireAdmin = async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = req.user;
     if (!user) {
       return res.status(401).json({ ok: false, message: 'Unauthorized' });
     }

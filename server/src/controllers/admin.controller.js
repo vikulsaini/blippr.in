@@ -1,6 +1,7 @@
-import { User, Chat, Message } from '../models/index.js';
+import User from '../models/User.js';
+import Chat from '../models/Chat.js';
+import Message from '../models/Message.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { getIO } from '../sockets/index.js';
 
 // Temporary endpoint to claim the first admin account
 // In production, you would remove this after claiming
@@ -10,7 +11,7 @@ export const claimAdmin = asyncHandler(async (req, res) => {
     return res.status(403).json({ ok: false, message: 'Invalid secret' });
   }
 
-  const user = await User.findById(req.userId);
+  const user = req.user;
   if (!user) return res.status(404).json({ ok: false, message: 'User not found' });
 
   user.role = 'admin';
@@ -84,7 +85,7 @@ export const broadcastMessage = asyncHandler(async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ ok: false, message: 'Message is required' });
 
-  const io = getIO();
+  const io = req.app.get('io');
   if (io) {
     io.emit('system:broadcast', { message, timestamp: new Date() });
   }
