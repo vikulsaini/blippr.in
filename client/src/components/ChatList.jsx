@@ -293,11 +293,11 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
   const muteScale = useTransform(x, [-180, -120, 0], [1.12, 1, 0.85]);
 
   function handleSwipeEnd(_, info) {
-    const currentX = x.get();
-    if (currentX > 120) {
+    const offset = info.offset.x;
+    if (offset > 120) {
       haptics.success();
       onSetChatPreference(chat, 'archive');
-    } else if (currentX < -120) {
+    } else if (offset < -120) {
       haptics.tap();
       onSetChatPreference(chat, 'mute');
     }
@@ -348,7 +348,8 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
         drag="x"
         style={{ x }}
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.22}
+        dragElastic={1}
+        dragMomentum={false}
         onDragEnd={handleSwipeEnd}
         onContextMenu={(event) => {
           event.preventDefault();
