@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, Clock, Eye, Send, Copy, Edit3, Flag, MapPin, MessageCircle, Phone, PhoneMissed, Reply, Trash2, Video, X } from 'lucide-react';
 import { normalizeId } from '../../lib/chat.js';
@@ -84,8 +84,8 @@ export default function ConversationTimeline({
               <MessageBubble
                 message={message}
                 mine={mine}
-                onLongPress={isOptimistic ? undefined : () => setActionTarget(message)}
-                onSwipeRight={isOptimistic ? undefined : () => onReply?.(message)}
+                onLongPress={isOptimistic ? undefined : setActionTarget}
+                onSwipeRight={isOptimistic ? undefined : onReply}
                 isLastSeen={message._id === lastSeenMessageId}
                 otherMember={otherMember}
               />
@@ -146,12 +146,12 @@ export default function ConversationTimeline({
   );
 }
 
-function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, otherMember }) {
+const MessageBubble = memo(function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, otherMember }) {
   const timerRef = useRef(null);
 
   function startPress() {
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(onLongPress, 450);
+    timerRef.current = setTimeout(() => onLongPress?.(message), 450);
   }
 
   function stopPress() {
@@ -187,7 +187,7 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, o
           dragElastic={0.25}
           dragSnapToOrigin={true}
           onDragEnd={(_, info) => {
-            if (onSwipeRight && info.offset.x > 42) onSwipeRight();
+            if (onSwipeRight && info.offset.x > 42) onSwipeRight(message);
           }}
           onPointerDown={onLongPress ? startPress : undefined}
           onPointerUp={stopPress}
@@ -243,7 +243,18 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, o
       )}
     </div>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.mine === next.mine &&
+    prev.isLastSeen === next.isLastSeen &&
+    prev.otherMember?.avatar === next.otherMember?.avatar &&
+    prev.message._id === next.message._id &&
+    prev.message.status === next.message.status &&
+    prev.message.text === next.message.text &&
+    prev.message.editedAt === next.message.editedAt &&
+    prev.message.reactions?.length === next.message.reactions?.length
+  );
+});
 
 function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, onDeleteMe, onDeleteEveryone, onCopy, onReport }) {
   return (

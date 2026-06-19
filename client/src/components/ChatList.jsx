@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X, Users, LockKeyhole, Hash, ChevronDown, ChevronRight, Mail } from 'lucide-react';
 import { api } from '../lib/api.js';
@@ -274,7 +274,7 @@ function ToolbarButton({ icon: Icon, label, onClick, danger = false }) {
   );
 }
 
-function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, other, onOpen, onSelect, onSetChatPreference }) {
+const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, other, onOpen, onSelect, onSetChatPreference }) {
   const x = useMotionValue(0);
 
   // Archive (Swipe Right): x goes from 0 to positive
@@ -401,7 +401,23 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
       </motion.article>
     </motion.div>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.selected === next.selected &&
+    prev.typing === next.typing &&
+    prev.displayName === next.displayName &&
+    prev.currentUserId === next.currentUserId &&
+    prev.other?.isOnline === next.other?.isOnline &&
+    prev.chat.updatedAt === next.chat.updatedAt &&
+    prev.chat.unreadCount === next.chat.unreadCount &&
+    prev.chat.pinned === next.chat.pinned &&
+    prev.chat.starred === next.chat.starred &&
+    prev.chat.muted === next.chat.muted &&
+    prev.chat.archived === next.chat.archived &&
+    prev.chat.lastMessage?.text === next.chat.lastMessage?.text &&
+    prev.chat.lastMessage?.status === next.chat.lastMessage?.status
+  );
+});
 
 function ChatSkeleton() {
   return (

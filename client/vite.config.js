@@ -34,6 +34,26 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('scheduler')) {
+              return 'vendor-react';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('socket.io-client')) {
+              return 'vendor-socket';
+            }
+            return 'vendor';
+          }
+        }
+      }
+    }
+  },
   server: {
     port: 5173
   }
