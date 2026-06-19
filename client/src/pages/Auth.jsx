@@ -39,6 +39,11 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [supabaseAccessToken, setSupabaseAccessToken] = useState('');
   const [googleAge, setGoogleAge] = useState('18');
   const [googleGender, setGoogleGender] = useState('female');
   const [googleBio, setGoogleBio] = useState('');
@@ -76,6 +81,11 @@ export default function Auth() {
     setSignupStep(1);
     setError('');
     setEmailHint('');
+    setConfirmPassword('');
+    setOtpSent(false);
+    setEmailVerified(false);
+    setSupabaseAccessToken('');
+    setEmailCode('');
   }
 
   function showEmailVerification(result, fallbackEmail = email) {
@@ -137,6 +147,60 @@ export default function Auth() {
     }
   }, [socialModal, googleAge]);
 
+  async function sendSupabaseSignupOtp() {
+    setError('');
+    setOtpSending(true);
+    try {
+      if (!isEmailValid) {
+        throw new Error('Please enter a valid email address.');
+      }
+      if (!isPasswordValid) {
+        throw new Error('Please satisfy all password rules before sending OTP.');
+      }
+      if (password !== confirmPassword) {
+        throw new Error('Passwords do not match.');
+      }
+
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: email.toLowerCase(),
+        password: password
+      });
+      if (signUpError) throw signUpError;
+
+      setOtpSent(true);
+      setEmailHint('6-digit confirmation code sent to your email.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setOtpSending(false);
+    }
+  }
+
+  async function verifySupabaseSignupOtp() {
+    setError('');
+    setLoading(true);
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.toLowerCase(),
+        token: emailCode,
+        type: 'signup'
+      });
+      if (verifyError) throw verifyError;
+
+      if (!data.session) {
+        throw new Error('Verification succeeded, but no session was returned. Please try logging in.');
+      }
+
+      setSupabaseAccessToken(data.session.access_token);
+      setEmailVerified(true);
+      setEmailHint('Email successfully verified! Click Complete Setup below to finish.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function profilePayload() {
     return {
       ...profile,
@@ -150,54 +214,129 @@ export default function Auth() {
     if (event) event.preventDefault();
     setError('');
 
-    // Handle multi-step signup check
-    if (mode === 'signup' && signupStep === 1) {
-      if (!isNameValid || !isUsernameValid || !isEmailValid || (!isSupabaseEnabled && !isPasswordValid)) {
-        setError('Please satisfy all validation checks to continue.');
+    if (mode === 'signup') {
+      if (!isUsernameValid) {
+        setError('Please enter a valid username (3-24 characters, lowercase, numbers, underscores).');
         return;
       }
-      setSignupStep(2);
+      if (!isEmailValid) {
+        setError('Please enter a valid email address.');
+        return;
+      }
+      if (!isPasswordValid) {
+        setError('Please satisfy all password requirements.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.');
+        return;
+      }
+      if (!profile.dob) {
+        setError('Date of birth is required.');
+        return;
+      }
+      if (ageFromDob(profile.dob) < 18) {
+        setError('You must be 18 years or older to sign up.');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        if (isSupabaseEnabled) {
+          if (!emailVerified || !supabaseAccessToken) {
+            setError('Please verify your email via the OTP code first.');
+            setLoading(false);
+            return;
+          }
+
+          const result = await loginWithSupabase({
+            accessToken: supabaseAccessToken,
+            name: profile.username,
+            username: profile.username,
+            age: ageFromDob(profile.dob),
+            gender: profile.gender,
+            bio: '',
+            interests: []
+          });
+
+          finishAuth(result.token);
+          return;
+        }
+
+        // Fallback standard signup
+        let subscription = null;
+        if ('Notification' in window && Notification.permission === 'granted') {
+          subscription = await getAnonymousPushSubscription();
+        }
+        const result = await api('/api/auth/email/signup', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: profile.username,
+            username: profile.username,
+            email,
+            password,
+            age: ageFromDob(profile.dob),
+            dob: profile.dob,
+            gender: profile.gender,
+            pushSubscription: subscription
+          })
+        });
+
+        if (result.verificationRequired) {
+          showEmailVerification(result);
+          return;
+        }
+        finishAuth(result.token);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
-    setLoading(true);
-    try {
-      if (isSupabaseEnabled) {
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email: email.toLowerCase(),
-          options: {
-            shouldCreateUser: true
-          }
-        });
-        if (otpError) throw otpError;
+    if (mode === 'login') {
+      setLoading(true);
+      try {
+        if (isSupabaseEnabled) {
+          const { data, error: loginError } = await supabase.auth.signInWithPassword({
+            email: email.toLowerCase(),
+            password: password
+          });
+          if (loginError) throw loginError;
 
-        showEmailVerification({
-          email: email.toLowerCase(),
-          message: '6-digit OTP code sent to your email via Supabase.'
-        });
-        return;
-      }
+          const accessToken = data.session.access_token;
+          const result = await loginWithSupabase({
+            accessToken,
+            name: profile.username || undefined,
+            username: profile.username || undefined,
+            age: profile.dob ? ageFromDob(profile.dob) : undefined,
+            gender: profile.gender || undefined
+          });
+          finishAuth(result.token);
+          return;
+        }
 
-      let subscription = null;
-      if ('Notification' in window && Notification.permission === 'granted') {
-        subscription = await getAnonymousPushSubscription();
+        let subscription = null;
+        if ('Notification' in window && Notification.permission === 'granted') {
+          subscription = await getAnonymousPushSubscription();
+        }
+        const result = await api('/api/auth/email/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password, pushSubscription: subscription })
+        });
+        if (result.verificationRequired) {
+          showEmailVerification(result);
+          return;
+        }
+        finishAuth(result.token);
+      } catch (err) {
+        if (err.code === 'EMAIL_NOT_VERIFIED') showEmailVerification(err.body || {}, email);
+        else setError(err.message);
+      } finally {
+        setLoading(false);
       }
-      const path = mode === 'signup' ? '/api/auth/email/signup' : '/api/auth/email/login';
-      const body = mode === 'signup' 
-        ? { ...profilePayload(), email, password, name: profile.name, username: profile.username, pushSubscription: subscription } 
-        : { email, password, pushSubscription: subscription };
-      const result = await api(path, { method: 'POST', body: JSON.stringify(body) });
-      if (result.verificationRequired) {
-        showEmailVerification(result);
-        return;
-      }
-      const { token } = result;
-      finishAuth(token);
-    } catch (err) {
-      if (err.code === 'EMAIL_NOT_VERIFIED') showEmailVerification(err.body || {}, email);
-      else setError(err.message);
-    } finally {
-      setLoading(false);
+      return;
     }
   }
 
@@ -395,8 +534,7 @@ export default function Auth() {
                 {/* Form Headline */}
                 <div className="space-y-2 text-center">
                   <h2 className="text-3xl font-extrabold tracking-tight text-white animate-fadeIn">
-                    {mode === 'signup' && signupStep === 1 ? 'Create an Account' : ''}
-                    {mode === 'signup' && signupStep === 2 ? 'Profile Details' : ''}
+                    {mode === 'signup' ? 'Create an Account' : ''}
                     {mode === 'login' ? 'Hi There!' : ''}
                     {mode === 'guest' ? 'Guest Setup' : ''}
                     {mode === 'verifyEmail' ? 'Verify Email' : ''}
@@ -404,8 +542,7 @@ export default function Auth() {
                     {mode === 'resetPassword' ? 'New Password' : ''}
                   </h2>
                   <p className="text-xs font-semibold text-zinc-400 max-w-md mx-auto leading-relaxed animate-fadeIn">
-                    {mode === 'signup' && signupStep === 1 && 'To create an account provide details verify email and set a password.'}
-                    {mode === 'signup' && signupStep === 2 && 'Step 2: Tell us a bit about yourself'}
+                    {mode === 'signup' && 'To create an account, provide details, verify email, and set a password.'}
                     {mode === 'login' && 'Please enter required details.'}
                     {mode === 'guest' && 'Enter instantly without an email address.'}
                     {mode === 'verifyEmail' && 'Secure authentication checkpoint.'}
@@ -457,78 +594,149 @@ export default function Auth() {
                     </div>
                   )}
                   
-                  {/* SIGNUP STEP 1 FIELDS */}
-                  {mode === 'signup' && signupStep === 1 && (
+                  {/* SIGNUP FIELDS */}
+                  {mode === 'signup' && (
                     <>
-                      <UnderlinedInput 
-                        value={profile.name} 
-                        onChange={(value) => setProfile((c) => ({ ...c, name: value }))} 
-                        placeholder="Full Name" 
-                        isValid={isNameValid}
-                      />
                       <UnderlinedInput 
                         value={profile.username} 
                         onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
                         placeholder="Username" 
                         prefix="@"
                         isValid={isUsernameValid}
+                        disabled={emailVerified}
                       />
-                      <UnderlinedInput 
-                        value={email} 
-                        onChange={setEmail} 
-                        placeholder="Email Address" 
-                        type="email" 
-                        isValid={isEmailValid}
-                      />
-                      {!isSupabaseEnabled && (
-                        <div className="space-y-3">
-                          <UnderlinedInput 
-                            value={password} 
-                            onChange={setPassword} 
-                            placeholder="Password" 
-                            type={showPassword ? 'text' : 'password'} 
-                            suffix={
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="text-zinc-500 hover:text-zinc-300 transition p-1"
-                              >
-                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                              </button>
-                            }
-                            isValid={isPasswordValid}
-                          />
-                          {/* Real-time Checklist matching Dribbble spec */}
-                          <div className="space-y-1.5 pt-1">
-                            <PasswordRule met={hasMinLength} text="Least 8 characters" />
-                            <PasswordRule met={hasNumOrSymbol} text="Least one number (0-9) or a symbol" />
-                            <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
-                            {/* Password strength bar */}
-                            {password.length > 0 && (
-                              <div className="mt-2 flex gap-1">
-                                {[hasMinLength, hasNumOrSymbol, hasMixedCase].map((met, i) => (
-                                  <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                                ))}
-                              </div>
+                      
+                      {/* Gender Selector */}
+                      <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
+                        {['female', 'male'].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            disabled={emailVerified}
+                            onClick={() => setProfile((c) => ({ ...c, gender: value }))}
+                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'} disabled:opacity-50`}
+                          >
+                            {profile.gender === value && (
+                              <motion.span
+                                layoutId="signup-gender-pill"
+                                className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
+                                transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                              />
                             )}
+                            {value}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Date of Birth */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider pl-4">Date of Birth</label>
+                        <UnderlinedInput 
+                          value={profile.dob} 
+                          onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
+                          placeholder="DOB" 
+                          type="date" 
+                          isValid={profile.dob && ageFromDob(profile.dob) >= 18}
+                          disabled={emailVerified}
+                        />
+                      </div>
+
+                      {/* Email with Inline Send OTP Button */}
+                      <div className="flex gap-2 items-center">
+                        <div className="flex-1">
+                          <UnderlinedInput 
+                            value={email} 
+                            onChange={setEmail} 
+                            placeholder="Email Address" 
+                            type="email" 
+                            isValid={isEmailValid}
+                            disabled={emailVerified}
+                          />
+                        </div>
+                        {isSupabaseEnabled && !emailVerified && (
+                          <button
+                            type="button"
+                            disabled={!isEmailValid || !isPasswordValid || password !== confirmPassword || loading || otpSending}
+                            onClick={sendSupabaseSignupOtp}
+                            className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
+                          >
+                            {otpSent ? 'Resend OTP' : 'Send OTP'}
+                          </button>
+                        )}
+                        {isSupabaseEnabled && emailVerified && (
+                          <span className="text-emerald-500 font-bold text-xs flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2.5 rounded-full animate-fadeIn">
+                            ✓ Verified
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Inline OTP Field (Only visible when OTP is sent and not verified) */}
+                      {isSupabaseEnabled && otpSent && !emailVerified && (
+                        <div className="flex gap-2 items-center animate-fadeIn">
+                          <div className="flex-1">
+                            <UnderlinedInput 
+                              value={emailCode} 
+                              onChange={setEmailCode} 
+                              placeholder="6-digit OTP code" 
+                              inputMode="numeric" 
+                              isValid={emailCode.length === 6}
+                            />
                           </div>
+                          <button
+                            type="button"
+                            disabled={emailCode.length !== 6 || loading}
+                            onClick={verifySupabaseSignupOtp}
+                            className="h-14 px-6 rounded-full bg-gradient-to-r from-accent to-accent-hover text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                          >
+                            {loading ? 'Verifying...' : 'Verify'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Passwords */}
+                      <UnderlinedInput 
+                        value={password} 
+                        onChange={setPassword} 
+                        placeholder="Password" 
+                        type={showPassword ? 'text' : 'password'} 
+                        disabled={emailVerified}
+                        suffix={
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="text-zinc-500 hover:text-zinc-300 transition p-1"
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        }
+                        isValid={isPasswordValid}
+                      />
+                      
+                      <UnderlinedInput 
+                        value={confirmPassword} 
+                        onChange={setConfirmPassword} 
+                        placeholder="Confirm Password" 
+                        type={showPassword ? 'text' : 'password'} 
+                        disabled={emailVerified}
+                        isValid={confirmPassword.length > 0 && password === confirmPassword}
+                      />
+
+                      {/* Password Rules Checklist */}
+                      {!emailVerified && (
+                        <div className="space-y-1.5 pt-1">
+                          <PasswordRule met={hasMinLength} text="Least 8 characters" />
+                          <PasswordRule met={hasNumOrSymbol} text="Least one number (0-9) or a symbol" />
+                          <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
+                          {password.length > 0 && (
+                            <div className="mt-2 flex gap-1">
+                              {[hasMinLength, hasNumOrSymbol, hasMixedCase].map((met, i) => (
+                                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
-                  )}
-
-                  {/* SIGNUP STEP 2 FIELDS */}
-                  {mode === 'signup' && signupStep === 2 && (
-                    <div className="space-y-4 animate-fadeIn">
-                      <button
-                        type="button"
-                        onClick={() => setSignupStep(1)}
-                        className="flex items-center gap-1.5 text-xs text-zinc-500 font-bold hover:text-zinc-300 transition"
-                      >
-                        <ArrowLeft size={13} /> Back to account credentials
-                      </button>
-                      <ProfileSetup profile={profile} setProfile={setProfile} />
-                    </div>
                   )}
 
                   {/* SIGN IN FIELDS */}
@@ -541,29 +749,27 @@ export default function Auth() {
                         type="email" 
                         isValid={isEmailValid}
                       />
-                      {!isSupabaseEnabled && (
-                        <div className="space-y-2">
-                          <UnderlinedInput 
-                            value={password} 
-                            onChange={setPassword} 
-                            placeholder="Password" 
-                            type={showPassword ? 'text' : 'password'} 
-                            suffix={
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="text-zinc-500 hover:text-zinc-300 transition p-1"
-                              >
-                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                              </button>
-                            }
-                            isValid={password.length >= 6}
-                          />
-                          <div className="flex justify-end">
-                            <button type="button" onClick={() => switchMode('forgotPassword')} className="text-[11px] font-bold text-cyan-400 hover:underline">Forgot password?</button>
-                          </div>
+                      <div className="space-y-2">
+                        <UnderlinedInput 
+                          value={password} 
+                          onChange={setPassword} 
+                          placeholder="Password" 
+                          type={showPassword ? 'text' : 'password'} 
+                          suffix={
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="text-zinc-500 hover:text-zinc-300 transition p-1"
+                            >
+                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          }
+                          isValid={password.length >= 6}
+                        />
+                        <div className="flex justify-end">
+                          <button type="button" onClick={() => switchMode('forgotPassword')} className="text-[11px] font-bold text-cyan-400 hover:underline">Forgot password?</button>
                         </div>
-                      )}
+                      </div>
                       
                       {emailHint && (
                         <p className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs text-cyan-400 font-semibold leading-relaxed">
@@ -735,10 +941,10 @@ export default function Auth() {
                   <div className="space-y-4 mt-8 pt-2">
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || (mode === 'signup' && isSupabaseEnabled && !emailVerified)}
                       className="w-full h-14 bg-gradient-to-r from-accent via-accent-hover to-success hover:from-accent-hover hover:to-success text-white font-bold rounded-full shadow-lg shadow-accent/20 flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
                     >
-                      {loading ? 'Please wait...' : mode === 'signup' ? (signupStep === 1 ? 'Continue' : 'Complete Setup') : mode === 'login' ? 'Log In' : mode === 'guest' ? 'Enter Cafe' : mode === 'forgotPassword' ? 'Send Reset Code' : mode === 'resetPassword' ? 'Update Password' : 'Verify'}
+                      {loading ? 'Please wait...' : mode === 'signup' ? 'Complete Setup' : mode === 'login' ? 'Log In' : mode === 'guest' ? 'Enter Cafe' : mode === 'forgotPassword' ? 'Send Reset Code' : mode === 'resetPassword' ? 'Update Password' : 'Verify'}
                       <ChevronRight size={18} />
                     </button>
 
