@@ -187,8 +187,18 @@ export default function Stranger() {
     getRealtimeSocket().emit('stranger:find', { interests: [] }, handleFindAck);
   }
 
+  function cancelMatching() {
+    getRealtimeSocket().emit('stranger:leave');
+    setFinding(false);
+    setStatus(viewMode === 'video' ? 'Ready for random video' : 'Ready for random chat');
+  }
+
   function handleRandomAction() {
-    if (!session && !finding) {
+    if (finding) {
+      cancelMatching();
+      return;
+    }
+    if (!session) {
       requestFindStranger(false);
       return;
     }
@@ -271,12 +281,24 @@ export default function Stranger() {
     });
   }
 
-  async function sendFriendRequest() {
+  async function toggleFriendRequest() {
     if (me?.isGuest) {
       window.dispatchEvent(new CustomEvent('blippr:guest-expired'));
       return;
     }
-    if (!peer?._id || friendSent) return;
+    if (!peer?._id) return;
+    if (friendSent) {
+      try {
+        await api(`/api/friends/requests/sent/${peer._id}`, {
+          method: 'DELETE'
+        });
+        setFriendSent(false);
+        setStatus('Friend request cancelled.');
+      } catch (error) {
+        setStatus(error.message);
+      }
+      return;
+    }
     if (!friendUnlocked) {
       setStatus(`Talk for ${formatCountdown(friendUnlockMs)} more before sending a request.`);
       return;
@@ -510,7 +532,7 @@ export default function Stranger() {
                   <CircleControl onClick={toggleMute} disabled={!localStream} icon={muted ? MicOff : Mic} label={muted ? 'Muted' : 'Mic'} />
                   <CircleControl onClick={toggleCamera} disabled={!localStream} icon={cameraOff ? VideoOff : Video} label={cameraOff ? 'Hidden' : 'Camera'} />
                   <CircleControl onClick={switchCamera} disabled={!localStream || callState === 'idle'} icon={FlipHorizontal2} label="Flip" />
-                  <CircleControl onClick={sendFriendRequest} disabled={!peer || friendSent || (!friendUnlocked && !isGuest)} icon={friendSent ? Check : UserPlus} label={friendGateLabel} primary />
+                  <CircleControl onClick={toggleFriendRequest} disabled={!peer || (!friendSent && !friendUnlocked && !isGuest)} icon={friendSent ? Check : UserPlus} label={friendGateLabel} primary />
                   <CircleControl onClick={handleRandomAction} disabled={finding} icon={Shuffle} label="Skip" />
                 </>
               }
@@ -582,10 +604,10 @@ export default function Stranger() {
               </button>
               <button
                 type="button"
-                onClick={sendFriendRequest}
-                disabled={!peer || friendSent || (!friendUnlocked && !isGuest)}
-                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm ${friendSent || friendUnlocked || isGuest ? 'btn-primary' : 'btn-primary'}`}
-                title={isGuest ? 'Upgrade to send friend requests' : (friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request')}
+                onClick={toggleFriendRequest}
+                disabled={!peer || (!friendSent && !friendUnlocked && !isGuest)}
+                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm btn-primary`}
+                title={isGuest ? 'Upgrade to send friend requests' : friendSent ? 'Cancel friend request' : (friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request')}
               >
                 {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
                 {friendGateLabel}
@@ -686,6 +708,11 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
             {!peer && !finding && onStart && (
               <button onClick={onStart} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold">
                 Start VC
+              </button>
+            )}
+            {!peer && finding && (
+              <button onClick={handleRandomAction} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white">
+                Cancel Matching
               </button>
             )}
           </div>

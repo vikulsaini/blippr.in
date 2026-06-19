@@ -154,3 +154,33 @@ export const cancelSentFriendRequest = asyncHandler(async (req, res) => {
 
   res.json({ ok: true });
 });
+
+export const unfriend = asyncHandler(async (req, res) => {
+  const userId = req.params.userId;
+  const myId = req.user._id.toString();
+
+  // Find direct chat between these two users
+  const chat = await Chat.findOne({
+    type: 'direct',
+    members: { $all: [myId, userId] }
+  });
+
+  // Delete friend requests
+  await FriendRequest.deleteMany({
+    $or: [
+      { from: myId, to: userId },
+      { from: userId, to: myId }
+    ]
+  });
+
+  if (chat) {
+    await Chat.deleteOne({ _id: chat._id });
+    const io = req.app.get('io');
+    chat.members.forEach((memberId) => {
+      io?.to(`user:${memberId.toString()}`).emit('chat:removed', { chatId: chat._id });
+    });
+  }
+
+  res.json({ ok: true });
+});
+

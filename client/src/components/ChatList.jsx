@@ -48,6 +48,7 @@ export default function ChatList({
   loading = false
 }) {
   const [tab, setTab] = useState('chats');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [showThreadsPromo, setShowThreadsPromo] = useState(true);
   const [isGeneralOpen, setIsGeneralOpen] = useState(true);
@@ -56,7 +57,7 @@ export default function ChatList({
 
   const visibleChats = useMemo(() => {
     const scoped = chats.filter((chat) => {
-      if (tab === 'vault') return chat.archived;
+      if (tab === 'vault' || tab === 'archived') return chat.archived;
       if (tab === 'favorites') return chat.starred && !chat.archived;
       return !chat.archived;
     });
@@ -85,27 +86,10 @@ export default function ChatList({
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Collapsible Sakura Categories logic
-  const generalChannels = useMemo(() => {
-    const items = mockChannels.filter(c => c.category === 'general');
-    if (!query.trim()) return items;
-    const q = query.trim().toLowerCase();
-    return items.filter(c => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
-  }, [mockChannels, query]);
-
-  const eventChannels = useMemo(() => {
-    const items = mockChannels.filter(c => c.category === 'events');
-    if (!query.trim()) return items;
-    const q = query.trim().toLowerCase();
-    return items.filter(c => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
-  }, [mockChannels, query]);
-
   const personalChats = useMemo(() => {
     return visibleChats;
   }, [visibleChats]);
 
-  const generalUnread = useMemo(() => generalChannels.reduce((sum, c) => sum + (c.unreadCount || 0), 0), [generalChannels]);
-  const eventsUnread = useMemo(() => eventChannels.reduce((sum, c) => sum + (c.unreadCount || 0), 0), [eventChannels]);
   const personalUnread = useMemo(() => personalChats.reduce((sum, c) => sum + (c.unreadCount || 0), 0), [personalChats]);
 
   return (
@@ -122,10 +106,42 @@ export default function ChatList({
             onDelete={onDeleteSelected}
           />
         ) : (
-          <div className="flex shrink-0 items-center justify-between px-4 py-2">
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-lg font-bold tracking-tight text-text-primary">Blippr Chat</h2>
-              <ChevronDown size={15} className="text-text-muted mt-0.5" />
+          <div className="flex shrink-0 items-center justify-between px-4 py-2 relative">
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="flex items-center gap-1.5 focus:outline-none hover:opacity-80 transition cursor-pointer"
+              >
+                <h2 className="text-lg font-bold tracking-tight text-text-primary">
+                  {tab === 'archived' ? 'Archived Chats' : 'Blippr Chat'}
+                </h2>
+                <ChevronDown size={15} className="text-text-muted mt-0.5" />
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute left-0 mt-2 w-48 rounded-2xl border border-border-default bg-surface p-1 shadow-elevated z-50 animate-fadeIn">
+                    <button
+                      onClick={() => {
+                        setTab('chats');
+                        setMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'chats' ? 'bg-accent/10 text-accent' : 'text-text-primary hover:bg-surface-hover'}`}
+                    >
+                      Active Chats
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTab('archived');
+                        setMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'archived' ? 'bg-accent/10 text-accent' : 'text-text-primary hover:bg-surface-hover'}`}
+                    >
+                      Archived Chats
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -172,87 +188,7 @@ export default function ChatList({
           <ChatSkeleton />
         ) : (
           <div className="space-y-4">
-            {/* Category 1: General Lounges */}
-            <div className="space-y-1">
-              <button
-                onClick={() => setIsGeneralOpen(!isGeneralOpen)}
-                className="flex w-full items-center justify-between py-1.5 text-[11px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary transition cursor-pointer"
-              >
-                <div className="flex items-center gap-1.5">
-                  {isGeneralOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  <span>General Lounges</span>
-                </div>
-                {generalUnread > 0 && (
-                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white">
-                    {generalUnread}
-                  </span>
-                )}
-              </button>
-              <AnimatePresence initial={false}>
-                {isGeneralOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden space-y-1.5 pl-1.5 animate-collapse"
-                  >
-                    {generalChannels.map((channel) => (
-                      <MockChannelRow
-                        key={channel._id}
-                        channel={channel}
-                        typing={!!typingChats?.[channel._id]}
-                        onOpen={() => onOpenChat(channel)}
-                      />
-                    ))}
-                    {!loading && generalChannels.length === 0 && (
-                      <p className="text-xs text-text-faint py-1 pl-4">No channels found</p>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Category 2: Interest Rooms */}
-            <div className="space-y-1">
-              <button
-                onClick={() => setIsEventsOpen(!isEventsOpen)}
-                className="flex w-full items-center justify-between py-1.5 text-[11px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary transition cursor-pointer"
-              >
-                <div className="flex items-center gap-1.5">
-                  {isEventsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  <span>Interest Rooms</span>
-                </div>
-                {eventsUnread > 0 && (
-                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white">
-                    {eventsUnread}
-                  </span>
-                )}
-              </button>
-              <AnimatePresence initial={false}>
-                {isEventsOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden space-y-1.5 pl-1.5 animate-collapse"
-                  >
-                    {eventChannels.map((channel) => (
-                      <MockChannelRow
-                        key={channel._id}
-                        channel={channel}
-                        typing={!!typingChats?.[channel._id]}
-                        onOpen={() => onOpenChat(channel)}
-                      />
-                    ))}
-                    {!loading && eventChannels.length === 0 && (
-                      <p className="text-xs text-text-faint py-1 pl-4">No channels found</p>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Category 3: Direct Messages */}
+            {/* Category: Direct Messages */}
             <div className="space-y-1">
               <button
                 onClick={() => setIsPersonalOpen(!isPersonalOpen)}
@@ -546,34 +482,4 @@ function ChatRowButton({ children, onOpen, onLongSelect }) {
   );
 }
 
-function MockChannelRow({ channel, typing, onOpen }) {
-  return (
-    <article
-      onClick={onOpen}
-      className="interactive-card relative flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left md:px-3"
-    >
-      <div className="relative shrink-0">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent-light text-accent border border-border-default">
-          <Hash size={18} />
-        </div>
-        {typing && <span className="absolute bottom-0 right-0 status-dot online" />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <p className="truncate font-semibold text-text-primary text-sm">{channel.name}</p>
-          <span className="text-[10px] text-text-faint font-medium">Channel</span>
-        </div>
-        <div className="mt-0.5 flex items-center justify-between gap-3">
-          <p className={`truncate text-xs ${typing ? 'font-semibold text-accent' : channel.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
-            {typing ? 'typing...' : channel.description}
-          </p>
-          {channel.unreadCount > 0 && (
-            <span className="shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white badge-pulse">
-              {channel.unreadCount}
-            </span>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
+
