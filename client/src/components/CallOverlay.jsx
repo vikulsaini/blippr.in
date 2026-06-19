@@ -9,6 +9,24 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   const remoteAudioVideoRef = useRef(null);
   const chromeTimerRef = useRef(null);
   const [chromeVisible, setChromeVisible] = useState(true);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    if (call?.status !== 'connected') {
+      setDuration(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setDuration((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [call?.status]);
+
+  function formatCallDuration(secs) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
 
   useEffect(() => {
     if (localVideoRef.current) localVideoRef.current.srcObject = call?.localStream || null;
@@ -178,14 +196,27 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                     </div>
                   </div>
                 ) : (
-                  <div className="grid h-full place-items-center p-6 text-center">
-                    <div>
-                      <div className="relative mx-auto h-28 w-28">
-                        <span className="absolute inset-0 animate-ping rounded-full bg-success/15" />
-                        <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-slate-800 object-cover shadow-md border border-white/5" />
+                  <div className="relative grid h-full place-items-center p-6 text-center bg-slate-950 overflow-hidden">
+                    {/* Blurred background avatar */}
+                    <div className="absolute inset-0 opacity-40 blur-2xl scale-110 pointer-events-none">
+                      <img src={call.peerUser?.avatar} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col items-center">
+                      <div className="relative h-28 w-28 mb-6">
+                        <span className="absolute inset-0 animate-ping rounded-full bg-success/20" />
+                        <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-slate-800 object-cover shadow-md border-2 border-white/10" />
                       </div>
-                      <p className="mt-5 text-base font-semibold">{call.peerUser?.name || 'Blippr friend'}</p>
-                      <p className="mt-2 text-sm text-white/52">{call.status === 'reconnecting' ? 'Trying to restore connection...' : call.status === 'connected' ? 'Voice connected' : 'Waiting for answer'}</p>
+                      <p className="text-lg font-semibold text-white">{call.peerUser?.name || 'Blippr friend'}</p>
+                      <p className="mt-2 text-sm text-white/70">
+                        {call.status === 'incoming' 
+                          ? 'Incoming call...' 
+                          : call.status === 'calling' 
+                            ? 'Calling...' 
+                            : call.status === 'reconnecting' 
+                              ? 'Reconnecting...' 
+                              : 'Ringing...'}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -203,6 +234,17 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                         </span>
                       </div>
                     </div>
+
+                    {/* Premium Call Metrics & Signal Layer */}
+                    {call.status === 'connected' && (
+                      <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-[10px] font-bold text-white backdrop-blur-md">
+                        <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                        <span>HD</span>
+                        <span className="text-white/30">|</span>
+                        <span>{formatCallDuration(duration)}</span>
+                      </div>
+                    )}
+
                     <button onClick={onMinimize} className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-black/42 text-white/82 backdrop-blur-md transition hover:bg-white/12 sm:h-9 sm:w-9" aria-label="Minimize call">
                       <Minimize2 size={16} />
                     </button>
@@ -210,7 +252,13 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                 </div>
 
                 {isVideo && call.localStream && (
-                  <div className="absolute right-2 top-16 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:right-4 sm:top-20 sm:h-28 sm:w-24">
+                  <motion.div
+                    drag
+                    dragConstraints={{ left: -300, right: 0, top: 0, bottom: 500 }}
+                    dragElastic={0.15}
+                    dragMomentum={false}
+                    className="absolute right-2 top-16 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:right-4 sm:top-20 sm:h-28 sm:w-24 cursor-grab active:cursor-grabbing"
+                  >
                     {call.cameraOff ? (
                       <div className="grid h-full place-items-center text-white/45"><VideoOff size={22} /></div>
                     ) : (
@@ -219,12 +267,12 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                         autoPlay
                         muted
                         playsInline
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover select-none pointer-events-none"
                         style={{ transform: 'translate3d(0,0,0)', willChange: 'transform', backfaceVisibility: 'hidden' }}
                       />
                     )}
-                    <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">You</span>
-                  </div>
+                    <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur select-none pointer-events-none">You</span>
+                  </motion.div>
                 )}
 
                 <div className={`absolute inset-x-0 bottom-0 z-20 grid place-items-center bg-gradient-to-t from-black/82 via-black/25 to-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.65rem)] pt-12 transition duration-300 sm:px-3 ${chromeClass}`}>
