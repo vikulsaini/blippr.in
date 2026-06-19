@@ -31,7 +31,9 @@ import {
   UserCheck,
   UserX,
   FileCode,
-  TrendingDown
+  TrendingDown,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { 
   claimAdmin, 
@@ -57,6 +59,25 @@ export default function AdminDashboard() {
     if (!name) return 'AD';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
+
+  const [theme, setTheme] = useState(() => localStorage.getItem('blippr_theme') || 'light');
+
+  function toggleTheme() {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('blippr_theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark-theme');
+    } else {
+      document.documentElement.classList.remove('dark-theme');
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('blippr_token');
+    localStorage.removeItem('blippr_is_guest');
+    window.location.href = '/app';
+  }
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -95,6 +116,10 @@ export default function AdminDashboard() {
   const [files, setFiles] = useState([]);
   const [fileStats, setFileStats] = useState(null);
   const [fileTypeFilter, setFileTypeFilter] = useState('all');
+  const [fileSearch, setFileSearch] = useState('');
+
+  // Database Tab
+  const [dbSearch, setDbSearch] = useState('');
 
   // Audit Log Tab
   const [auditLogs, setAuditLogs] = useState([]);
@@ -112,6 +137,33 @@ export default function AdminDashboard() {
   const totalDuration = minuteData.reduce((sum, d) => sum + (d.responseTimeSum || 0), 0);
   const avgLatency = totalRequests > 0 ? Math.round(totalDuration / totalRequests) : 0;
   const totalErrors = minuteData.reduce((sum, d) => sum + (d.errorCount || 0), 0);
+
+  const getSearchValue = () => {
+    switch (activeTab) {
+      case 'users': return search;
+      case 'audit': return auditSearch;
+      case 'files': return fileSearch;
+      case 'database': return dbSearch;
+      default: return '';
+    }
+  };
+
+  const handleSearchChange = (val) => {
+    switch (activeTab) {
+      case 'users': setSearch(val); break;
+      case 'audit': setAuditSearch(val); break;
+      case 'files': setFileSearch(val); break;
+      case 'database': setDbSearch(val); break;
+    }
+  };
+
+  const filteredFiles = files.filter(file => 
+    file.name.toLowerCase().includes(fileSearch.toLowerCase())
+  );
+
+  const filteredDbStats = dbStats.filter(c => 
+    c.name.toLowerCase().includes(dbSearch.toLowerCase())
+  );
 
   function showToast(message, type = 'success') {
     setToast({ message, type });
@@ -439,12 +491,12 @@ export default function AdminDashboard() {
           return (
             <div key={i} className="flex flex-col items-center flex-1 group relative">
               <div className="w-3.5 flex flex-col justify-end items-center rounded-full overflow-hidden transition-all duration-500" style={{ height: `${Math.max(10, totalHeight)}px` }}>
-                {/* Segment 3: Light Purple (Top) */}
-                <div className="w-full bg-[#c7d2fe] dark:bg-indigo-900" style={{ height: `${h3}px` }} />
-                {/* Segment 2: Medium Purple (Middle) */}
-                <div className="w-full bg-[#818cf8] dark:bg-indigo-700" style={{ height: `${h2}px` }} />
-                {/* Segment 1: Dark Purple (Bottom) */}
-                <div className="w-full bg-[#6366f1] dark:bg-indigo-500" style={{ height: `${h1}px` }} />
+                {/* Segment 3: Light Green (Top) */}
+                <div className="w-full bg-accent/30 dark:bg-accent/20" style={{ height: `${h3}px` }} />
+                {/* Segment 2: Medium Green (Middle) */}
+                <div className="w-full bg-accent/60 dark:bg-accent/50" style={{ height: `${h2}px` }} />
+                {/* Segment 1: Solid Accent Green (Bottom) */}
+                <div className="w-full bg-accent dark:bg-accent/80" style={{ height: `${h1}px` }} />
               </div>
               <span className="text-[8.5px] text-text-muted font-sans mt-2">
                 {new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -479,7 +531,7 @@ export default function AdminDashboard() {
               cy="18" 
               r={radius} 
               fill="none" 
-              stroke="#6366f1" 
+              stroke="var(--accent)" 
               strokeWidth="3.5" 
               strokeDasharray="100" 
               strokeDashoffset={strokeDashoffset} 
@@ -496,7 +548,7 @@ export default function AdminDashboard() {
         <div className="space-y-4 mt-6 pt-4 border-t border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1] inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-accent inline-block" />
               <div className="text-xs">
                 <span className="font-bold text-text-primary block">Verified Users</span>
                 <span className="text-[10px] text-text-muted">ID verified members</span>
@@ -504,7 +556,7 @@ export default function AdminDashboard() {
             </div>
             <div className="text-right">
               <span className="text-xs font-black text-text-primary block">{verified}</span>
-              <span className="text-[9.5px] text-[#10b981] font-bold">+{verifiedPercent}%</span>
+              <span className="text-[9.5px] text-success font-bold">+{verifiedPercent}%</span>
             </div>
           </div>
 
@@ -518,7 +570,7 @@ export default function AdminDashboard() {
             </div>
             <div className="text-right">
               <span className="text-xs font-black text-text-primary block">{guests}</span>
-              <span className="text-[9.5px] text-[#ef4444] font-bold">-{guestPercent}%</span>
+              <span className="text-[9.5px] text-danger font-bold">-{guestPercent}%</span>
             </div>
           </div>
         </div>
@@ -530,7 +582,7 @@ export default function AdminDashboard() {
     return (
       <div className="grid h-screen place-items-center text-text-muted bg-bg">
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-[#6366f1] mx-auto mb-4" />
+          <Loader2 className="h-10 w-10 animate-spin text-accent mx-auto mb-4" />
           <p className="text-sm font-semibold tracking-wide">Connecting Dashboard Pipeline...</p>
         </div>
       </div>
@@ -539,10 +591,10 @@ export default function AdminDashboard() {
 
   if (error === 'unauthorized') {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#f3f4f6] px-4 py-12">
+      <div className="grid min-h-screen place-items-center bg-bg px-4 py-12">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-[16px] p-8 border border-border shadow-md text-center relative overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-1 bg-[#6366f1]" />
+          <div className="surface-card bg-surface rounded-[16px] p-8 border border-border shadow-elevated text-center relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-accent animate-pulse" />
             <ShieldAlert className="mx-auto h-14 w-14 text-danger mb-4 shrink-0" />
             <h2 className="text-2xl font-bold text-text-primary mb-2">Access Restrained</h2>
             <p className="text-text-muted mb-8 text-sm leading-relaxed">
@@ -554,9 +606,9 @@ export default function AdminDashboard() {
                 placeholder="Access Claim Token"
                 value={claimSecret}
                 onChange={(e) => setClaimSecret(e.target.value)}
-                className="w-full bg-[#f8f9fa] border border-border rounded-xl px-4 py-3.5 text-sm font-mono focus:outline-none focus:border-[#6366f1] text-center"
+                className="w-full bg-bg/50 border border-border rounded-xl px-4 py-3.5 text-sm font-mono focus:outline-none focus:border-accent text-center"
               />
-              <button type="submit" className="w-full py-3.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-xl font-bold text-sm tracking-wide transition-colors">
+              <button type="submit" className="w-full py-3.5 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold text-sm tracking-wide transition-colors">
                 Claim Admin Key
               </button>
             </form>
@@ -570,12 +622,12 @@ export default function AdminDashboard() {
   const flaggedUsers = users.filter(u => u.role !== 'admin' && (u.safetyViolationCount > 0 || !u.isVerified)).slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] dark:bg-[#030712] flex flex-col md:flex-row font-sans antialiased text-text-primary">
+    <div className="min-h-screen bg-bg flex flex-col md:flex-row font-sans antialiased text-text-primary">
       {/* Toast Alert */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-elevated border flex items-center gap-3 animate-fadeSlideUp ${
-          toast.type === 'error' ? 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20' : 
-          toast.type === 'info' ? 'bg-[#6366f1]/10 text-[#6366f1] border-[#6366f1]/20' : 'bg-surface text-text-primary border-border'
+          toast.type === 'error' ? 'bg-danger/10 text-danger border-danger/20' : 
+          toast.type === 'info' ? 'bg-accent/10 text-accent border-accent/20' : 'bg-surface text-text-primary border-border'
         }`}>
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="text-xs font-semibold">{toast.message}</span>
@@ -631,65 +683,86 @@ export default function AdminDashboard() {
 
         {/* Bottom Menu Items */}
         <div className="p-4 border-t border-border bg-bg/15 space-y-2">
-          <button className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-text-secondary hover:text-text-primary rounded-lg transition-colors text-left">
-            <Settings className="w-4.5 h-4.5" />
-            {!sidebarCollapsed && <span>Theme Settings</span>}
+          <button 
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-text-secondary hover:text-text-primary rounded-lg transition-colors text-left"
+            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+          >
+            {theme === 'light' ? <Moon className="w-4.5 h-4.5 text-text-faint" /> : <Sun className="w-4.5 h-4.5 text-accent" />}
+            {!sidebarCollapsed && <span>Toggle Theme ({theme === 'light' ? 'Dark' : 'Light'})</span>}
           </button>
-          <a href="/app" className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-text-secondary hover:text-text-primary rounded-lg transition-colors text-left">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-text-secondary hover:text-text-primary rounded-lg transition-colors text-left"
+          >
             <LogOut className="w-4.5 h-4.5" />
             {!sidebarCollapsed && <span>Logout</span>}
-          </a>
-
-          {!sidebarCollapsed && (
-            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border-default/40 text-left">
-              {stats?.adminUser?.avatar ? (
-                <img src={stats.adminUser.avatar} className="w-8 h-8 rounded-full object-cover border border-border" alt="" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-[#6366f1]/20 flex items-center justify-center font-bold text-xs text-[#6366f1] border border-[#6366f1]/20">
-                  {getInitials(stats?.adminUser?.name || 'Admin')}
-                </div>
-              )}
-              <div className="min-w-0 flex-1 text-left">
-                <p className="text-xs font-bold text-text-primary leading-none truncate">{stats?.adminUser?.name || 'Administrator'}</p>
-                <p className="text-[9.5px] text-text-muted truncate mt-1">{stats?.adminUser?.email || 'admin@blippr.in'}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-text-faint" />
-            </div>
-          )}
+          </button>
         </div>
+
+        {!sidebarCollapsed && (
+          <div className="p-4 border-t border-border flex items-center gap-3 text-left">
+            {stats?.adminUser?.avatar ? (
+              <img src={stats.adminUser.avatar} className="w-8 h-8 rounded-full object-cover border border-border" alt="" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-xs text-accent border border-accent/20">
+                {getInitials(stats?.adminUser?.name || 'Admin')}
+              </div>
+            )}
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-xs font-bold text-text-primary leading-none truncate">{stats?.adminUser?.name || 'Administrator'}</p>
+              <p className="text-[9.5px] text-text-muted truncate mt-1">{stats?.adminUser?.email || 'admin@blippr.in'}</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-text-faint" />
+          </div>
+        )}
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Navbar */}
-        <header className="h-16 bg-surface border-b border-border px-6 flex items-center justify-between shrink-0">
-          <div className="relative w-64 flex items-center hidden sm:flex">
-            <Search className="absolute left-3 w-4.5 h-4.5 text-text-faint" />
-            <input 
-              type="text" 
-              placeholder="What are you Looking For ?" 
-              className="w-full bg-[#f8f9fa] dark:bg-[#090d16] border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#6366f1] transition-colors"
-            />
-          </div>
+        <header className="h-16 bg-surface border-b border-border px-6 flex items-center justify-between shrink-0 animate-fadeIn">
+          {['users', 'audit', 'files', 'database'].includes(activeTab) ? (
+            <div className="relative w-64 flex items-center hidden sm:flex">
+              <Search className="absolute left-3 w-4.5 h-4.5 text-text-faint" />
+              <input 
+                type="text" 
+                placeholder={
+                  activeTab === 'users' ? 'Search accounts...' : 
+                  activeTab === 'audit' ? 'Search audit logs...' : 
+                  activeTab === 'files' ? 'Search files...' : 
+                  activeTab === 'database' ? 'Search collections...' : 
+                  'Search...'
+                }
+                value={getSearchValue()}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full bg-bg/80 border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-accent transition-colors"
+              />
+            </div>
+          ) : (
+            <div className="hidden sm:block text-xs font-bold text-text-muted uppercase tracking-wider font-mono">
+              {activeTab === 'analytics' ? 'Analytics Monitor' : 'System Broadcast'}
+            </div>
+          )}
 
           {/* Right actions */}
           <div className="flex items-center gap-4 ml-auto">
-            <button onClick={handleRefresh} className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary hover:text-[#6366f1] hover:rotate-180 duration-500">
+            <button onClick={handleRefresh} className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary hover:text-accent hover:rotate-180 duration-500" title="Refresh Panel Data">
               <RefreshCw className="w-4.5 h-4.5" />
             </button>
-            <button className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary relative">
+            <button className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary relative" title="Notifications">
               <Bell className="w-4.5 h-4.5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#6366f1] live-dot" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent live-dot" />
             </button>
-            <button className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary">
-              <Settings className="w-4.5 h-4.5" />
+            <button onClick={toggleTheme} className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary" title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}>
+              {theme === 'light' ? <Moon className="w-4.5 h-4.5 text-text-faint" /> : <Sun className="w-4.5 h-4.5 text-accent" />}
             </button>
             <div className="h-8 w-px bg-border" />
             <div className="flex items-center gap-2">
               {stats?.adminUser?.avatar ? (
                 <img src={stats.adminUser.avatar} className="w-8 h-8 rounded-full object-cover border border-border" alt="" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-[#6366f1]/20 flex items-center justify-center font-bold text-xs text-[#6366f1] border border-[#6366f1]/20">
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-xs text-accent border border-accent/20">
                   {getInitials(stats?.adminUser?.name || 'Admin')}
                 </div>
               )}
@@ -706,11 +779,42 @@ export default function AdminDashboard() {
           {/* Header Dashboard stats exactly like Nilova top bar */}
           {stats && (
             <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <NilovaMiniCard label="Registered Users" value={stats.totalUsers} icon={<Users />} percent="2.97%" growth="up" />
-              <NilovaMiniCard label="Online Now" value={stats.activeUsers} icon={<Activity />} percent="14.90%" growth="up" isAccent />
-              <NilovaMiniCard label="Total Chats" value={stats.totalChats} icon={<MessageSquare />} percent="9.75%" growth="up" />
-              <NilovaMiniCard label="Total Messages" value={stats.totalMessages} icon={<Globe />} percent="12.65%" growth="up" />
-              <NilovaMiniCard label="Cloud Storage" value={fileStats ? formatBytes(fileStats.totalSize) : '24 GB'} icon={<Folder />} percent="24.78%" growth="up" />
+              <NilovaMiniCard 
+                label="Registered Users" 
+                value={stats.totalUsers} 
+                icon={<Users />} 
+                percent={stats.totalUsers > 0 ? Math.round((stats.verifiedUsers / stats.totalUsers) * 100) + '% Ver.' : '0%'} 
+                growth="up" 
+              />
+              <NilovaMiniCard 
+                label="Online Now" 
+                value={stats.activeUsers} 
+                icon={<Activity />} 
+                percent={stats.totalUsers > 0 ? Math.round((stats.activeUsers / stats.totalUsers) * 100) + '% On.' : '0%'} 
+                growth="up" 
+                isAccent 
+              />
+              <NilovaMiniCard 
+                label="Total Chats" 
+                value={stats.totalChats} 
+                icon={<MessageSquare />} 
+                percent={stats.totalUsers > 0 ? (stats.totalChats / stats.totalUsers).toFixed(1) + '/usr' : '0/usr'} 
+                growth="up" 
+              />
+              <NilovaMiniCard 
+                label="Total Messages" 
+                value={stats.totalMessages} 
+                icon={<Globe />} 
+                percent={stats.totalChats > 0 ? (stats.totalMessages / stats.totalChats).toFixed(0) + '/chat' : '0/chat'} 
+                growth="up" 
+              />
+              <NilovaMiniCard 
+                label="Cloud Storage" 
+                value={fileStats ? formatBytes(fileStats.totalSize) : '0 B'} 
+                icon={<Folder />} 
+                percent={fileStats && fileStats.totalSize > 0 ? Math.round((fileStats.cloudinary.size / fileStats.totalSize) * 100) + '% CDN' : '0%'} 
+                growth="up" 
+              />
             </section>
           )}
 
@@ -733,24 +837,24 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between pb-3 border-b border-border">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Profile Visits & Aggregates</h3>
                     <div className="flex gap-2">
-                      <span className="text-[10.5px] bg-[#6366f1]/10 text-[#6366f1] px-2.5 py-1 rounded font-bold border border-[#6366f1]/20">Hourly Metrics</span>
+                      <span className="text-[10.5px] bg-accent/10 text-accent px-2.5 py-1 rounded font-bold border border-accent/20">Hourly Metrics</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3 mt-4 text-xs">
-                    <div className="bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl p-3 text-left">
+                    <div className="bg-bg/60 border border-border rounded-xl p-3 text-left">
                       <span className="text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">Total API Calls</span>
                       <span className="text-base font-black text-text-primary block mt-1">{totalRequests.toLocaleString()}</span>
                     </div>
-                    <div className="bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl p-3 text-left">
+                    <div className="bg-bg/60 border border-border rounded-xl p-3 text-left">
                       <span className="text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">Avg Latency</span>
-                      <span className="text-base font-black text-[#6366f1] block mt-1">{avgLatency} ms</span>
+                      <span className="text-base font-black text-accent block mt-1">{avgLatency} ms</span>
                     </div>
-                    <div className="bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl p-3 text-left">
+                    <div className="bg-bg/60 border border-border rounded-xl p-3 text-left">
                       <span className="text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">Errors (5xx)</span>
-                      <span className={`text-base font-black block mt-1 ${totalErrors > 0 ? 'text-[#ef4444]' : 'text-text-primary'}`}>{totalErrors}</span>
+                      <span className={`text-base font-black block mt-1 ${totalErrors > 0 ? 'text-danger' : 'text-text-primary'}`}>{totalErrors}</span>
                     </div>
                   </div>
-                  <div className="h-56 relative bg-[#f8f9fa] dark:bg-[#0b121f] rounded-xl border border-border p-2 mt-4">
+                  <div className="h-56 relative bg-bg/60 rounded-xl border border-border p-2 mt-4">
                     {renderStackedColumnsChart(metrics.minute, 'requestCount')}
                   </div>
                 </div>
@@ -773,7 +877,7 @@ export default function AdminDashboard() {
                       <span className="text-[9.5px] text-text-muted uppercase font-bold tracking-wider block mt-1">New Registrations</span>
                     </div>
                     <div>
-                      <span className="text-xl font-black text-[#6366f1] block leading-none">43,000</span>
+                      <span className="text-xl font-black text-accent block leading-none">43,000</span>
                       <span className="text-[9.5px] text-text-muted uppercase font-bold tracking-wider block mt-1">Growth Target</span>
                     </div>
                   </div>
@@ -782,23 +886,23 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2 pt-3 border-t border-border">
                     <div className="flex -space-x-2.5 overflow-hidden">
                       {users.slice(0, 4).map((u, i) => (
-                        <div key={i} className="inline-block h-7 w-7 rounded-full ring-2 ring-white">
+                        <div key={i} className="inline-block h-7 w-7 rounded-full ring-2 ring-surface">
                           {u.avatar ? (
                             <img src={u.avatar} className="h-full w-full rounded-full object-cover" alt="" />
                           ) : (
-                            <div className="h-full w-full rounded-full bg-indigo-200 text-indigo-800 text-[10px] font-black flex items-center justify-center">
+                            <div className="h-full w-full rounded-full bg-accent/25 text-accent text-[10px] font-black flex items-center justify-center">
                               {u.name?.charAt(0)}
                             </div>
                           )}
                         </div>
                       ))}
                       {users.length > 4 && (
-                        <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-[#e0e7ff] text-[#4f46e5] text-[10px] font-extrabold flex items-center justify-center">
+                        <div className="inline-block h-7 w-7 rounded-full ring-2 ring-surface bg-accent-light text-accent text-[10px] font-extrabold flex items-center justify-center">
                           +{users.length - 4}
                         </div>
                       )}
                     </div>
-                    <span className="text-[10px] text-accent font-bold hover:underline cursor-pointer">View Details</span>
+                    <span onClick={() => setActiveTab('users')} className="text-[10px] text-accent font-bold hover:underline cursor-pointer">View Details</span>
                   </div>
                 </div>
               </div>
@@ -813,11 +917,11 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div className="space-y-4">
-                    <ProgressItem label="Auth Services (/api/auth/*)" value={stats?.endpointPercentages?.auth ?? 0} color="bg-[#6366f1]" />
-                    <ProgressItem label="Chats Exchange (/api/chats/*)" value={stats?.endpointPercentages?.chats ?? 0} color="bg-[#8b5cf6]" />
-                    <ProgressItem label="User Services (/api/users/*)" value={stats?.endpointPercentages?.users ?? 0} color="bg-[#10b981]" />
-                    <ProgressItem label="Media Deliveries (/api/media/*)" value={stats?.endpointPercentages?.media ?? 0} color="bg-[#f59e0b]" />
-                    <ProgressItem label="WebRTC Signaling (/api/calls/*)" value={stats?.endpointPercentages?.calls ?? 0} color="bg-[#ef4444]" />
+                    <ProgressItem label="Auth Services (/api/auth/*)" value={stats?.endpointPercentages?.auth ?? 0} color="bg-accent" />
+                    <ProgressItem label="Chats Exchange (/api/chats/*)" value={stats?.endpointPercentages?.chats ?? 0} color="bg-violet-500" />
+                    <ProgressItem label="User Services (/api/users/*)" value={stats?.endpointPercentages?.users ?? 0} color="bg-success" />
+                    <ProgressItem label="Media Deliveries (/api/media/*)" value={stats?.endpointPercentages?.media ?? 0} color="bg-gold" />
+                    <ProgressItem label="WebRTC Signaling (/api/calls/*)" value={stats?.endpointPercentages?.calls ?? 0} color="bg-danger" />
                   </div>
                 </div>
 
@@ -825,7 +929,7 @@ export default function AdminDashboard() {
                 <div className="surface-card bg-surface rounded-[12px] border border-border lg:col-span-1 shadow-sm flex flex-col h-[340px]">
                   <div className="p-5 border-b border-border flex items-center justify-between bg-surface/50">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Registrations Feed</h3>
-                    <button onClick={() => setActiveTab('users')} className="text-[10px] text-[#6366f1] font-bold hover:underline">
+                    <button onClick={() => setActiveTab('users')} className="text-[10px] text-accent font-bold hover:underline">
                       See All
                     </button>
                   </div>
@@ -833,7 +937,7 @@ export default function AdminDashboard() {
                   <div className="flex-1 overflow-y-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-border bg-[#f8f9fa] dark:bg-[#0b121f] text-[9px] uppercase tracking-wider text-text-muted font-bold">
+                        <tr className="border-b border-border bg-bg/60 text-[9px] uppercase tracking-wider text-text-muted font-bold">
                           <th className="p-3 pl-4">User</th>
                           <th className="p-3">Role</th>
                           <th className="p-3 pr-4 text-right">Registered</th>
@@ -846,7 +950,7 @@ export default function AdminDashboard() {
                               {u.avatar ? (
                                 <img src={u.avatar} alt="" className="w-7 h-7 rounded-full object-cover border border-border" />
                               ) : (
-                                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-[10px] text-indigo-700">
+                                <div className="w-7 h-7 rounded-full bg-accent-light flex items-center justify-center font-bold text-[10px] text-accent">
                                   {u.name?.charAt(0)}
                                 </div>
                               )}
@@ -857,7 +961,7 @@ export default function AdminDashboard() {
                             </td>
                             <td className="p-3">
                               <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                u.role === 'admin' ? 'bg-[#ef4444]/10 text-[#ef4444]' : 'bg-[#3b82f6]/10 text-[#3b82f6]'
+                                u.role === 'admin' ? 'bg-danger/10 text-danger' : 'bg-accent/15 text-accent'
                               }`}>
                                 {u.role}
                               </span>
@@ -876,7 +980,7 @@ export default function AdminDashboard() {
                 <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm flex flex-col justify-between h-[340px] text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Suggestions for You</h3>
-                    <span className="text-[9px] text-[#6366f1] font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('users')}>See All</span>
+                    <span className="text-[9px] text-accent font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('users')}>See All</span>
                   </div>
 
                   <div className="flex-1 overflow-y-auto space-y-3 pr-1">
@@ -886,12 +990,12 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       flaggedUsers.map((fu, i) => (
-                        <div key={i} className="flex items-center justify-between gap-2.5 py-1.5 border-b border-border-default/20 last:border-b-0">
+                        <div key={i} className="flex items-center justify-between gap-2.5 py-1.5 border-b border-border last:border-b-0">
                           <div className="flex items-center gap-2 min-w-0">
                             {fu.avatar ? (
                               <img src={fu.avatar} className="w-8.5 h-8.5 rounded-full object-cover shrink-0 border border-border" alt="" />
                             ) : (
-                              <div className="w-8.5 h-8.5 rounded-full bg-indigo-150 text-indigo-700 font-bold flex items-center justify-center text-xs shrink-0">
+                              <div className="w-8.5 h-8.5 rounded-full bg-accent-light text-accent font-bold flex items-center justify-center text-xs shrink-0">
                                 {fu.name?.charAt(0)}
                               </div>
                             )}
@@ -903,7 +1007,7 @@ export default function AdminDashboard() {
 
                           <button 
                             onClick={() => toggleVerify(fu)}
-                            className="px-2.5 py-1 bg-[#6366f1] hover:bg-[#4f46e5] text-white text-[9.5px] font-bold rounded-lg transition-colors shrink-0"
+                            className="px-2.5 py-1 bg-accent hover:bg-accent-hover text-white text-[9.5px] font-bold rounded-lg transition-colors shrink-0"
                           >
                             Verify
                           </button>
@@ -970,7 +1074,7 @@ export default function AdminDashboard() {
                         placeholder="Filter accounts..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-[#f8f9fa] border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#6366f1]"
+                        className="w-full bg-bg/50 border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-accent"
                       />
                     </div>
                   </div>
@@ -998,7 +1102,7 @@ export default function AdminDashboard() {
                                 <p className="font-bold text-xs text-text-primary truncate">{u.name}</p>
                                 {u.isVerified && <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />}
                                 {u.role === 'admin' && (
-                                  <span className="bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 text-[9px] px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                  <span className="bg-danger/10 text-danger border border-danger/20 text-[9px] px-1.5 py-0.5 rounded font-black uppercase shrink-0">
                                     Admin
                                   </span>
                                 )}
@@ -1017,8 +1121,8 @@ export default function AdminDashboard() {
                               onClick={() => toggleVerify(u)}
                               className={`p-2 rounded-xl border text-[10px] font-bold transition-all ${
                                 u.isVerified 
-                                  ? 'bg-bg text-text-muted border-border hover:bg-[#ef4444]/10 hover:text-[#ef4444] hover:border-[#ef4444]/20' 
-                                  : 'bg-[#6366f1]/10 text-[#6366f1] border-[#6366f1]/20 hover:bg-[#6366f1] hover:text-white'
+                                  ? 'bg-bg text-text-muted border-border hover:bg-danger/10 hover:text-danger hover:border-danger/20' 
+                                  : 'bg-accent/10 text-accent border-accent/20 hover:bg-accent hover:text-white'
                               }`}
                               title={u.isVerified ? 'Revoke verification badge' : 'Grant verification badge'}
                             >
@@ -1027,7 +1131,7 @@ export default function AdminDashboard() {
                             
                             <button
                               onClick={() => handleRevokeSessions(u)}
-                              className="p-2 bg-surface text-text-secondary border border-border hover:border-warning hover:text-warning rounded-xl transition-all"
+                              className="p-2 bg-surface text-text-secondary border border-border hover:border-warning-border hover:text-warning-text rounded-xl transition-all"
                               title="Force Session Revocation"
                             >
                               <LogOut className="w-3.5 h-3.5" />
@@ -1038,8 +1142,8 @@ export default function AdminDashboard() {
                               disabled={u.role === 'admin'}
                               className={`p-2 border rounded-xl transition-all disabled:opacity-50 ${
                                 u.bannedUntil 
-                                  ? 'bg-[#ef4444] text-white border-[#ef4444] hover:bg-[#ef4444]/90' 
-                                  : 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20 hover:bg-[#ef4444] hover:text-white'
+                                  ? 'bg-danger text-white border-danger hover:bg-danger/90' 
+                                  : 'bg-danger/10 text-danger border-danger/20 hover:bg-danger hover:text-white'
                               }`}
                               title={u.bannedUntil ? 'Lift suspension' : 'Suspend account'}
                             >
@@ -1057,7 +1161,7 @@ export default function AdminDashboard() {
               <div className="space-y-6 md:col-span-1">
                 <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[600px] flex flex-col">
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
-                    <Activity className="w-4 h-4 text-[#6366f1]" />
+                    <Activity className="w-4 h-4 text-accent" />
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Registration Log Feed</h3>
                   </div>
 
@@ -1068,12 +1172,12 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       liveRegs.map((reg, i) => (
-                        <div key={i} className="p-3 bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl flex gap-3 animate-fadeSlideUp">
+                        <div key={i} className="p-3 bg-bg/60 border border-border rounded-xl flex gap-3 animate-fadeSlideUp">
                           {reg.avatar ? (
                             <img src={reg.avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-border" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-[#6366f1]/20 flex items-center justify-center shrink-0">
-                              <span className="text-[#6366f1] font-bold text-xs">{reg.name?.charAt(0)}</span>
+                            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+                              <span className="text-accent font-bold text-xs">{reg.name?.charAt(0)}</span>
                             </div>
                           )}
                           <div className="min-w-0 text-left">
@@ -1103,14 +1207,19 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-3">
-                    {dbStats.map((c, i) => (
-                      <div key={i} className="p-3 bg-[#f8f9fa] dark:bg-[#0b121f] border border-border hover:border-accent-ring rounded-xl transition-all">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-extrabold text-text-primary font-mono">{c.name}</span>
-                          <span className="text-[10px] bg-[#6366f1]/15 text-[#6366f1] font-bold px-2 py-0.5 rounded-full">
-                            {c.count} docs
-                          </span>
-                        </div>
+                    {filteredDbStats.length === 0 ? (
+                      <div className="text-center text-text-muted text-xs py-8">
+                        No collections found.
+                      </div>
+                    ) : (
+                      filteredDbStats.map((c, i) => (
+                        <div key={i} className="p-3 bg-bg/60 border border-border hover:border-accent-ring rounded-xl transition-all">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-extrabold text-text-primary font-mono">{c.name}</span>
+                            <span className="text-[10px] bg-accent/15 text-accent font-bold px-2 py-0.5 rounded-full">
+                              {c.count} docs
+                            </span>
+                          </div>
                         <div className="grid grid-cols-2 gap-2 mt-3 pt-2 border-t border-border-default/50 text-[10px] text-text-muted">
                           <div>
                             <span>Storage:</span>
@@ -1122,7 +1231,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    ))
+                  )}
                   </div>
                 </div>
 
@@ -1138,7 +1248,7 @@ export default function AdminDashboard() {
                       <select 
                         value={queryCollection} 
                         onChange={(e) => setQueryCollection(e.target.value)}
-                        className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-[#6366f1] outline-none"
+                        className="w-full bg-bg/50 border border-border rounded-xl px-3 py-2 text-xs focus:border-accent outline-none"
                       >
                         {dbStats.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                       </select>
@@ -1149,7 +1259,7 @@ export default function AdminDashboard() {
                       <select 
                         value={queryAction} 
                         onChange={(e) => setQueryAction(e.target.value)}
-                        className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-[#6366f1] outline-none"
+                        className="w-full bg-bg/50 border border-border rounded-xl px-3 py-2 text-xs focus:border-accent outline-none"
                       >
                         <option value="find">find()</option>
                         <option value="updateOne">updateOne()</option>
@@ -1163,7 +1273,7 @@ export default function AdminDashboard() {
                         value={queryFilter}
                         onChange={(e) => setQueryFilter(e.target.value)}
                         rows="3"
-                        className="w-full bg-[#f8f9fa] border border-border rounded-xl p-3 text-xs font-mono focus:border-[#6366f1] outline-none"
+                        className="w-full bg-bg/50 border border-border rounded-xl p-3 text-xs font-mono focus:border-accent outline-none"
                       />
                     </div>
 
@@ -1174,7 +1284,7 @@ export default function AdminDashboard() {
                           value={queryUpdate}
                           onChange={(e) => setQueryUpdate(e.target.value)}
                           rows="3"
-                          className="w-full bg-[#f8f9fa] border border-border rounded-xl p-3 text-xs font-mono focus:border-[#6366f1] outline-none"
+                          className="w-full bg-bg/50 border border-border rounded-xl p-3 text-xs font-mono focus:border-accent outline-none"
                         />
                       </div>
                     )}
@@ -1187,7 +1297,7 @@ export default function AdminDashboard() {
                             value={queryProjection}
                             onChange={(e) => setQueryProjection(e.target.value)}
                             rows="2"
-                            className="w-full bg-[#f8f9fa] border border-border rounded-xl p-2.5 text-xs font-mono focus:border-[#6366f1] outline-none"
+                            className="w-full bg-bg/50 border border-border rounded-xl p-2.5 text-xs font-mono focus:border-accent outline-none"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -1197,7 +1307,7 @@ export default function AdminDashboard() {
                               type="number" 
                               value={queryLimit}
                               onChange={(e) => setQueryLimit(Number(e.target.value))}
-                              className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-[#6366f1] outline-none"
+                              className="w-full bg-bg/50 border border-border rounded-xl px-3 py-2 text-xs focus:border-accent outline-none"
                             />
                           </div>
                           <div>
@@ -1206,7 +1316,7 @@ export default function AdminDashboard() {
                               type="number" 
                               value={querySkip}
                               onChange={(e) => setQuerySkip(Number(e.target.value))}
-                              className="w-full bg-[#f8f9fa] border border-border rounded-xl px-3 py-2 text-xs focus:border-[#6366f1] outline-none"
+                              className="w-full bg-bg/50 border border-border rounded-xl px-3 py-2 text-xs focus:border-accent outline-none"
                             />
                           </div>
                         </div>
@@ -1232,7 +1342,7 @@ export default function AdminDashboard() {
                 {queryResult || queryError ? (
                   <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[400px] flex flex-col">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider pb-3 border-b border-border mb-3">QueryResult Output</h3>
-                    <div className="flex-1 overflow-auto bg-[#f8f9fa] dark:bg-[#0b121f] p-4 rounded-xl border border-border font-mono text-xs text-text-secondary whitespace-pre-wrap">
+                    <div className="flex-1 overflow-auto bg-bg/60 p-4 rounded-xl border border-border font-mono text-xs text-text-secondary whitespace-pre-wrap">
                       {queryError && <p className="text-danger font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> {queryError}</p>}
                       {queryResult && JSON.stringify(queryResult, null, 2)}
                     </div>
@@ -1270,7 +1380,7 @@ export default function AdminDashboard() {
                           </div>
                         ))}
                         {slowQueries.map((q, idx) => (
-                          <div key={`slow-${idx}`} className="p-3 bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl">
+                          <div key={`slow-${idx}`} className="p-3 bg-bg/60 border border-border rounded-xl">
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="text-[10px] font-bold text-text-muted font-mono">{q.ns}</span>
                               <span className="text-[10px] font-extrabold text-danger">{q.durationMs}ms duration</span>
@@ -1310,13 +1420,13 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {files.length === 0 ? (
+                  {filteredFiles.length === 0 ? (
                     <div className="col-span-full py-16 text-center text-text-muted text-xs border border-dashed rounded-xl">
-                      No files found in storage.
+                      {fileSearch ? 'No files match search query.' : 'No files found in storage.'}
                     </div>
                   ) : (
-                    files.map((file, i) => (
-                      <div key={i} className="bg-[#f8f9fa] dark:bg-[#0b121f] border border-border rounded-xl p-4 flex flex-col justify-between hover:border-accent transition-all group relative">
+                    filteredFiles.map((file, i) => (
+                      <div key={i} className="bg-bg/60 border border-border rounded-xl p-4 flex flex-col justify-between hover:border-accent transition-all group relative">
                         <div className="flex gap-3">
                           <div className="w-12 h-12 rounded-xl bg-accent-light border border-accent-ring flex items-center justify-center shrink-0 overflow-hidden">
                             {file.mimeType?.startsWith('image/') ? (
@@ -1355,7 +1465,7 @@ export default function AdminDashboard() {
                             </a>
                             <button 
                               onClick={() => handleDeleteFile(file)}
-                              className="p-1.5 text-text-muted hover:text-[#ef4444] rounded-lg border border-transparent hover:border-[#ef4444]/25 transition-all"
+                              className="p-1.5 text-text-muted hover:text-danger rounded-lg border border-transparent hover:border-danger/25 transition-all"
                               title="Delete File"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1384,7 +1494,7 @@ export default function AdminDashboard() {
                     placeholder="Filter actions..."
                     value={auditSearch}
                     onChange={(e) => setAuditSearch(e.target.value)}
-                    className="w-full bg-[#f8f9fa] border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#6366f1]"
+                    className="w-full bg-bg/50 border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-accent"
                   />
                 </div>
               </div>
@@ -1449,12 +1559,12 @@ export default function AdminDashboard() {
                     value={broadcastMessage}
                     onChange={(e) => setBroadcastMessage(e.target.value)}
                     placeholder="Dispatch system transmission text..."
-                    className="w-full bg-[#f8f9fa] border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-[#6366f1] min-h-[140px] resize-none"
+                    className="w-full bg-bg/50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-accent min-h-[140px] resize-none"
                   />
                   <button
                     type="submit"
                     disabled={!broadcastMessage.trim()}
-                    className="w-full py-3.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-xl font-bold text-xs tracking-wide transition-colors flex items-center justify-center gap-2 shadow-glow"
+                    className="w-full py-3.5 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold text-xs tracking-wide transition-colors flex items-center justify-center gap-2 shadow-glow"
                   >
                     <Send className="w-4 h-4" />
                     Dispatch Global Broadcast
@@ -1477,16 +1587,16 @@ function SidebarItem({ icon, label, id, active, onClick, collapsed }) {
       onClick={() => onClick(id)}
       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-all ${
         isSelected 
-          ? 'bg-[#6366f1]/10 text-[#6366f1] font-extrabold shadow-sm' 
+          ? 'bg-accent/10 text-accent font-extrabold shadow-sm' 
           : 'text-text-secondary hover:bg-bg/50 hover:text-text-primary'
       }`}
     >
       <div className="flex items-center gap-2.5">
-        <span className={isSelected ? 'text-[#6366f1]' : 'text-text-faint'}>{icon}</span>
+        <span className={isSelected ? 'text-accent' : 'text-text-faint'}>{icon}</span>
         {!collapsed && <span>{label}</span>}
       </div>
       {!collapsed && (
-        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'text-[#6366f1] rotate-90' : 'text-text-faint opacity-0'}`} />
+        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'text-accent rotate-90' : 'text-text-faint opacity-0'}`} />
       )}
     </button>
   );
@@ -1496,15 +1606,15 @@ function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
   return (
     <div className="surface-card bg-surface p-4.5 rounded-[12px] border border-border flex flex-col justify-between text-left shadow-sm hover:shadow transition-shadow relative overflow-hidden group">
       {isAccent && (
-        <div className="absolute top-0 inset-x-0 h-[3.5px] bg-[#6366f1]" />
+        <div className="absolute top-0 inset-x-0 h-[3.5px] bg-accent" />
       )}
       <div className="flex items-center justify-between mb-3">
-        <div className="w-8 h-8 rounded-lg bg-[#f8f9fa] dark:bg-[#0b121f] flex items-center justify-center border border-border group-hover:border-accent-ring transition-colors">
-          <span className="text-text-secondary group-hover:text-[#6366f1] transition-colors">{icon}</span>
+        <div className="w-8 h-8 rounded-lg bg-bg/60 flex items-center justify-center border border-border group-hover:border-accent-ring transition-colors">
+          <span className="text-text-secondary group-hover:text-accent transition-colors">{icon}</span>
         </div>
         <div className="flex items-center gap-1">
-          <TrendingUp className="w-3.5 h-3.5 text-[#10b981]" />
-          <span className="text-[10px] text-[#10b981] font-bold">{percent}</span>
+          <TrendingUp className="w-3.5 h-3.5 text-success" />
+          <span className="text-[10px] text-success font-bold">{percent}</span>
         </div>
       </div>
       <div>
@@ -1525,7 +1635,7 @@ function ProgressItem({ label, value, color }) {
         <span className="text-text-secondary font-semibold">{label}</span>
         <span className="text-text-primary font-extrabold">{value}%</span>
       </div>
-      <div className="w-full bg-[#f8f9fa] dark:bg-[#0b121f] h-2 rounded-full border border-border overflow-hidden">
+      <div className="w-full bg-bg/60 h-2 rounded-full border border-border overflow-hidden">
         <div 
           className={`h-full rounded-full transition-all duration-700 ${color}`}
           style={{ width: `${value}%` }}
@@ -1542,8 +1652,8 @@ function FilterBtn({ label, id, current, onClick }) {
       onClick={() => onClick(id)}
       className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
         isSelected 
-          ? 'bg-[#6366f1] text-white border-[#6366f1]' 
-          : 'bg-[#f8f9fa] text-text-secondary border-border hover:bg-surface-hover hover:text-text-primary'
+          ? 'bg-accent text-white border-accent' 
+          : 'bg-bg/60 text-text-secondary border-border hover:bg-surface-hover hover:text-text-primary'
       }`}
     >
       {label}
