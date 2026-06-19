@@ -279,26 +279,25 @@ function ToolbarButton({ icon: Icon, label, onClick, danger = false }) {
 
 function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, other, onOpen, onSelect, onSetChatPreference }) {
   const x = useMotionValue(0);
-  const [activeAction, setActiveAction] = useState(null);
 
-  useEffect(() => {
-    const unsubscribe = x.on('change', (latest) => {
-      if (latest > 86) {
-        setActiveAction('archive');
-      } else if (latest < -86) {
-        setActiveAction('mute');
-      } else {
-        setActiveAction(null);
-      }
-    });
-    return () => unsubscribe();
-  }, [x]);
+  // Archive (Swipe Right): x goes from 0 to positive
+  const archiveBg = useTransform(x, [0, 86], ['rgba(16, 185, 129, 0.1)', 'rgba(16, 185, 129, 1)']);
+  const archiveColor = useTransform(x, [0, 86], ['rgba(52, 211, 153, 1)', 'rgba(255, 255, 255, 1)']);
+  const archiveOpacity = useTransform(x, [0, 15, 86], [0, 0.4, 1]);
+  const archiveScale = useTransform(x, [0, 86, 150], [0.85, 1, 1.12]);
+
+  // Mute (Swipe Left): x goes from 0 to negative
+  const muteBg = useTransform(x, [-86, 0], ['rgba(245, 158, 11, 1)', 'rgba(245, 158, 11, 0.1)']);
+  const muteColor = useTransform(x, [-86, 0], ['rgba(255, 255, 255, 1)', 'rgba(251, 191, 36, 1)']);
+  const muteOpacity = useTransform(x, [-86, -15, 0], [1, 0.4, 0]);
+  const muteScale = useTransform(x, [-150, -86, 0], [1.12, 1, 0.85]);
 
   function handleSwipeEnd(_, info) {
-    if (info.offset.x > 86) {
+    const currentX = x.get();
+    if (currentX > 86) {
       haptics.success();
       onSetChatPreference(chat, 'archive');
-    } else if (info.offset.x < -86) {
+    } else if (currentX < -86) {
       haptics.tap();
       onSetChatPreference(chat, 'mute');
     }
@@ -310,34 +309,40 @@ function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, othe
       className="relative mb-1.5 overflow-hidden rounded-2xl bg-bg"
     >
       {/* Archive Slide Action Background */}
-      <div
-        className={`absolute inset-y-0 left-0 w-1/2 flex items-center justify-start pl-4 gap-2 text-xs font-bold transition-all duration-200 rounded-l-2xl ${
-          activeAction === 'archive' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-400'
-        }`}
+      <motion.div
+        style={{
+          opacity: archiveOpacity,
+          backgroundColor: archiveBg,
+          color: archiveColor
+        }}
+        className="absolute inset-y-0 left-0 w-1/2 flex items-center justify-start pl-4 gap-2 text-xs font-bold rounded-l-2xl"
       >
         <motion.div
-          animate={activeAction === 'archive' ? { scale: 1.12 } : { scale: 1 }}
+          style={{ scale: archiveScale }}
           className="flex items-center gap-2"
         >
           <Archive size={17} />
-          <span>{activeAction === 'archive' ? 'Release to Archive' : 'Archive'}</span>
+          <span>Archive</span>
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* Mute Slide Action Background */}
-      <div
-        className={`absolute inset-y-0 right-0 w-1/2 flex items-center justify-end pr-4 gap-2 text-xs font-bold transition-all duration-200 rounded-r-2xl ${
-          activeAction === 'mute' ? 'bg-amber-500 text-white' : 'bg-amber-500/10 text-amber-400'
-        }`}
+      <motion.div
+        style={{
+          opacity: muteOpacity,
+          backgroundColor: muteBg,
+          color: muteColor
+        }}
+        className="absolute inset-y-0 right-0 w-1/2 flex items-center justify-end pr-4 gap-2 text-xs font-bold rounded-r-2xl"
       >
         <motion.div
-          animate={activeAction === 'mute' ? { scale: 1.12 } : { scale: 1 }}
+          style={{ scale: muteScale }}
           className="flex items-center gap-2"
         >
           <BellOff size={17} />
-          <span>{activeAction === 'mute' ? 'Release to Mute' : 'Mute'}</span>
+          <span>Mute</span>
         </motion.div>
-      </div>
+      </motion.div>
 
       <motion.article
         drag="x"
