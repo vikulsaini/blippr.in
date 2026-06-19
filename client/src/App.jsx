@@ -52,7 +52,7 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route
-          path="/admin"
+          path="/blippr-control-center-secure-2026"
           element={
             <PrivateRoute>
               <AdminDashboard />

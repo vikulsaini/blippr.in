@@ -51,6 +51,26 @@ async function recordLogin(req, user) {
   }
 }
 
+function notifyAdminOfNewUser(req, user) {
+  try {
+    const io = req.app?.get('io');
+    if (io) {
+      io.to('admin').emit('admin:user-registered', {
+        _id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email || '',
+        role: user.role,
+        isVerified: user.isVerified,
+        avatar: user.avatar,
+        createdAt: user.createdAt
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to emit user registration socket event:', err.message);
+  }
+}
+
 function sendAuth(res, token, user, status = 200, extra = {}) {
   setAuthCookie(res, token);
   return res.status(status).json({ ok: true, token, user, ...extra });
@@ -196,8 +216,12 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
     isGuest: false
   });
 
-  if (emailVerificationEnabled()) return sendEmailVerificationResponse(res, user, 201);
+  if (emailVerificationEnabled()) {
+    notifyAdminOfNewUser(req, user);
+    return sendEmailVerificationResponse(res, user, 201);
+  }
 
+  notifyAdminOfNewUser(req, user);
   return sendAuth(res, signJwt(user), user, 201);
 });
 
@@ -306,6 +330,7 @@ export const continueAsGuest = asyncHandler(async (req, res) => {
     ipHistory: ip ? [{ ip, at: new Date() }] : []
   });
 
+  notifyAdminOfNewUser(req, user);
   return sendAuth(res, signJwt(user), user, 201);
 });
 
@@ -376,6 +401,9 @@ export const googleLogin = asyncHandler(async (req, res) => {
     { upsert: true, new: true }
   ).select('+lastIp +ipHistory');
   await recordLogin(req, user);
+  if (user.createdAt && Date.now() - user.createdAt.getTime() < 5000) {
+    notifyAdminOfNewUser(req, user);
+  }
   return sendAuth(res, signJwt(user), user);
 });
 

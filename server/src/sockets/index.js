@@ -6,6 +6,7 @@ import { findOrQueueUser, leaveQueues } from '../services/matchmaking.service.js
 import { notifyUser } from '../services/notification.service.js';
 import { applyBlockedWords, recordSafetyViolation } from '../services/safety.service.js';
 import { socketAuth } from './auth.socket.js';
+import { redis } from '../config/redis.js';
 
 const CALL_RING_TIMEOUT_MS = 45000;
 
@@ -140,8 +141,27 @@ export function registerSockets(io) {
     const userId = socket.user._id.toString();
     const typingState = new Map();
     socket.join(`user:${userId}`);
+    
+    // Add admin to admin room
+    if (socket.user?.role === 'admin') {
+      socket.join('admin');
+    }
+
+    // Set Redis presence indicator (EX: 90 seconds)
+    try {
+      await redis.set(`user:presence:${userId}`, 'online', 'EX', 90);
+    } catch (err) {
+      console.warn('Redis presence setup warning:', err.message);
+    }
+
     await User.findByIdAndUpdate(userId, { isOnline: true, lastSeenAt: new Date() });
     socket.broadcast.emit('presence:update', { userId, isOnline: true });
+
+    socket.on('admin:join', () => {
+      if (socket.user?.role === 'admin') {
+        socket.join('admin');
+      }
+    });
 
     socket.on('chat:join', async ({ chatId }) => {
       const chat = await Chat.findOne({ _id: chatId, members: socket.user._id });
@@ -432,8 +452,18 @@ export function registerSockets(io) {
     socket.on('disconnect', async () => {
       for (const chatId of typingState.keys()) stopTyping(chatId);
       await leaveQueues(userId);
-      await User.findByIdAndUpdate(userId, { isOnline: false, lastSeenAt: new Date() });
-      socket.broadcast.emit('presence:update', { userId, isOnline: false });
+      
+      // Determine if other sockets remain connected for the same user session
+      const activeSockets = await io.in(`user:${userId}`).fetchSockets();
+      if (activeSockets.length === 0) {
+        await User.findByIdAndUpdate(userId, { isOnline: false, lastSeenAt: new Date() });
+        socket.broadcast.emit('presence:update', { userId, isOnline: false });
+        try {
+          await redis.del(`user:presence:${userId}`);
+        } catch (err) {
+          console.warn('Redis presence deletion warning:', err.message);
+        }
+      }
     });
   });
 }

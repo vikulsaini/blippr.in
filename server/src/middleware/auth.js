@@ -25,6 +25,20 @@ export async function requireAuth(req, _res, next) {
       throw error;
     }
     const payload = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Check session revocation timestamp in Redis
+    let revokedAt = null;
+    try {
+      revokedAt = await redis.get(`user_revoked_at:${payload.sub}`);
+    } catch (err) {
+      console.warn('Redis error during session revocation check:', err.message);
+    }
+    if (revokedAt && payload.iat < Number(revokedAt)) {
+      const error = new Error('Session has been revoked. Please log in again.');
+      error.status = 401;
+      throw error;
+    }
+
     const user = await User.findById(payload.sub);
     if (!user) {
       const error = new Error('User not found');

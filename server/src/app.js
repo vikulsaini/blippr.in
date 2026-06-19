@@ -18,6 +18,7 @@ import notificationRoutes from './routes/notification.routes.js';
 import callRoutes from './routes/call.routes.js';
 import configRoutes from './routes/config.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import { analyticsMiddleware } from './middleware/analytics.js';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use((req, res, next) => {
 app.use(compression());
 app.use(cors(corsOptions));
 app.use(requestContext);
+app.use(analyticsMiddleware);
 app.use(express.json({ limit: '1mb' }));
 app.use(mongoSanitize());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
