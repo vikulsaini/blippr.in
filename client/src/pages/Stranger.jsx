@@ -522,6 +522,7 @@ export default function Stranger() {
               chromeVisible={videoChromeVisible}
               onToggleFocus={() => setFocused((value) => !value)}
               onStart={() => requestFindStranger(false)}
+              onCancel={cancelMatching}
               emptyText={finding ? queueText : session ? 'Remote video appears after video is accepted' : 'Find a stranger to begin'}
               tipText={finding ? 'Tip: Stay for 3+ minutes to unlock friend request.' : ''}
               status={callState}
@@ -663,7 +664,7 @@ export default function Stranger() {
   );
 }
 
-function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, chromeVisible, onToggleFocus, emptyText, tipText, onStart, status, modeTabs, actions }) {
+function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, chromeVisible, onToggleFocus, emptyText, tipText, onStart, onCancel, status, modeTabs, actions }) {
   const stageHeight = focused || expanded ? 'h-full min-h-0' : 'h-full min-h-0';
 
   return (
@@ -710,8 +711,8 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
                 Start VC
               </button>
             )}
-            {!peer && finding && (
-              <button onClick={handleRandomAction} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white">
+            {!peer && finding && onCancel && (
+              <button onClick={onCancel} className="btn-primary mt-5 rounded-full px-5 py-3 text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white">
                 Cancel Matching
               </button>
             )}
