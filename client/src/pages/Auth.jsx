@@ -23,7 +23,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
-import { api, setToken, loginWithSupabase } from '../lib/api.js';
+import { api, setToken, loginWithSupabase, getToken } from '../lib/api.js';
 import { getAnonymousPushSubscription } from '../lib/notifications.js';
 import { supabase } from '../lib/supabase.js';
 
@@ -34,42 +34,27 @@ const SOCIAL_PROFILES = [];
 export default function Auth() {
   const isSupabaseEnabled = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
   const navigate = useNavigate();
-  const [mode, setMode] = useState('signup'); // 'signup' | 'login' | 'guest' | 'verifyEmail' | 'forgotPassword' | 'resetPassword'
-  const [signupStep, setSignupStep] = useState(1);
-  const [showPassword, setShowPassword] = useState(false);
+  
+  // Supported modes: 'login' | 'guest' | 'completeProfile' | 'forgotPassword' | 'resetPassword'
+  const [mode, setMode] = useState('login'); 
+  const [authMethod, setAuthMethod] = useState('email'); // 'email' | 'phone'
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [otpSent, setOtpSent] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
   const [supabaseAccessToken, setSupabaseAccessToken] = useState('');
-  const [googleAge, setGoogleAge] = useState('18');
-  const [googleGender, setGoogleGender] = useState('female');
-  const [googleBio, setGoogleBio] = useState('');
   const [emailCode, setEmailCode] = useState('');
   const [emailHint, setEmailHint] = useState('');
-  const [pendingEmail, setPendingEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(initialProfile);
   const [error, setError] = useState('');
   const [guestTermsAccepted, setGuestTermsAccepted] = useState(false);
-  
-  const [socialModal, setSocialModal] = useState(null); // 'Google' | null
-  const [connectingSocial, setConnectingSocial] = useState(false);
-  const [selectedSocialProfile, setSelectedSocialProfile] = useState(null);
 
   // Validation States
-  const isNameValid = profile.name.trim().length >= 2;
   const isUsernameValid = /^[a-z0-9_]{3,24}$/.test(profile.username);
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isGoogleInputValid = Number(googleAge) >= 18;
-
-  // Password rules checks
-  const hasMinLength = password.length >= 8;
-  const hasNumOrSymbol = /[\d\W]/.test(password);
-  const hasMixedCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
-  const isPasswordValid = hasMinLength && hasNumOrSymbol && hasMixedCase;
+  const isPhoneValid = /^\+?[1-9]\d{1,14}$/.test(phone.replace(/\s+/g, ''));
 
   function finishAuth(token, isGuest = false) {
     setToken(token, isGuest);
@@ -78,97 +63,79 @@ export default function Auth() {
 
   function switchMode(nextMode) {
     setMode(nextMode);
-    setSignupStep(1);
     setError('');
     setEmailHint('');
-    setConfirmPassword('');
     setOtpSent(false);
-    setEmailVerified(false);
-    setSupabaseAccessToken('');
     setEmailCode('');
+    setPhone('');
   }
 
-  function showEmailVerification(result, fallbackEmail = email) {
-    setPendingEmail(result.email || fallbackEmail);
-    setEmailHint(result.message || 'Check your email for the verification code.');
-    setEmailCode('');
-    setMode('verifyEmail');
-  }
-
-  const googleAgeRef = useRef(googleAge);
-  const googleGenderRef = useRef(googleGender);
-  const googleBioRef = useRef(googleBio);
-  const googleInitRef = useRef(false);
-
-  useEffect(() => { googleAgeRef.current = googleAge; }, [googleAge]);
-  useEffect(() => { googleGenderRef.current = googleGender; }, [googleGender]);
-  useEffect(() => { googleBioRef.current = googleBio; }, [googleBio]);
-
-  async function handleGoogleCredentialResponse(response) {
+  async function syncSupabaseSession(token) {
     setLoading(true);
     setError('');
     try {
-      const { token } = await api('/api/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({
-          idToken: response.credential,
-          age: Number(googleAgeRef.current),
-          gender: googleGenderRef.current,
-          bio: googleBioRef.current
-        })
-      });
-      finishAuth(token);
+      const result = await loginWithSupabase({ accessToken: token });
+      finishAuth(result.token);
     } catch (err) {
-      setError(err.message);
+      if (err.body && err.body.code === 'PROFILE_REQUIRED') {
+        setSupabaseAccessToken(token);
+        setMode('completeProfile');
+      } else {
+        setError(err.message || 'Failed to sync authentication session.');
+      }
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (socialModal === 'Google' && Number(googleAge) >= 18 && window.google) {
-      const timer = setTimeout(() => {
-        const btnContainer = document.getElementById('google-signin-button');
-        if (btnContainer && !googleInitRef.current) {
-          window.google.accounts.id.initialize({
-            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'replace-me.apps.googleusercontent.com',
-            callback: handleGoogleCredentialResponse
-          });
-          window.google.accounts.id.renderButton(
-            btnContainer,
-            { theme: 'outline', size: 'large', width: '320' }
-          );
-          googleInitRef.current = true;
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    } else if (!socialModal) {
-      googleInitRef.current = false;
-    }
-  }, [socialModal, googleAge]);
+    if (!isSupabaseEnabled) return;
 
-  async function sendSupabaseSignupOtp() {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED')) {
+        const hasLocalToken = Boolean(getToken());
+        // Only trigger sync if we don't have a token or if we are completing profile
+        if (!hasLocalToken) {
+          await syncSupabaseSession(session.access_token);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [isSupabaseEnabled]);
+
+  async function signInWithGoogle() {
+    setError('');
+    setLoading(true);
+    try {
+      const { error: oAuthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/auth'
+        }
+      });
+      if (oAuthError) throw oAuthError;
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
+  async function sendEmailOtp() {
     setError('');
     setOtpSending(true);
     try {
       if (!isEmailValid) {
         throw new Error('Please enter a valid email address.');
       }
-      if (!isPasswordValid) {
-        throw new Error('Please satisfy all password rules before sending OTP.');
-      }
-      if (password !== confirmPassword) {
-        throw new Error('Passwords do not match.');
-      }
-
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: email.toLowerCase(),
-        password: password
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email.toLowerCase()
       });
-      if (signUpError) throw signUpError;
-
+      if (otpError) throw otpError;
       setOtpSent(true);
-      setEmailHint('6-digit confirmation code sent to your email.');
+      setEmailHint('6-digit verification code sent to your email.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -176,255 +143,99 @@ export default function Auth() {
     }
   }
 
-  async function verifySupabaseSignupOtp() {
+  async function verifyEmailOtp() {
     setError('');
     setLoading(true);
     try {
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
         email: email.toLowerCase(),
         token: emailCode,
-        type: 'signup'
+        type: 'email'
       });
       if (verifyError) throw verifyError;
-
-      if (!data.session) {
-        throw new Error('Verification succeeded, but no session was returned. Please try logging in.');
+      if (data.session) {
+        await syncSupabaseSession(data.session.access_token);
+      } else {
+        throw new Error('Verification succeeded, but no session was returned.');
       }
-
-      setSupabaseAccessToken(data.session.access_token);
-      setEmailVerified(true);
-      setEmailHint('Email successfully verified! Click Complete Setup below to finish.');
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   }
 
-  function profilePayload() {
-    return {
-      ...profile,
-      age: Number(profile.age || ageFromDob(profile.dob) || 18),
-      dob: profile.dob || undefined,
-      interests: profile.hobbies.split(',').map((item) => item.trim()).filter(Boolean)
-    };
+  async function sendPhoneOtp() {
+    setError('');
+    setOtpSending(true);
+    try {
+      const formattedPhone = phone.trim();
+      if (!formattedPhone.startsWith('+') || formattedPhone.length < 10) {
+        throw new Error('Please enter a valid phone number with country code (e.g., +919876543210).');
+      }
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone
+      });
+      if (otpError) throw otpError;
+      setOtpSent(true);
+      setEmailHint('6-digit verification code sent to your phone.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setOtpSending(false);
+    }
   }
 
-  async function submitForm(event) {
+  async function verifyPhoneOtp() {
+    setError('');
+    setLoading(true);
+    try {
+      const formattedPhone = phone.trim();
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: emailCode,
+        type: 'sms'
+      });
+      if (verifyError) throw verifyError;
+      if (data.session) {
+        await syncSupabaseSession(data.session.access_token);
+      } else {
+        throw new Error('Verification succeeded, but no session was returned.');
+      }
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
+  async function submitCompleteProfile(event) {
     if (event) event.preventDefault();
     setError('');
-
-    if (mode === 'signup') {
-      if (!isUsernameValid) {
-        setError('Please enter a valid username (3-24 characters, lowercase, numbers, underscores).');
-        return;
-      }
-      if (!isEmailValid) {
-        setError('Please enter a valid email address.');
-        return;
-      }
-      if (!isPasswordValid) {
-        setError('Please satisfy all password requirements.');
-        return;
-      }
-      if (password !== confirmPassword) {
-        setError('Passwords do not match.');
-        return;
-      }
-      if (!profile.dob) {
-        setError('Date of birth is required.');
-        return;
-      }
-      if (ageFromDob(profile.dob) < 18) {
-        setError('You must be 18 years or older to sign up.');
-        return;
-      }
-
-      setLoading(true);
-      try {
-        if (isSupabaseEnabled) {
-          if (!emailVerified || !supabaseAccessToken) {
-            setError('Please verify your email via the OTP code first.');
-            setLoading(false);
-            return;
-          }
-
-          const result = await loginWithSupabase({
-            accessToken: supabaseAccessToken,
-            name: profile.username,
-            username: profile.username,
-            age: ageFromDob(profile.dob),
-            gender: profile.gender,
-            bio: '',
-            interests: []
-          });
-
-          finishAuth(result.token);
-          return;
-        }
-
-        // Fallback standard signup
-        let subscription = null;
-        if ('Notification' in window && Notification.permission === 'granted') {
-          subscription = await getAnonymousPushSubscription();
-        }
-        const result = await api('/api/auth/email/signup', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: profile.username,
-            username: profile.username,
-            email,
-            password,
-            age: ageFromDob(profile.dob),
-            dob: profile.dob,
-            gender: profile.gender,
-            pushSubscription: subscription
-          })
-        });
-
-        if (result.verificationRequired) {
-          showEmailVerification(result);
-          return;
-        }
-        finishAuth(result.token);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+    
+    if (!isUsernameValid) {
+      setError('Please enter a valid username (3-24 characters, lowercase, numbers, underscores).');
+      return;
+    }
+    if (!profile.dob) {
+      setError('Date of birth is required.');
+      return;
+    }
+    if (ageFromDob(profile.dob) < 18) {
+      setError('You must be 18 years or older to join.');
       return;
     }
 
-    if (mode === 'login') {
-      setLoading(true);
-      try {
-        if (isSupabaseEnabled) {
-          const { data, error: loginError } = await supabase.auth.signInWithPassword({
-            email: email.toLowerCase(),
-            password: password
-          });
-          if (loginError) throw loginError;
-
-          const accessToken = data.session.access_token;
-          const result = await loginWithSupabase({
-            accessToken,
-            name: profile.username || undefined,
-            username: profile.username || undefined,
-            age: profile.dob ? ageFromDob(profile.dob) : undefined,
-            gender: profile.gender || undefined
-          });
-          finishAuth(result.token);
-          return;
-        }
-
-        let subscription = null;
-        if ('Notification' in window && Notification.permission === 'granted') {
-          subscription = await getAnonymousPushSubscription();
-        }
-        const result = await api('/api/auth/email/login', {
-          method: 'POST',
-          body: JSON.stringify({ email, password, pushSubscription: subscription })
-        });
-        if (result.verificationRequired) {
-          showEmailVerification(result);
-          return;
-        }
-        finishAuth(result.token);
-      } catch (err) {
-        if (err.code === 'EMAIL_NOT_VERIFIED') showEmailVerification(err.body || {}, email);
-        else setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-  }
-
-  async function verifyEmail(event) {
-    event.preventDefault();
-    setError('');
     setLoading(true);
     try {
-      if (isSupabaseEnabled) {
-        const { data, error: verifyError } = await supabase.auth.verifyOtp({
-          email: (pendingEmail || email).toLowerCase(),
-          token: emailCode,
-          type: 'email'
-        });
-        if (verifyError) throw verifyError;
-
-        const accessToken = data.session.access_token;
-
-        const result = await loginWithSupabase({
-          accessToken,
-          name: profile.name,
-          username: profile.username,
-          age: Number(profile.age || 18),
-          gender: profile.gender,
-          bio: profile.bio || '',
-          interests: profile.hobbies.split(',').map((i) => i.trim()).filter(Boolean)
-        });
-
-        finishAuth(result.token);
-        return;
-      }
-
-      const { token } = await api('/api/auth/email/verify', {
-        method: 'POST',
-        body: JSON.stringify({ email: pendingEmail || email, code: emailCode })
+      const result = await loginWithSupabase({
+        accessToken: supabaseAccessToken,
+        name: profile.username,
+        username: profile.username,
+        age: ageFromDob(profile.dob),
+        gender: profile.gender,
+        bio: '',
+        interests: []
       });
-      finishAuth(token);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function resendEmailCode() {
-    setError('');
-    setEmailHint('');
-    setLoading(true);
-    try {
-      if (isSupabaseEnabled) {
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email: (pendingEmail || email).toLowerCase(),
-          options: {
-            shouldCreateUser: true
-          }
-        });
-        if (otpError) throw otpError;
-
-        setEmailHint('New verification code sent via Supabase.');
-        return;
-      }
-
-      const result = await api('/api/auth/email/resend', {
-        method: 'POST',
-        body: JSON.stringify({ email: pendingEmail || email })
-      });
-      showEmailVerification(result, pendingEmail || email);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handlePushResend() {
-    setError('');
-    setEmailHint('');
-    setLoading(true);
-    try {
-      const subscription = await getAnonymousPushSubscription();
-      if (!subscription) {
-        throw new Error('Please enable notification permissions to receive OTP via Push.');
-      }
-      const result = await api('/api/auth/email/resend', {
-        method: 'POST',
-        body: JSON.stringify({ email: pendingEmail || email, pushSubscription: subscription })
-      });
-      setEmailHint(result.message || 'Verification code sent via push notification.');
+      finishAuth(result.token);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -461,50 +272,6 @@ export default function Auth() {
     }
   }
 
-  async function submitForgotPassword(event) {
-    if (event) event.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const result = await api('/api/auth/email/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ email })
-      });
-      setEmailHint(result.message || 'Check your email for the reset code.');
-      setEmailCode('');
-      setMode('resetPassword');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function submitResetPassword(event) {
-    if (event) event.preventDefault();
-    if (!isPasswordValid) {
-      setError('Please satisfy all password requirements.');
-      return;
-    }
-    setError('');
-    setLoading(true);
-    try {
-      const result = await api('/api/auth/email/reset-password', {
-        method: 'POST',
-        body: JSON.stringify({ email, code: emailCode, password })
-      });
-      setMode('login');
-      setError('');
-      setPassword('');
-      setEmailCode('');
-      setEmailHint(result.message || 'Password reset successfully. You can now log in.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <main className="relative min-h-screen w-full bg-[#030508] text-white flex items-center justify-center p-4 md:p-8 overflow-hidden font-sans">
       {/* Top Ambient Glow Orb */}
@@ -524,7 +291,7 @@ export default function Auth() {
 
             <AnimatePresence mode="wait">
               <motion.div
-                key={mode + (mode === 'signup' ? `-step-${signupStep}` : '')}
+                key={mode}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
@@ -534,98 +301,205 @@ export default function Auth() {
                 {/* Form Headline */}
                 <div className="space-y-2 text-center">
                   <h2 className="text-3xl font-extrabold tracking-tight text-white animate-fadeIn">
-                    {mode === 'signup' ? 'Create an Account' : ''}
-                    {mode === 'login' ? 'Hi There!' : ''}
+                    {mode === 'login' ? 'Welcome to Blippr' : ''}
                     {mode === 'guest' ? 'Guest Setup' : ''}
-                    {mode === 'verifyEmail' ? 'Verify Email' : ''}
-                    {mode === 'forgotPassword' ? 'Reset Password' : ''}
-                    {mode === 'resetPassword' ? 'New Password' : ''}
+                    {mode === 'completeProfile' ? 'Complete Profile' : ''}
                   </h2>
                   <p className="text-xs font-semibold text-zinc-400 max-w-md mx-auto leading-relaxed animate-fadeIn">
-                    {mode === 'signup' && 'To create an account, provide details, verify email, and set a password.'}
-                    {mode === 'login' && 'Please enter required details.'}
+                    {mode === 'login' && 'Log in or sign up instantly via Google or OTP verification.'}
                     {mode === 'guest' && 'Enter instantly without an email address.'}
-                    {mode === 'verifyEmail' && 'Secure authentication checkpoint.'}
-                    {mode === 'forgotPassword' && 'Enter your email to receive a reset code.'}
-                    {mode === 'resetPassword' && 'Enter the 6-digit code and your new password.'}
+                    {mode === 'completeProfile' && 'Choose your unique username, gender, and date of birth to complete setup.'}
                   </p>
                 </div>
 
                 <form onSubmit={
-                  mode === 'signup' ? submitForm :
-                  mode === 'login' ? submitForm :
+                  mode === 'completeProfile' ? submitCompleteProfile :
                   mode === 'guest' ? continueAsGuest :
-                  mode === 'forgotPassword' ? submitForgotPassword :
-                  mode === 'resetPassword' ? submitResetPassword :
-                  verifyEmail
+                  (e) => e.preventDefault()
                 } className="space-y-5 pt-2">
                   
-                  {/* Social Login Buttons (Google & Apple) */}
-                  {(mode === 'login' || (mode === 'signup' && signupStep === 1)) && (
+                  {/* Google OAuth Button */}
+                  {mode === 'login' && !otpSent && (
                     <div className="space-y-5">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         {/* Google button */}
                         <button
                           type="button"
-                          onClick={() => setSocialModal('Google')}
-                          className="h-14 px-6 rounded-full border border-white/10 hover:border-accent/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white"
+                          disabled={loading}
+                          onClick={signInWithGoogle}
+                          className="h-14 px-6 rounded-full border border-white/10 hover:border-accent/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white disabled:opacity-50"
                         >
                           <GoogleIcon />
-                          <span>Google</span>
-                        </button>
-                        
-                        {/* Apple button (mock) */}
-                        <button
-                          type="button"
-                          onClick={() => alert('Apple Sign-in is coming soon!')}
-                          className="h-14 px-6 rounded-full border border-white/10 hover:border-accent/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-sm text-white"
-                        >
-                          <AppleIcon />
-                          <span>Apple</span>
+                          <span>Continue with Google</span>
                         </button>
                       </div>
 
                       {/* Divider */}
                       <div className="flex items-center gap-4 py-2">
                         <div className="h-[1px] flex-1 bg-white/10" />
-                        <span className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">Or</span>
+                        <span className="text-zinc-500 text-xs font-semibold uppercase tracking-widest">Or login/signup via</span>
                         <div className="h-[1px] flex-1 bg-white/10" />
                       </div>
                     </div>
                   )}
                   
-                  {/* SIGNUP FIELDS */}
-                  {mode === 'signup' && (
-                    <>
-                      <UnderlinedInput 
-                        value={profile.username} 
-                        onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
-                        placeholder="Username" 
-                        prefix="@"
-                        isValid={isUsernameValid}
-                        disabled={emailVerified}
-                      />
-                      
-                      {/* Gender Selector */}
-                      <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
-                        {['female', 'male'].map((value) => (
+                  {/* LOGIN WITH OTP FIELDS */}
+                  {mode === 'login' && (
+                    <div className="space-y-4">
+                      {/* Method Selector Tabs */}
+                      {!otpSent && (
+                        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
                           <button
-                            key={value}
                             type="button"
-                            disabled={emailVerified}
-                            onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'} disabled:opacity-50`}
+                            onClick={() => { setAuthMethod('email'); setError(''); }}
+                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${authMethod === 'email' ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
                           >
-                            {profile.gender === value && (
+                            {authMethod === 'email' && (
                               <motion.span
-                                layoutId="signup-gender-pill"
+                                layoutId="auth-method-pill"
                                 className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
                                 transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                               />
                             )}
-                            {value}
+                            Email Address
                           </button>
-                        ))}
+                          <button
+                            type="button"
+                            onClick={() => { setAuthMethod('phone'); setError(''); }}
+                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${authMethod === 'phone' ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                          >
+                            {authMethod === 'phone' && (
+                              <motion.span
+                                layoutId="auth-method-pill"
+                                className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
+                                transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                              />
+                            )}
+                            Phone Number
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Email Input */}
+                      {authMethod === 'email' && !otpSent && (
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1">
+                            <UnderlinedInput 
+                              value={email} 
+                              onChange={setEmail} 
+                              placeholder="Email Address" 
+                              type="email" 
+                              isValid={isEmailValid}
+                              disabled={loading || otpSending}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            disabled={!isEmailValid || loading || otpSending}
+                            onClick={sendEmailOtp}
+                            className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
+                          >
+                            {otpSending ? 'Sending...' : 'Send OTP'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Phone Input */}
+                      {authMethod === 'phone' && !otpSent && (
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1">
+                            <UnderlinedInput 
+                              value={phone} 
+                              onChange={setPhone} 
+                              placeholder="Phone Number (e.g. +919876543210)" 
+                              type="tel" 
+                              isValid={isPhoneValid}
+                              disabled={loading || otpSending}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            disabled={!isPhoneValid || loading || otpSending}
+                            onClick={sendPhoneOtp}
+                            className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
+                          >
+                            {otpSending ? 'Sending...' : 'Send OTP'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* OTP Verification Box */}
+                      {otpSent && (
+                        <div className="space-y-4 animate-fadeIn">
+                          <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
+                            {emailHint || 'Verification code sent.'}
+                          </p>
+                          <div className="flex gap-2 items-center">
+                            <div className="flex-1">
+                              <UnderlinedInput 
+                                value={emailCode} 
+                                onChange={setEmailCode} 
+                                placeholder="6-digit OTP code" 
+                                inputMode="numeric" 
+                                isValid={emailCode.length === 6}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              disabled={emailCode.length !== 6 || loading}
+                              onClick={authMethod === 'email' ? verifyEmailOtp : verifyPhoneOtp}
+                              className="h-14 px-6 rounded-full bg-gradient-to-r from-accent to-accent-hover text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                            >
+                              {loading ? 'Verifying...' : 'Verify'}
+                            </button>
+                          </div>
+                          <div className="text-center pt-2">
+                            <button
+                              type="button"
+                              onClick={() => { setOtpSent(false); setEmailCode(''); }}
+                              className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition underline"
+                            >
+                              Change {authMethod === 'email' ? 'email' : 'phone number'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* COMPLETE PROFILE FIELDS */}
+                  {mode === 'completeProfile' && (
+                    <div className="space-y-5 animate-fadeIn">
+                      <UnderlinedInput 
+                        value={profile.username} 
+                        onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
+                        placeholder="Choose Username" 
+                        prefix="@"
+                        isValid={isUsernameValid}
+                      />
+                      
+                      {/* Gender Selector */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider pl-4">Gender</label>
+                        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
+                          {['female', 'male'].map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setProfile((c) => ({ ...c, gender: value }))}
+                              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                            >
+                              {profile.gender === value && (
+                                <motion.span
+                                  layoutId="complete-gender-pill"
+                                  className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
+                                  transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                                />
+                              )}
+                              {value}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       {/* Date of Birth */}
@@ -637,146 +511,9 @@ export default function Auth() {
                           placeholder="DOB" 
                           type="date" 
                           isValid={profile.dob && ageFromDob(profile.dob) >= 18}
-                          disabled={emailVerified}
                         />
                       </div>
-
-                      {/* Email with Inline Send OTP Button */}
-                      <div className="flex gap-2 items-center">
-                        <div className="flex-1">
-                          <UnderlinedInput 
-                            value={email} 
-                            onChange={setEmail} 
-                            placeholder="Email Address" 
-                            type="email" 
-                            isValid={isEmailValid}
-                            disabled={emailVerified}
-                          />
-                        </div>
-                        {isSupabaseEnabled && !emailVerified && (
-                          <button
-                            type="button"
-                            disabled={!isEmailValid || !isPasswordValid || password !== confirmPassword || loading || otpSending}
-                            onClick={sendSupabaseSignupOtp}
-                            className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
-                          >
-                            {otpSent ? 'Resend OTP' : 'Send OTP'}
-                          </button>
-                        )}
-                        {isSupabaseEnabled && emailVerified && (
-                          <span className="text-emerald-500 font-bold text-xs flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2.5 rounded-full animate-fadeIn">
-                            ✓ Verified
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Inline OTP Field (Only visible when OTP is sent and not verified) */}
-                      {isSupabaseEnabled && otpSent && !emailVerified && (
-                        <div className="flex gap-2 items-center animate-fadeIn">
-                          <div className="flex-1">
-                            <UnderlinedInput 
-                              value={emailCode} 
-                              onChange={setEmailCode} 
-                              placeholder="6-digit OTP code" 
-                              inputMode="numeric" 
-                              isValid={emailCode.length === 6}
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            disabled={emailCode.length !== 6 || loading}
-                            onClick={verifySupabaseSignupOtp}
-                            className="h-14 px-6 rounded-full bg-gradient-to-r from-accent to-accent-hover text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
-                          >
-                            {loading ? 'Verifying...' : 'Verify'}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Passwords */}
-                      <UnderlinedInput 
-                        value={password} 
-                        onChange={setPassword} 
-                        placeholder="Password" 
-                        type={showPassword ? 'text' : 'password'} 
-                        disabled={emailVerified}
-                        suffix={
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="text-zinc-500 hover:text-zinc-300 transition p-1"
-                          >
-                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
-                        }
-                        isValid={isPasswordValid}
-                      />
-                      
-                      <UnderlinedInput 
-                        value={confirmPassword} 
-                        onChange={setConfirmPassword} 
-                        placeholder="Confirm Password" 
-                        type={showPassword ? 'text' : 'password'} 
-                        disabled={emailVerified}
-                        isValid={confirmPassword.length > 0 && password === confirmPassword}
-                      />
-
-                      {/* Password Rules Checklist */}
-                      {!emailVerified && (
-                        <div className="space-y-1.5 pt-1">
-                          <PasswordRule met={hasMinLength} text="Least 8 characters" />
-                          <PasswordRule met={hasNumOrSymbol} text="Least one number (0-9) or a symbol" />
-                          <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
-                          {password.length > 0 && (
-                            <div className="mt-2 flex gap-1">
-                              {[hasMinLength, hasNumOrSymbol, hasMixedCase].map((met, i) => (
-                                <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${met ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* SIGN IN FIELDS */}
-                  {mode === 'login' && (
-                    <>
-                      <UnderlinedInput 
-                        value={email} 
-                        onChange={setEmail} 
-                        placeholder="Email Address" 
-                        type="email" 
-                        isValid={isEmailValid}
-                      />
-                      <div className="space-y-2">
-                        <UnderlinedInput 
-                          value={password} 
-                          onChange={setPassword} 
-                          placeholder="Password" 
-                          type={showPassword ? 'text' : 'password'} 
-                          suffix={
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="text-zinc-500 hover:text-zinc-300 transition p-1"
-                            >
-                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                          }
-                          isValid={password.length >= 6}
-                        />
-                        <div className="flex justify-end">
-                          <button type="button" onClick={() => switchMode('forgotPassword')} className="text-[11px] font-bold text-cyan-400 hover:underline">Forgot password?</button>
-                        </div>
-                      </div>
-                      
-                      {emailHint && (
-                        <p className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs text-cyan-400 font-semibold leading-relaxed">
-                          {emailHint}
-                        </p>
-                      )}
-                    </>
+                    </div>
                   )}
 
                   {/* GUEST FIELDS */}
@@ -831,102 +568,6 @@ export default function Auth() {
                     </div>
                   )}
 
-                  {/* FORGOT PASSWORD FIELDS */}
-                  {mode === 'forgotPassword' && (
-                    <div className="space-y-4">
-                      <UnderlinedInput 
-                        value={email} 
-                        onChange={setEmail} 
-                        placeholder="Email Address" 
-                        type="email" 
-                        isValid={isEmailValid}
-                      />
-                    </div>
-                  )}
-
-                  {/* RESET PASSWORD FIELDS */}
-                  {mode === 'resetPassword' && (
-                    <div className="space-y-4">
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-xs font-semibold text-zinc-400 leading-relaxed transition-colors duration-[350ms]">
-                        Reset code sent to <span className="font-bold text-white">{email}</span>. Enter code:
-                      </div>
-                      <UnderlinedInput 
-                        value={emailCode} 
-                        onChange={setEmailCode} 
-                        placeholder="6-digit code" 
-                        inputMode="numeric" 
-                        isValid={emailCode.length === 6}
-                      />
-                      <UnderlinedInput 
-                        value={password} 
-                        onChange={setPassword} 
-                        placeholder="New Password" 
-                        type={showPassword ? 'text' : 'password'} 
-                        suffix={
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="text-zinc-500 hover:text-zinc-300 transition p-1"
-                          >
-                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </button>
-                        }
-                        isValid={isPasswordValid}
-                      />
-                      <div className="space-y-1.5 pt-1">
-                        <PasswordRule met={hasMinLength} text="Least 8 characters" />
-                        <PasswordRule met={hasNumOrSymbol} text="Least one number (0-9) or a symbol" />
-                        <PasswordRule met={hasMixedCase} text="Lowercase (a-z) and uppercase (A-Z)" />
-                      </div>
-                      {emailHint && (
-                        <p className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs text-cyan-400 font-semibold leading-relaxed">
-                          {emailHint}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* EMAIL VERIFICATION FIELDS */}
-                  {mode === 'verifyEmail' && (
-                    <div className="space-y-4">
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-xs font-semibold text-zinc-400 leading-relaxed transition-colors duration-[350ms]">
-                        Verification code sent to <span className="font-bold text-white">{pendingEmail || email}</span>. Enter code:
-                      </div>
-                      <UnderlinedInput 
-                        value={emailCode} 
-                        onChange={setEmailCode} 
-                        placeholder="6-digit code" 
-                        inputMode="numeric" 
-                        isValid={emailCode.length === 6}
-                      />
-                      {emailHint && (
-                        <p className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs text-cyan-400 font-semibold leading-relaxed">
-                          {emailHint}
-                        </p>
-                      )}
-                      <div className="flex flex-col gap-2 pt-2">
-                        {!isSupabaseEnabled && (
-                          <button
-                            type="button"
-                            onClick={handlePushResend}
-                            disabled={loading}
-                            className="w-full py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold rounded-2xl flex items-center justify-center gap-2 transition duration-200 text-xs active:scale-[0.98]"
-                          >
-                            🔔 Send code via Push Notification (Free)
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={resendEmailCode}
-                          disabled={loading}
-                          className="w-full py-2 px-4 text-zinc-400 hover:text-zinc-300 font-semibold text-[11px] transition"
-                        >
-                          Resend Code via Email
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {error && (
                     <motion.p 
                       initial={{ opacity: 0, y: 5 }}
@@ -937,57 +578,33 @@ export default function Auth() {
                     </motion.p>
                   )}
 
-                  {/* Actions Row: Submit Pill & Social Circles */}
-                  <div className="space-y-4 mt-8 pt-2">
-                    <button
-                      type="submit"
-                      disabled={loading || (mode === 'signup' && isSupabaseEnabled && !emailVerified)}
-                      className="w-full h-14 bg-gradient-to-r from-accent via-accent-hover to-success hover:from-accent-hover hover:to-success text-white font-bold rounded-full shadow-lg shadow-accent/20 flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
-                    >
-                      {loading ? 'Please wait...' : mode === 'signup' ? 'Complete Setup' : mode === 'login' ? 'Log In' : mode === 'guest' ? 'Enter Cafe' : mode === 'forgotPassword' ? 'Send Reset Code' : mode === 'resetPassword' ? 'Update Password' : 'Verify'}
-                      <ChevronRight size={18} />
-                    </button>
-
-                    {/* Action Links */}
-                    <div className="text-center pt-2">
-                      {mode === 'login' && (
-                        <p className="text-sm text-zinc-400">
-                          Create an account?{' '}
-                          <button type="button" onClick={() => switchMode('signup')} className="text-accent font-bold hover:underline">
-                            Sign Up
-                          </button>
-                        </p>
-                      )}
-                      {mode === 'signup' && (
-                        <p className="text-sm text-zinc-400">
-                          Have an account?{' '}
-                          <button type="button" onClick={() => switchMode('login')} className="text-cyan-400 font-bold hover:underline">
-                            Log In
-                          </button>
-                        </p>
-                      )}
-                      {(mode === 'guest' || mode === 'verifyEmail' || mode === 'forgotPassword' || mode === 'resetPassword') && (
-                        <div className="flex items-center justify-center gap-3 text-xs text-zinc-500 font-bold">
-                          <button type="button" onClick={() => switchMode('login')} className="text-cyan-400 hover:underline">Email Login</button>
-                          <span>•</span>
-                          <button type="button" onClick={() => switchMode('signup')} className="text-cyan-400 hover:underline">Email Signup</button>
-                          {mode !== 'guest' && (
-                            <>
-                              <span>•</span>
-                              <button type="button" onClick={() => switchMode('guest')} className="text-cyan-400 hover:underline">Guest Session</button>
-                            </>
-                          )}
-                        </div>
-                      )}
+                  {/* Actions Row: Submit Button (only for Guest or Complete Profile modes) */}
+                  {(mode === 'guest' || mode === 'completeProfile') && (
+                    <div className="space-y-4 mt-8 pt-2">
+                      <button
+                        type="submit"
+                        disabled={loading || (mode === 'completeProfile' && (!isUsernameValid || !profile.dob || ageFromDob(profile.dob) < 18))}
+                        className="w-full h-14 bg-gradient-to-r from-accent via-accent-hover to-success hover:from-accent-hover hover:to-success text-white font-bold rounded-full shadow-lg shadow-accent/20 flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
+                      >
+                        {loading ? 'Please wait...' : mode === 'completeProfile' ? 'Complete Registration' : 'Enter Cafe'}
+                        <ChevronRight size={18} />
+                      </button>
                     </div>
+                  )}
 
-                    {(mode === 'login' || mode === 'signup') && (
-                      <div className="text-center">
+                  {/* Mode Switching & Navigation Links */}
+                  <div className="space-y-4 pt-4">
+                    <div className="text-center">
+                      {mode === 'login' ? (
                         <button type="button" onClick={() => switchMode('guest')} className="text-xs text-zinc-500 font-bold hover:text-zinc-300 hover:underline transition">
                           Continue as Guest
                         </button>
-                      </div>
-                    )}
+                      ) : (
+                        <button type="button" onClick={() => switchMode('login')} className="text-xs text-zinc-500 font-bold hover:text-zinc-300 hover:underline transition">
+                          Return to Login
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </form>
               </motion.div>

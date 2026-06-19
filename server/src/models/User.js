@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema(
     emailVerifiedAt: Date,
     passwordHash: { type: String, select: false },
     googleId: { type: String, sparse: true, index: true },
+    supabaseId: { type: String, sparse: true, unique: true, index: true },
     isGuest: { type: Boolean, default: false },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     isVerified: { type: Boolean, default: false },

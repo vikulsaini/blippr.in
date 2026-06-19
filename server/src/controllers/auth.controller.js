@@ -491,20 +491,41 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
     throw err;
   }
 
-  const email = supabaseUser.email.toLowerCase();
+  const supabaseId = supabaseUser.id;
+  const email = supabaseUser.email ? supabaseUser.email.toLowerCase() : null;
+  const phone = supabaseUser.phone || null;
 
-  // Find or create user in MongoDB
-  let user = await User.findOne({ email }).select('+lastIp +ipHistory');
+  // Find user by supabaseId first
+  let user = await User.findOne({ supabaseId }).select('+lastIp +ipHistory');
+
+  // If not found, try by email or phone to link legacy/different-auth accounts
+  if (!user) {
+    if (email) {
+      user = await User.findOne({ email }).select('+lastIp +ipHistory');
+    }
+    if (!user && phone) {
+      user = await User.findOne({ contact: phone }).select('+lastIp +ipHistory');
+    }
+
+    // Link the supabaseId if the user was found via email/phone fallback
+    if (user) {
+      user.supabaseId = supabaseId;
+      if (email && !user.email) user.email = email;
+      if (phone && !user.contact) user.contact = phone;
+      await user.save();
+    }
+  }
+
   let isNewUser = false;
 
   if (!user) {
-    isNewUser = true;
-
-    // Validate that we have the required profile fields for a new signup
-    if (!name || !username || !age || !gender) {
-      const err = new Error('Profile details (name, username, age, gender) are required to complete signup.');
-      err.status = 400;
-      throw err;
+    // We need to create a new user. Check if required profile fields are present.
+    if (!username || !age || !gender) {
+      return res.status(400).json({
+        ok: false,
+        code: 'PROFILE_REQUIRED',
+        message: 'Profile details (username, age, gender) are required to complete signup.'
+      });
     }
 
     const usernameExists = await User.exists({ username: username.toLowerCase() });
@@ -514,23 +535,26 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
       throw err;
     }
 
+    isNewUser = true;
     user = await User.create({
-      name,
-      email,
+      supabaseId,
+      name: name || username,
+      email: email || undefined,
+      contact: phone || undefined,
       username: username.toLowerCase(),
       age: Number(age),
       gender,
       avatar: avatarForGender(gender, username),
       bio: bio || '',
       interests: interests || [],
-      emailVerifiedAt: new Date(),
+      emailVerifiedAt: email ? new Date() : undefined,
       isGuest: false
     });
 
     notifyAdminOfNewUser(req, user);
   } else {
-    // User already exists, ensure emailVerifiedAt is set
-    if (!user.emailVerifiedAt) {
+    // Ensure emailVerifiedAt is populated if they logged in with verified email/phone
+    if (email && !user.emailVerifiedAt) {
       user.emailVerifiedAt = new Date();
       await user.save();
     }
