@@ -31,6 +31,16 @@ export default function ConversationTimeline({
     ? timeline.filter((item) => item.kind === 'message' && `${item.message.text || ''} ${item.message.media?.name || ''}`.toLowerCase().includes(normalizedSearch))
     : timeline;
 
+  const lastSeenMessageId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (normalizeId(m.sender) === myId && m.status === 'seen') {
+        return m._id;
+      }
+    }
+    return null;
+  }, [messages, myId]);
+
   async function copyMessage(message) {
     const value = message.text || message.media?.url || '';
     if (!value) return;
@@ -51,16 +61,6 @@ export default function ConversationTimeline({
       </>
     );
   }
-
-  const lastSeenMessageId = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (normalizeId(m.sender) === myId && m.status === 'seen') {
-        return m._id;
-      }
-    }
-    return null;
-  }, [messages, myId]);
 
   return (
     <>
