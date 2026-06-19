@@ -475,6 +475,11 @@ export const supabaseAuthSchema = Joi.object({
 });
 
 export const supabaseLogin = asyncHandler(async (req, res) => {
+  if (!supabase) {
+    const err = new Error('Supabase integration is not configured on the server');
+    err.status = 503;
+    throw err;
+  }
   const { accessToken, name, username, age, gender, bio, interests } = req.body;
 
   // Verify access token with Supabase Auth
