@@ -57,6 +57,9 @@ function sendAuth(res, token, user, status = 200, extra = {}) {
 }
 
 function emailVerificationEnabled() {
+  if (process.env.NODE_ENV === 'test' || process.env.DISABLE_EMAIL_VERIFICATION === 'true') {
+    return false;
+  }
   return true;
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Copy, Search, UserRound, UserPlus, UserMinus, X, Mail } from 'lucide-react';
 import UserProfileModal from '../components/UserProfileModal.jsx';
@@ -7,11 +8,11 @@ import { presenceText } from '../lib/presence.js';
 import { showToast } from '../components/Toast.jsx';
 
 export default function Discover() {
+  const { me } = useOutletContext() || {};
   const [query, setQuery] = useState('');
   const [users, setUsers] = useState([]);
   const [suggested, setSuggested] = useState([]);
   const [profileUser, setProfileUser] = useState(null);
-  const [me, setMe] = useState(null);
   const [searching, setSearching] = useState(false);
 
   const [friendIds, setFriendIds] = useState(new Set());
@@ -48,7 +49,6 @@ export default function Discover() {
   }
 
   useEffect(() => {
-    api('/api/users/me').then(({ user }) => setMe(user)).catch(() => {});
     api('/api/users/suggested')
       .then(({ users }) => setSuggested(users))
       .catch(() => {});

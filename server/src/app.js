@@ -25,7 +25,9 @@ app.set('trust proxy', 1);
 app.use(
   helmet({
     frameguard: { action: 'deny' },
-    crossOriginResourcePolicy: false
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false
   })
 );
 app.use((req, res, next) => {

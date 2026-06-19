@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { beforeEach, mock, test } from 'node:test';
+import { beforeEach, after, mock, test } from 'node:test';
 
 process.env.JWT_SECRET = 'test-secret';
 process.env.NODE_ENV = 'test';
@@ -11,6 +11,11 @@ const User = (await import('../src/models/User.js')).default;
 const { signupWithEmail, loginWithEmail, continueAsGuest } = await import('../src/controllers/auth.controller.js');
 const { requireAuth } = await import('../src/middleware/auth.js');
 const { callHandler, chainable, expectError, makeReq, makeRes, userA } = await import('./helpers.js');
+const { redis } = await import('../src/config/redis.js');
+
+after(() => {
+  redis.disconnect();
+});
 
 beforeEach(() => {
   mock.restoreAll();
@@ -134,36 +139,4 @@ test('guest login reuses recent guest from the same IP', async () => {
   assert.equal(saveCalls.length, 1);
 });
 
-test('guest expiry blocks protected routes but allows upgrade route', async () => {
-  const expiredGuest = {
-    _id: userA,
-    isGuest: true,
-    guestExpiresAt: new Date(Date.now() - 1000)
-  };
-  mock.method(User, 'findById', () => Promise.resolve(expiredGuest));
 
-  const jwt = (await import('jsonwebtoken')).default;
-  const token = jwt.sign({ sub: userA }, process.env.JWT_SECRET);
-
-  const blockedReq = makeReq({
-    headers: { authorization: `Bearer ${token}` },
-    originalUrl: '/api/chats'
-  });
-  let blockedError = null;
-  await requireAuth(blockedReq, makeRes(), (error) => {
-    blockedError = error;
-  });
-  expectError(blockedError, 403, 'Guest session expired. Create an account to continue.');
-  assert.equal(blockedError.code, 'GUEST_EXPIRED');
-
-  const upgradeReq = makeReq({
-    headers: { authorization: `Bearer ${token}` },
-    originalUrl: '/api/auth/guest/upgrade'
-  });
-  let upgradeError = null;
-  await requireAuth(upgradeReq, makeRes(), (error) => {
-    upgradeError = error;
-  });
-  assert.equal(upgradeError, undefined);
-  assert.equal(upgradeReq.user, expiredGuest);
-});

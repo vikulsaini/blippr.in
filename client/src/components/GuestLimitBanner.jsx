@@ -2,18 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { Clock3, X } from 'lucide-react';
 import { api } from '../lib/api.js';
 
-export default function GuestLimitBanner() {
+export default function GuestLimitBanner({ me }) {
   const [guestExpiresAt, setGuestExpiresAt] = useState(null);
   const [hidden, setHidden] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    api('/api/users/me')
-      .then(({ user }) => {
-        if (user?.isGuest && user.guestExpiresAt) setGuestExpiresAt(user.guestExpiresAt);
-      })
-      .catch(() => {});
-  }, []);
+    if (me?.isGuest && me.guestExpiresAt) {
+      setGuestExpiresAt(me.guestExpiresAt);
+    } else {
+      setGuestExpiresAt(null);
+    }
+  }, [me]);
 
   useEffect(() => {
     if (!guestExpiresAt) return undefined;

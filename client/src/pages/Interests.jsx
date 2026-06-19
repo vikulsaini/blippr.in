@@ -1,25 +1,21 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Save, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { showToast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 
 export default function Interests() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [interestsText, setInterestsText] = useState('');
+  const { me, setMe } = useOutletContext() || {};
+  const [loading, setLoading] = useState(!me);
+  const [interestsText, setInterestsText] = useState(me?.interests?.join(', ') || '');
 
   useEffect(() => {
-    async function load() {
-      const { user } = await api('/api/users/me');
-      setInterestsText(user.interests?.join(', ') || '');
+    if (me) {
+      setInterestsText(me.interests?.join(', ') || '');
       setLoading(false);
     }
-    load().catch((err) => {
-      showToast(err.message, 'error');
-      setLoading(false);
-    });
-  }, []);
+  }, [me]);
 
   async function saveInterests(event) {
     if (event) event.preventDefault();
@@ -34,12 +30,13 @@ export default function Interests() {
         return;
       }
 
-      await api('/api/users/me', {
+      const { user: updated } = await api('/api/users/me', {
         method: 'PATCH',
         body: JSON.stringify({
           interests: interestsArray
         })
       });
+      setMe?.(updated);
       showToast('Interests saved successfully', 'success');
       navigate('/app/profile');
     } catch (err) {

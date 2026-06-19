@@ -1,39 +1,39 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Ban, LockKeyhole, Save, Shield, Unlock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { showToast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 
 export default function PrivacySettings() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [showLastSeen, setShowLastSeen] = useState(true);
-  const [readReceipts, setReadReceipts] = useState(true);
+  const { me, setMe } = useOutletContext() || {};
+  const [loading, setLoading] = useState(!me);
+  const [showLastSeen, setShowLastSeen] = useState(me?.privacy?.showLastSeen !== false);
+  const [readReceipts, setReadReceipts] = useState(me?.privacy?.readReceipts !== false);
   const [vaultPassword, setVaultPassword] = useState('');
   const [blockedUsers, setBlockedUsers] = useState([]);
 
   useEffect(() => {
-    async function load() {
-      const [{ user }, { users: blocked }] = await Promise.all([
-        api('/api/users/me'),
-        api('/api/safety/blocked')
-      ]);
-      setShowLastSeen(user.privacy?.showLastSeen !== false);
-      setReadReceipts(user.privacy?.readReceipts !== false);
-      setBlockedUsers(blocked);
+    if (me) {
+      setShowLastSeen(me.privacy?.showLastSeen !== false);
+      setReadReceipts(me.privacy?.readReceipts !== false);
       setLoading(false);
     }
-    load().catch((err) => {
-      showToast(err.message, 'error');
-      setLoading(false);
-    });
+  }, [me]);
+
+  useEffect(() => {
+    async function loadBlocked() {
+      const { users: blocked } = await api('/api/safety/blocked');
+      setBlockedUsers(blocked);
+    }
+    loadBlocked().catch((err) => showToast(err.message, 'error'));
   }, []);
 
   async function savePrivacy(event) {
     if (event) event.preventDefault();
     try {
-      await api('/api/users/me', {
+      const { user: updated } = await api('/api/users/me', {
         method: 'PATCH',
         body: JSON.stringify({
           privacy: {
@@ -42,6 +42,7 @@ export default function PrivacySettings() {
           }
         })
       });
+      setMe?.(updated);
       showToast('Privacy settings saved successfully', 'success');
       navigate('/app/profile');
     } catch (err) {

@@ -152,7 +152,7 @@ export default function Shell() {
           className={`flex min-h-0 flex-1 flex-col ${navHidden || isChats || isRandom ? 'overflow-hidden pb-0' : 'overflow-y-auto overscroll-contain scrollbar-thin pb-24 md:pb-0'} ${isChats ? '-mx-3 md:mx-0' : ''}`}
         >
           {!bottomNavHidden && !isRandom && <SocketStateBanner />}
-          {!bottomNavHidden && !isRandom && <GuestLimitBanner />}
+          {!bottomNavHidden && !isRandom && <GuestLimitBanner me={me} />}
           <div className={isChats || isRandom ? 'min-h-0 flex-1' : 'mx-auto w-full max-w-6xl'}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -163,14 +163,14 @@ export default function Shell() {
                 transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
                 className={isChats || isRandom ? 'min-h-0 h-full' : ''}
               >
-                <Outlet context={{ setBottomNavHidden }} />
+                <Outlet context={{ setBottomNavHidden, me, setMe }} />
               </motion.div>
             </AnimatePresence>
           </div>
         </section>
       </div>
       {!isChats && <GlobalIncomingCall />}
-      <GuestUpgradeModal />
+      <GuestUpgradeModal me={me} />
       <ToastProvider />
       {!navHidden && (
         <nav className="safe-bottom premium-nav fixed inset-x-3 bottom-2 z-20 mx-auto max-w-[22rem] rounded-3xl px-2 pt-1 backdrop-blur-sm md:hidden">

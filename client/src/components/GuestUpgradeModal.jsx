@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { LockKeyhole, Mail, Save } from 'lucide-react';
 import { api, setToken } from '../lib/api.js';
 
-export default function GuestUpgradeModal() {
+export default function GuestUpgradeModal({ me }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -20,13 +20,11 @@ export default function GuestUpgradeModal() {
   useEffect(() => {
     const show = () => setOpen(true);
     window.addEventListener('blippr:guest-expired', show);
-    api('/api/users/me')
-      .then(({ user }) => {
-        if (user?.isGuest && user.guestExpiresAt && new Date(user.guestExpiresAt).getTime() < Date.now()) setOpen(true);
-      })
-      .catch(() => {});
+    if (me?.isGuest && me.guestExpiresAt && new Date(me.guestExpiresAt).getTime() < Date.now()) {
+      setOpen(true);
+    }
     return () => window.removeEventListener('blippr:guest-expired', show);
-  }, []);
+  }, [me]);
 
   if (!open) return null;
 

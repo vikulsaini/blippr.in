@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Ban, Bell, Camera, ChevronRight, Database, FileText, LockKeyhole, LogOut, MapPin, Music, Save, Settings, Shield, Smartphone, Trash2, Unlock, UserRound, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import ConfirmSheet from '../components/ConfirmSheet.jsx';
 import InstallAppButton from '../components/InstallAppButton.jsx';
 import { showToast } from '../components/Toast.jsx';
@@ -14,7 +14,8 @@ import { loadSoundPrefs, mediaToSound, packSound, saveSoundPrefs, setSoundPrefer
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { me, setMe } = useOutletContext() || {};
+  const [user, setUser] = useState(me);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [form, setForm] = useState({ name: '', username: '', age: '', gender: 'female', bio: '', avatar: '', showLastSeen: true, readReceipts: true, blockedWords: '' });
   const [message, setMessage] = useState('');
@@ -41,26 +42,28 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    async function load() {
-      const [{ user: currentUser }, { users: blocked }] = await Promise.all([
-        api('/api/users/me'),
-        api('/api/safety/blocked')
-      ]);
-      setUser(currentUser);
-      setBlockedUsers(blocked);
+    if (me) {
+      setUser(me);
       setForm({
-        name: currentUser.name || '',
-        username: currentUser.isGuest ? '' : (currentUser.username || ''),
-        age: currentUser.age || '',
-        gender: currentUser.gender || 'female',
-        bio: currentUser.bio || '',
-        avatar: currentUser.avatar || '',
-        showLastSeen: currentUser.privacy?.showLastSeen !== false,
-        readReceipts: currentUser.privacy?.readReceipts !== false,
-        blockedWords: currentUser.safety?.blockedWords?.join(', ') || ''
+        name: me.name || '',
+        username: me.isGuest ? '' : (me.username || ''),
+        age: me.age || '',
+        gender: me.gender || 'female',
+        bio: me.bio || '',
+        avatar: me.avatar || '',
+        showLastSeen: me.privacy?.showLastSeen !== false,
+        readReceipts: me.privacy?.readReceipts !== false,
+        blockedWords: me.safety?.blockedWords?.join(', ') || ''
       });
     }
-    load().catch((err) => setMessage(err.message));
+  }, [me]);
+
+  useEffect(() => {
+    async function loadBlocked() {
+      const { users: blocked } = await api('/api/safety/blocked');
+      setBlockedUsers(blocked);
+    }
+    loadBlocked().catch((err) => setMessage(err.message));
   }, []);
 
   useEffect(() => {
@@ -105,6 +108,7 @@ export default function SettingsPage() {
         body: JSON.stringify(payload)
       });
       setUser(updated);
+      setMe?.(updated);
       showToast('Profile saved', 'success');
       if (updated.username && !updated.isGuest) {
         setForm((curr) => ({ ...curr, username: updated.username }));
@@ -206,6 +210,7 @@ export default function SettingsPage() {
       });
       setField('avatar', media.url);
       setUser(updated);
+      setMe?.(updated);
       showToast('Profile photo updated', 'success');
     } catch (err) {
       showToast(err.message, 'error');

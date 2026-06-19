@@ -1,36 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Camera, Save, UserRound } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { showToast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 
 export default function EditProfile() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [form, setForm] = useState({ name: '', username: '', age: '', gender: 'female', bio: '', avatar: '' });
-  const [loading, setLoading] = useState(true);
+  const { me, setMe } = useOutletContext() || {};
+  const [user, setUser] = useState(me);
+  const [form, setForm] = useState({
+    name: me?.name || '',
+    username: me?.isGuest ? '' : (me?.username || ''),
+    age: me?.age || '',
+    gender: me?.gender || 'female',
+    bio: me?.bio || '',
+    avatar: me?.avatar || ''
+  });
+  const [loading, setLoading] = useState(!me);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
   useEffect(() => {
-    async function load() {
-      const { user: currentUser } = await api('/api/users/me');
-      setUser(currentUser);
+    if (me) {
+      setUser(me);
       setForm({
-        name: currentUser.name || '',
-        username: currentUser.isGuest ? '' : (currentUser.username || ''),
-        age: currentUser.age || '',
-        gender: currentUser.gender || 'female',
-        bio: currentUser.bio || '',
-        avatar: currentUser.avatar || ''
+        name: me.name || '',
+        username: me.isGuest ? '' : (me.username || ''),
+        age: me.age || '',
+        gender: me.gender || 'female',
+        bio: me.bio || '',
+        avatar: me.avatar || ''
       });
       setLoading(false);
     }
-    load().catch((err) => {
-      showToast(err.message, 'error');
-      setLoading(false);
-    });
-  }, []);
+  }, [me]);
 
   function setField(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -52,12 +55,13 @@ export default function EditProfile() {
         body: formData
       });
       
-      await api('/api/users/me', {
+      const { user: updated } = await api('/api/users/me', {
         method: 'PATCH',
         body: JSON.stringify({ avatar: media.url })
       });
       
       setField('avatar', media.url);
+      setMe?.(updated);
       showToast('Profile photo updated', 'success');
     } catch (err) {
       showToast(err.message, 'error');
@@ -84,10 +88,11 @@ export default function EditProfile() {
         payload.username = form.username;
       }
       
-      await api('/api/users/me', {
+      const { user: updated } = await api('/api/users/me', {
         method: 'PATCH',
         body: JSON.stringify(payload)
       });
+      setMe?.(updated);
       showToast('Profile saved successfully', 'success');
       navigate('/app/profile');
     } catch (err) {

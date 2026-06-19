@@ -1,23 +1,20 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Heart, MapPin, Shield, UserRound, LogOut, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { showToast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { me } = useOutletContext() || {};
+  const [user, setUser] = useState(me);
   const [message, setMessage] = useState('');
   const [showPromo, setShowPromo] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const { user: currentUser } = await api('/api/users/me');
-      setUser(currentUser);
-    }
-    load().catch((err) => setMessage(err.message));
-  }, []);
+    if (me) setUser(me);
+  }, [me]);
 
   async function handleLogout() {
     try {

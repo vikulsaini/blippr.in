@@ -17,9 +17,8 @@ import { getRealtimeSocket } from '../lib/realtime.js';
 export default function Chats() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { setBottomNavHidden } = useOutletContext() || {};
+  const { setBottomNavHidden, me, setMe } = useOutletContext() || {};
   const tokenUserId = normalizeId(getTokenSubject());
-  const [me, setMe] = useState(() => readCache('me', 'global'));
   const [chats, setChats] = useState(() => friendChats(readCache('chats', tokenUserId, [])));
   const [activeChat, setActiveChat] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
@@ -141,22 +140,21 @@ export default function Chats() {
 
     async function load() {
       setLoadingChats(true);
-      const [{ user }, activeData, archivedData] = await Promise.all([
-        api('/api/users/me'),
+      const [activeData, archivedData] = await Promise.all([
         api('/api/chats'),
         api('/api/chats?archived=true')
       ]);
       const loadedChats = [...(activeData.chats || []), ...(archivedData.chats || [])]
         .filter(isFriendChat)
         .filter((chat, index, all) => all.findIndex((item) => item._id === chat._id) === index);
-      setMe(user);
       setChats(loadedChats);
-      writeCache('me', user, 'global');
-      writeCache('chats', loadedChats, user._id);
+      if (me) {
+        writeCache('chats', loadedChats, me._id);
+      }
       setLoadingChats(false);
     }
     load().catch(() => setLoadingChats(false));
-  }, [tokenUserId]);
+  }, [tokenUserId, me]);
 
   useEffect(() => {
     const requestedChatId = new URLSearchParams(location.search).get('chat');

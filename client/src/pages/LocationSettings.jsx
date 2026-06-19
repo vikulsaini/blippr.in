@@ -1,26 +1,22 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MapPin, RefreshCw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { showToast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 
 export default function LocationSettings() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const { me, setMe } = useOutletContext() || {};
+  const [loading, setLoading] = useState(!me);
+  const [user, setUser] = useState(me);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      const { user: currentUser } = await api('/api/users/me');
-      setUser(currentUser);
+    if (me) {
+      setUser(me);
       setLoading(false);
     }
-    load().catch((err) => {
-      showToast(err.message, 'error');
-      setLoading(false);
-    });
-  }, []);
+  }, [me]);
 
   async function refreshLocation() {
     if (!navigator.geolocation) {
@@ -41,6 +37,7 @@ export default function LocationSettings() {
             })
           });
           setUser(updated);
+          setMe?.(updated);
           showToast('Location updated for random rooms', 'success');
         } catch (err) {
           showToast(err.message, 'error');
