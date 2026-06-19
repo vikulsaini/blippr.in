@@ -37,12 +37,12 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     });
   }, []);
 
-  function resetComposer() {
+  const resetComposer = useCallback(() => {
     setReplyTo(null);
     setText('');
-  }
+  }, []);
 
-  function handleTextChange(value) {
+  const handleTextChange = useCallback((value) => {
     setText(value);
     if (!activeChat || activeChat.isMock) return;
 
@@ -54,7 +54,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
         socket.emit('typing:stop', { chatId: activeChat._id });
       }, 900);
     }
-  }
+  }, [activeChat]);
 
   useEffect(() => {
     activeChatIdRef.current = activeChat?._id || null;
@@ -185,20 +185,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     };
   }, [activeChat]);
 
-  useEffect(() => {
-    function retry() {
-      flushRetryQueue().catch(() => {});
-    }
-    window.addEventListener('online', retry);
-    window.addEventListener('blippr:socket-state', retry);
-    retry();
-    return () => {
-      window.removeEventListener('online', retry);
-      window.removeEventListener('blippr:socket-state', retry);
-    };
-  }, [currentUserId]);
-
-  async function flushRetryQueue() {
+  const flushRetryQueue = useCallback(async () => {
     if (retryingRef.current || !navigator.onLine) return;
     const queue = readRetryQueue();
     if (!queue.length) return;
@@ -217,9 +204,22 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     }
     writeRetryQueue(remaining);
     retryingRef.current = false;
-  }
+  }, []);
 
-  async function sendMessage(event) {
+  useEffect(() => {
+    function retry() {
+      flushRetryQueue().catch(() => {});
+    }
+    window.addEventListener('online', retry);
+    window.addEventListener('blippr:socket-state', retry);
+    retry();
+    return () => {
+      window.removeEventListener('online', retry);
+      window.removeEventListener('blippr:socket-state', retry);
+    };
+  }, [flushRetryQueue]);
+
+  const sendMessage = useCallback(async (event) => {
     event.preventDefault();
     if (!activeChat || !text.trim()) return;
     const messageText = text.trim();
@@ -262,9 +262,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       writeRetryQueue([...readRetryQueue().filter((item) => item.tempId !== tempId), queued]);
       setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: navigator.onLine ? 'failed' : 'queued' } : item)));
     }
-  }
+  }, [activeChat, text, replyTo, currentUserId, setChats, handleTextChange]);
 
-  async function sendMedia(file, metadata = {}) {
+  const sendMedia = useCallback(async (file, metadata = {}) => {
     if (!activeChat || !file) return;
     const kind = file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : 'file';
     const previewUrl = URL.createObjectURL(file);
@@ -319,9 +319,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
       throw new Error(err.message || 'Could not send media. Check storage setup or try a smaller file.');
     }
-  }
+  }, [activeChat, currentUserId, setChats]);
 
-  async function sendLocation({ latitude, longitude, accuracy, live = false, durationMs = 15 * 60 * 1000 }) {
+  const sendLocation = useCallback(async ({ latitude, longitude, accuracy, live = false, durationMs = 15 * 60 * 1000 }) => {
     if (!activeChat) return null;
     const tempId = `temp-location-${Date.now()}`;
     const now = new Date();
@@ -364,9 +364,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
       throw new Error(err.message || 'Could not share location');
     }
-  }
+  }, [activeChat, currentUserId, setChats]);
 
-  async function updateLiveLocation(messageId, { latitude, longitude, accuracy, ended = false }) {
+  const updateLiveLocation = useCallback(async (messageId, { latitude, longitude, accuracy, ended = false }) => {
     if (!activeChat || !messageId) return null;
     const { message } = await api(`/api/chats/${activeChat._id}/messages/${messageId}/location`, {
       method: 'PATCH',
@@ -374,18 +374,17 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     });
     setMessages((current) => current.map((item) => (item._id === message._id ? message : item)));
     return message;
-  }
+  }, [activeChat]);
 
-  async function reactToMessage(messageId, emoji) {
+  const reactToMessage = useCallback(async (messageId, emoji) => {
     const { message } = await api(`/api/chats/${activeChat._id}/messages/${messageId}/reactions`, {
       method: 'POST',
       body: JSON.stringify({ emoji })
     });
     setMessages((current) => current.map((item) => (item._id === messageId ? message : item)));
-  }
+  }, [activeChat]);
 
-  async function editMessage(messageId, nextText) {
-    const previous = messages;
+  const editMessage = useCallback(async (messageId, nextText) => {
     setMessages((current) => current.map((message) => (message._id === messageId ? { ...message, text: nextText, editedAt: new Date().toISOString() } : message)));
     try {
       const { message } = await api(`/api/chats/${activeChat._id}/messages/${messageId}`, {
@@ -394,11 +393,12 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       });
       setMessages((current) => current.map((item) => (item._id === messageId ? message : item)));
     } catch {
-      setMessages(previous);
+      // Revert if request fails
+      setMessages((current) => current.map((message) => (message._id === messageId ? { ...message, text: message.text } : message)));
     }
-  }
+  }, [activeChat]);
 
-  async function deleteMessage(messageId, scope = 'me') {
+  const deleteMessage = useCallback(async (messageId, scope = 'me') => {
     const previous = messages;
     setMessages((current) => current.filter((message) => message._id !== messageId));
     try {
@@ -406,9 +406,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     } catch {
       setMessages(previous);
     }
-  }
+  }, [activeChat, messages]);
 
-  async function reportMessage(message) {
+  const reportMessage = useCallback(async (message) => {
     const other = getOtherMember(activeChat, currentUserId);
     if (!other) return;
     await api('/api/safety/report', {
@@ -422,7 +422,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
         notes: `Message ${message._id}: ${message.text || '[media]'}`
       })
     });
-  }
+  }, [activeChat, currentUserId]);
 
   return {
     messages,

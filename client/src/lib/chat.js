@@ -20,12 +20,18 @@ export function getNickname(chat, currentUserId, user) {
 }
 
 export function sortChats(chats) {
-  const getSortDate = (c) => {
-    if (c.lastMessage?.createdAt) return new Date(c.lastMessage.createdAt);
-    if (c.createdAt) return new Date(c.createdAt);
-    return new Date(0);
+  const getSortDateString = (c) => {
+    return c.lastMessage?.createdAt || c.createdAt || '1970-01-01T00:00:00.000Z';
   };
-  return [...chats].sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || getSortDate(b) - getSortDate(a));
+  return [...chats].sort((a, b) => {
+    const pinDiff = Number(Boolean(b.pinned)) - Number(Boolean(a.pinned));
+    if (pinDiff !== 0) return pinDiff;
+    const dateA = getSortDateString(a);
+    const dateB = getSortDateString(b);
+    if (dateA < dateB) return 1;
+    if (dateA > dateB) return -1;
+    return 0;
+  });
 }
 
 export function getMessageSenderId(message) {

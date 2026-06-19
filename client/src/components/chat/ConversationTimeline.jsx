@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, Clock, Eye, Send, Copy, Edit3, Flag, MapPin, MessageCircle, Phone, PhoneMissed, Reply, Trash2, Video, X } from 'lucide-react';
 import { normalizeId } from '../../lib/chat.js';
@@ -52,9 +52,15 @@ export default function ConversationTimeline({
     );
   }
 
-  const lastSeenMessageId = [...messages]
-    .reverse()
-    .find((m) => normalizeId(m.sender) === myId && m.status === 'seen')?._id;
+  const lastSeenMessageId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (normalizeId(m.sender) === myId && m.status === 'seen') {
+        return m._id;
+      }
+    }
+    return null;
+  }, [messages, myId]);
 
   return (
     <>
