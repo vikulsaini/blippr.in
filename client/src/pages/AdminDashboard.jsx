@@ -23,6 +23,7 @@ import {
   Slash,
   LogOut,
   Maximize2,
+  Download,
   ChevronRight,
   TrendingUp,
   Settings,
@@ -55,6 +56,8 @@ import {
 } from '../lib/api.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 import BrandLogo from '../components/BrandLogo.jsx';
+import { motion } from 'framer-motion';
+import { API_URL } from '../lib/config.js';
 
 export default function AdminDashboard() {
   const getInitials = (name) => {
@@ -63,6 +66,69 @@ export default function AdminDashboard() {
   };
 
   const [theme, setTheme] = useState(() => localStorage.getItem('blippr_theme') || 'light');
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(() => {
+    return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone;
+  });
+
+  useEffect(() => {
+    // Dynamic manifest swap for separate Admin PWA download
+    const origManifest = document.querySelector('link[rel="manifest"]');
+    const origHref = origManifest ? origManifest.getAttribute('href') : null;
+
+    let adminManifest = document.querySelector('link[id="admin-manifest"]');
+    if (!adminManifest) {
+      adminManifest = document.createElement('link');
+      adminManifest.id = 'admin-manifest';
+      adminManifest.rel = 'manifest';
+      adminManifest.href = '/admin.webmanifest';
+      if (origManifest) {
+        origManifest.remove();
+      }
+      document.head.appendChild(adminManifest);
+    }
+
+    // PWA Install prompt listener
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true);
+      setInstallPrompt(null);
+      showToast('Admin Control Center installed successfully!', 'success');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+
+      // Restore main application manifest
+      if (adminManifest) {
+        adminManifest.remove();
+      }
+      if (origHref) {
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = origHref;
+        document.head.appendChild(link);
+      }
+    };
+  }, []);
+
+  async function handleInstallAdminApp() {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      showToast('Installing Admin App...', 'info');
+    }
+    setInstallPrompt(null);
+  }
 
   function toggleTheme() {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
@@ -96,7 +162,19 @@ export default function AdminDashboard() {
   };
 
   // Sidebar collapse
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+        setSidebarCollapsed(true);
+      } else if (window.innerWidth >= 1024) {
+        setSidebarCollapsed(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Toasts
   const [toast, setToast] = useState(null);
@@ -735,6 +813,16 @@ export default function AdminDashboard() {
 
         {/* Bottom Menu Items */}
         <div className="p-4 border-t border-border bg-bg/15 space-y-2">
+          {!isAppInstalled && (
+            <button 
+              onClick={handleInstallAdminApp}
+              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-accent hover:text-white hover:bg-accent rounded-lg transition-all text-left"
+              title="Install standalone Admin App"
+            >
+              <Download className="w-4.5 h-4.5" />
+              {!sidebarCollapsed && <span>Install Admin App</span>}
+            </button>
+          )}
           <button 
             onClick={toggleTheme}
             className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-text-secondary hover:text-text-primary rounded-lg transition-colors text-left"
@@ -780,7 +868,7 @@ export default function AdminDashboard() {
             className="p-2 hover:bg-bg/60 rounded-xl text-text-secondary hover:text-text-primary transition-colors md:hidden mr-2 shrink-0"
             title="Open Menu"
           >
-            <Menu className="w-5.5 h-5.5" />
+            <Menu className="w-5 h-5" />
           </button>
 
           {/* Breadcrumb Title on Mobile */}
@@ -794,7 +882,7 @@ export default function AdminDashboard() {
 
           {['users', 'audit', 'files', 'database'].includes(activeTab) ? (
             <div className="relative w-64 flex items-center hidden sm:flex">
-              <Search className="absolute left-3 w-4.5 h-4.5 text-text-faint" />
+              <Search className="absolute left-3 w-5 h-5 text-text-faint" />
               <input 
                 type="text" 
                 placeholder={
@@ -818,14 +906,14 @@ export default function AdminDashboard() {
           {/* Right actions */}
           <div className="flex items-center gap-4 ml-auto">
             <button onClick={handleRefresh} className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary hover:text-accent hover:rotate-180 duration-500" title="Refresh Panel Data">
-              <RefreshCw className="w-4.5 h-4.5" />
+              <RefreshCw className="w-5 h-5" />
             </button>
             <button className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary relative" title="Notifications">
-              <Bell className="w-4.5 h-4.5" />
+              <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent live-dot" />
             </button>
             <button onClick={toggleTheme} className="p-2 hover:bg-bg rounded-lg transition-all text-text-secondary" title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}>
-              {theme === 'light' ? <Moon className="w-4.5 h-4.5 text-text-faint" /> : <Sun className="w-4.5 h-4.5 text-accent" />}
+              {theme === 'light' ? <Moon className="w-5 h-5 text-text-faint" /> : <Sun className="w-5 h-5 text-accent" />}
             </button>
             <div className="h-8 w-px bg-border" />
             <div className="flex items-center gap-2">
@@ -848,7 +936,7 @@ export default function AdminDashboard() {
         <div className="flex-1 p-6 space-y-6 overflow-y-auto">
           {/* Header Dashboard stats exactly like Nilova top bar */}
           {stats && (
-            <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               <NilovaMiniCard 
                 label="Registered Users" 
                 value={stats.totalUsers} 
@@ -895,7 +983,7 @@ export default function AdminDashboard() {
               {/* Live Real-time Telemetry Monitor */}
               <div className="grid md:grid-cols-2 gap-6 animate-fadeIn">
                 {/* Latency Wave Chart */}
-                <div className="surface-card bg-[#090D16] border-[#1e293b] p-5 rounded-[12px] shadow-sm text-left flex flex-col justify-between">
+                <div className="bg-[#090D16] border border-[#1e293b] p-5 rounded-[12px] shadow-sm text-left flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between pb-3 border-b border-[#1e293b] mb-4">
                       <div className="flex items-center gap-2">
@@ -928,8 +1016,21 @@ export default function AdminDashboard() {
                             <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
                           </linearGradient>
                         </defs>
-                        <path d={areaPath} fill="url(#liveGradient)" className="transition-all duration-300" />
-                        <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" className="transition-all duration-300" />
+                        <motion.path 
+                          d={areaPath} 
+                          fill="url(#liveGradient)" 
+                          animate={{ d: areaPath }}
+                          transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+                        />
+                        <motion.path 
+                          d={linePath} 
+                          fill="none" 
+                          stroke="var(--accent)" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          animate={{ d: linePath }}
+                          transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+                        />
                       </svg>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xs text-slate-500 font-mono">
@@ -940,7 +1041,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* HTTP Status Bar Chart */}
-                <div className="surface-card bg-[#090D16] border-[#1e293b] p-5 rounded-[12px] shadow-sm text-left flex flex-col justify-between">
+                <div className="bg-[#090D16] border border-[#1e293b] p-5 rounded-[12px] shadow-sm text-left flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between pb-3 border-b border-[#1e293b] mb-4">
                       <div className="flex items-center gap-2">
@@ -992,9 +1093,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* Donut, Bar Chart & Sidebar Grid */}
-              <div className="grid lg:grid-cols-4 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* Audience Reached Donut Chart */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm text-left">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Audience Reached</h3>
                     <MoreHorizontal className="w-4 h-4 text-text-faint" />
@@ -1003,7 +1104,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Profile Visits Stacked Column Bar Chart */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-2 shadow-sm flex flex-col justify-between text-left">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-2 lg:col-span-2 shadow-sm flex flex-col justify-between text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Profile Visits & Aggregates</h3>
                     <div className="flex gap-2">
@@ -1030,7 +1131,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Growth Drive Widget */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm text-left flex flex-col justify-between h-full">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left flex flex-col justify-between h-full">
                   <div>
                     <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
                       <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Growth Drive</h3>
@@ -1078,9 +1179,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* Lower Section: Traffic Sources + Table + Suggestions */}
-              <div className="grid lg:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Left Traffic Progress Bars */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm text-left">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Traffic Endpoints</h3>
                     <MoreHorizontal className="w-4 h-4 text-text-faint" />
@@ -1096,7 +1197,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Center Registrations Table */}
-                <div className="surface-card bg-surface rounded-[12px] border border-border lg:col-span-1 shadow-sm flex flex-col h-[340px]">
+                <div className="surface-card bg-surface rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm flex flex-col h-[340px]">
                   <div className="p-5 border-b border-border flex items-center justify-between bg-surface/50">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Registrations Feed</h3>
                     <button onClick={() => setActiveTab('users')} className="text-[10px] text-accent font-bold hover:underline">
@@ -1104,8 +1205,8 @@ export default function AdminDashboard() {
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto">
-                    <table className="w-full text-left border-collapse">
+                  <div className="flex-1 overflow-auto scrollbar-thin">
+                    <table className="w-full min-w-[340px] text-left border-collapse">
                       <thead>
                         <tr className="border-b border-border bg-bg/60 text-[9px] uppercase tracking-wider text-text-muted font-bold">
                           <th className="p-3 pl-4">User</th>
@@ -1147,7 +1248,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Right Suggestions widget (Flagged Accounts Audit) */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border lg:col-span-1 shadow-sm flex flex-col justify-between h-[340px] text-left">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-2 lg:col-span-1 shadow-sm flex flex-col justify-between h-[340px] text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Suggestions for You</h3>
                     <span className="text-[9px] text-accent font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('users')}>See All</span>
@@ -1163,9 +1264,9 @@ export default function AdminDashboard() {
                         <div key={i} className="flex items-center justify-between gap-2.5 py-1.5 border-b border-border last:border-b-0">
                           <div className="flex items-center gap-2 min-w-0">
                             {fu.avatar ? (
-                              <img src={fu.avatar} className="w-8.5 h-8.5 rounded-full object-cover shrink-0 border border-border" alt="" />
+                              <img src={fu.avatar} className="w-10 h-10 rounded-full object-cover shrink-0 border border-border" alt="" />
                             ) : (
-                              <div className="w-8.5 h-8.5 rounded-full bg-accent-light text-accent font-bold flex items-center justify-center text-xs shrink-0">
+                              <div className="w-10 h-10 rounded-full bg-accent-light text-accent font-bold flex items-center justify-center text-xs shrink-0">
                                 {fu.name?.charAt(0)}
                               </div>
                             )}
@@ -1189,7 +1290,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Live scrolling API activity feed exactly like a Nilova card */}
-              <div className="surface-card bg-[#090D16] border-[#1e293b] p-5 rounded-[12px] overflow-hidden flex flex-col h-[320px]">
+              <div className="bg-[#090D16] border border-[#1e293b] p-5 rounded-[12px] overflow-hidden flex flex-col h-[320px]">
                 <div className="flex items-center justify-between pb-3 border-b border-[#1e293b] mb-4">
                   <div className="flex items-center gap-2">
                     <span className="status-dot online animate-pulse" />
@@ -1234,7 +1335,7 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-3 gap-6 text-left">
               {/* User management list */}
               <div className="md:col-span-2 space-y-4">
-                <div className="surface-card bg-surface rounded-[12px] border border-border shadow-sm overflow-hidden flex flex-col h-[600px]">
+                <div className="surface-card bg-surface rounded-[12px] border border-border shadow-sm overflow-hidden flex flex-col h-[500px] md:h-[600px]">
                   <div className="p-5 border-b border-border flex items-center gap-4 justify-between bg-surface/50">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Account Registry</h3>
                     <div className="relative w-56 flex items-center">
@@ -1254,7 +1355,7 @@ export default function AdminDashboard() {
                       <div className="p-8 text-center text-text-muted text-xs">No accounts match search query.</div>
                     ) : (
                       users.map((u) => (
-                        <div key={u._id} className="p-4 flex items-center justify-between hover:bg-bg/25 transition-colors">
+                        <div key={u._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-bg/25 transition-colors">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="relative">
                               {u.avatar ? (
@@ -1286,7 +1387,7 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 self-end sm:self-auto">
                             <button
                               onClick={() => toggleVerify(u)}
                               className={`p-2 rounded-xl border text-[10px] font-bold transition-all ${
@@ -1329,7 +1430,7 @@ export default function AdminDashboard() {
 
               {/* Side feeds */}
               <div className="space-y-6 md:col-span-1">
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[600px] flex flex-col">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[500px] md:h-[600px] flex flex-col">
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
                     <Activity className="w-4 h-4 text-accent" />
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Registration Log Feed</h3>
@@ -1371,7 +1472,7 @@ export default function AdminDashboard() {
             <div className="space-y-6 text-left">
               <div className="grid md:grid-cols-3 gap-6">
                 {/* Collection stats summary */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm md:col-span-1 h-[600px] overflow-y-auto">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm md:col-span-1 h-[500px] md:h-[600px] overflow-y-auto">
                   <div className="pb-3 border-b border-border mb-4">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Collections Stats</h3>
                   </div>
@@ -1407,12 +1508,12 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* JSON query builder */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm md:col-span-2 flex flex-col h-[600px]">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm md:col-span-2 flex flex-col h-[500px] md:h-[600px]">
                   <div className="pb-3 border-b border-border flex items-center justify-between mb-4">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">JSON Query Dispatcher</h3>
                   </div>
 
-                  <form onSubmit={handleExecuteQuery} className="grid grid-cols-2 gap-4 flex-1 overflow-y-auto pr-1">
+                  <form onSubmit={handleExecuteQuery} className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 overflow-auto pr-1 scrollbar-thin">
                     <div>
                       <label className="block text-[10px] font-bold text-text-secondary mb-1.5 uppercase">Collection</label>
                       <select 
@@ -1510,7 +1611,7 @@ export default function AdminDashboard() {
               {/* Query output and Profiler */}
               <div className="grid md:grid-cols-2 gap-6">
                 {queryResult || queryError ? (
-                  <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[400px] flex flex-col">
+                  <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[350px] md:h-[400px] flex flex-col">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider pb-3 border-b border-border mb-3">QueryResult Output</h3>
                     <div className="flex-1 overflow-auto bg-bg/60 p-4 rounded-xl border border-border font-mono text-xs text-text-secondary whitespace-pre-wrap">
                       {queryError && <p className="text-danger font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> {queryError}</p>}
@@ -1518,13 +1619,13 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ) : (
-                  <div className="surface-card bg-surface p-5 rounded-[12px] border border-border border-dashed h-[400px] flex flex-col justify-center items-center text-text-muted text-xs shadow-sm">
+                  <div className="surface-card bg-surface p-5 rounded-[12px] border border-border border-dashed h-[350px] md:h-[400px] flex flex-col justify-center items-center text-text-muted text-xs shadow-sm">
                     Awaiting query execution...
                   </div>
                 )}
 
                 {/* Slow running queries & bottlenecks */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[400px] flex flex-col">
+                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[350px] md:h-[400px] flex flex-col">
                   <div className="pb-3 border-b border-border mb-3 flex items-center justify-between">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Profiling & Slow Queries</h3>
                     <span className="text-[9px] bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">slowms &gt; 100ms</span>
@@ -1589,61 +1690,64 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredFiles.length === 0 ? (
                     <div className="col-span-full py-16 text-center text-text-muted text-xs border border-dashed rounded-xl">
                       {fileSearch ? 'No files match search query.' : 'No files found in storage.'}
                     </div>
                   ) : (
-                    filteredFiles.map((file, i) => (
-                      <div key={i} className="bg-bg/60 border border-border rounded-xl p-4 flex flex-col justify-between hover:border-accent transition-all group relative">
-                        <div className="flex gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-accent-light border border-accent-ring flex items-center justify-center shrink-0 overflow-hidden">
-                            {file.mimeType?.startsWith('image/') ? (
-                              <img src={file.url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <Folder className="w-5 h-5 text-accent" />
-                            )}
+                    filteredFiles.map((file, i) => {
+                      const fileUrl = file.url?.startsWith('/') ? `${API_URL}${file.url}` : file.url;
+                      return (
+                        <div key={i} className="bg-bg/60 border border-border rounded-xl p-4 flex flex-col justify-between hover:border-accent transition-all group relative">
+                          <div className="flex gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-accent-light border border-accent-ring flex items-center justify-center shrink-0 overflow-hidden">
+                              {file.mimeType?.startsWith('image/') ? (
+                                <img src={fileUrl} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <Folder className="w-5 h-5 text-accent" />
+                              )}
+                            </div>
+                            <div className="min-w-0 text-left">
+                              <p className="text-xs font-bold text-text-primary truncate" title={file.name}>
+                                {file.name}
+                              </p>
+                              <p className="text-[10px] text-text-muted truncate mt-0.5">
+                                {formatBytes(file.size)} • {file.mimeType || 'unknown'}
+                              </p>
+                              <span className="text-[9px] bg-surface border border-border px-2 py-0.5 rounded-full inline-block mt-2 font-mono">
+                                {file.provider}
+                              </span>
+                            </div>
                           </div>
-                          <div className="min-w-0 text-left">
-                            <p className="text-xs font-bold text-text-primary truncate" title={file.name}>
-                              {file.name}
-                            </p>
-                            <p className="text-[10px] text-text-muted truncate mt-0.5">
-                              {formatBytes(file.size)} • {file.mimeType || 'unknown'}
-                            </p>
-                            <span className="text-[9px] bg-surface border border-border px-2 py-0.5 rounded-full inline-block mt-2 font-mono">
-                              {file.provider}
-                            </span>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border-default/40">
-                          <span className="text-[9px] text-text-faint font-mono">
-                            {new Date(file.uploadedAt).toLocaleDateString()}
-                          </span>
-                          
-                          <div className="flex items-center gap-1">
-                            <a 
-                              href={file.url} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="p-1.5 text-text-muted hover:text-accent rounded-lg border border-transparent hover:border-accent transition-all"
-                              title="Preview File"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </a>
-                            <button 
-                              onClick={() => handleDeleteFile(file)}
-                              className="p-1.5 text-text-muted hover:text-danger rounded-lg border border-transparent hover:border-danger/25 transition-all"
-                              title="Delete File"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-border-default/40">
+                            <span className="text-[9px] text-text-faint font-mono">
+                              {new Date(file.uploadedAt).toLocaleDateString()}
+                            </span>
+                            
+                            <div className="flex items-center gap-1">
+                              <a 
+                                href={fileUrl} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="p-1.5 text-text-muted hover:text-accent rounded-lg border border-transparent hover:border-accent transition-all"
+                                title="Preview File"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </a>
+                              <button 
+                                onClick={() => handleDeleteFile(file)}
+                                className="p-1.5 text-text-muted hover:text-danger rounded-lg border border-transparent hover:border-danger/25 transition-all"
+                                title="Delete File"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -1652,7 +1756,7 @@ export default function AdminDashboard() {
 
           {/* MODULE 5: AUDIT LOGS */}
           {activeTab === 'audit' && (
-            <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm flex flex-col h-[600px] text-left">
+            <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm flex flex-col h-[500px] md:h-[600px] text-left">
               <div className="border-b border-border pb-4 mb-4 flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Operations Audit Trail</h3>
@@ -1774,7 +1878,7 @@ function SidebarItem({ icon, label, id, active, onClick, collapsed }) {
 
 function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
   return (
-    <div className="surface-card bg-surface p-4.5 rounded-[12px] border border-border flex flex-col justify-between text-left shadow-sm hover:shadow transition-shadow relative overflow-hidden group">
+    <div className="surface-card bg-surface p-4 sm:p-5 rounded-[12px] border border-border flex flex-col justify-between text-left shadow-sm hover:shadow transition-shadow relative overflow-hidden group">
       {isAccent && (
         <div className="absolute top-0 inset-x-0 h-[3.5px] bg-accent" />
       )}
@@ -1788,8 +1892,8 @@ function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
         </div>
       </div>
       <div>
-        <span className="text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">{label}</span>
-        <span className="text-lg font-black text-text-primary block mt-1 leading-none">
+        <span className="text-[9px] sm:text-[9.5px] text-text-muted font-bold uppercase tracking-wider block">{label}</span>
+        <span className="text-base sm:text-lg font-black text-text-primary block mt-1 leading-none">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </span>
       </div>
