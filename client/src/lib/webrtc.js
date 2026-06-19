@@ -39,13 +39,25 @@ export async function applyVideoSenderQuality(peer, enabled) {
   const videoSender = peer?.getSenders().find((sender) => sender.track?.kind === 'video');
   if (!videoSender) return;
   const params = videoSender.getParameters();
-  params.encodings = params.encodings?.length ? params.encodings : [{}];
-  params.encodings[0].maxBitrate = enabled ? 220000 : 900000;
-  params.encodings[0].maxFramerate = enabled ? 15 : 30;
+  
+  if (params.encodings && params.encodings.length >= 3) {
+    // Disable high-resolution layers to save bandwidth and prioritize audio
+    params.encodings[0].active = true;
+    params.encodings[1].active = !enabled;
+    params.encodings[2].active = !enabled;
+  } else {
+    params.encodings = params.encodings?.length ? params.encodings : [{}];
+    params.encodings[0].maxBitrate = enabled ? 100000 : 900000;
+    params.encodings[0].maxFramerate = enabled ? 12 : 30;
+  }
+
   await videoSender.setParameters(params).catch(() => {});
-  await videoSender.track?.applyConstraints?.(
-    getCallMediaConstraints('video', { lowData: enabled }).video
-  ).catch(() => {});
+  
+  if (!params.encodings || params.encodings.length < 3) {
+    await videoSender.track?.applyConstraints?.(
+      getCallMediaConstraints('video', { lowData: enabled }).video
+    ).catch(() => {});
+  }
 }
 
 function getEnvTurnServers() {

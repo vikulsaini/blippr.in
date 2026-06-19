@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, CheckCheck, Copy, Edit3, Flag, MapPin, MessageCircle, Phone, PhoneMissed, Reply, Trash2, Video, X } from 'lucide-react';
 import { normalizeId } from '../../lib/chat.js';
+import { useProximity } from '../../hooks/useProximity.js';
 
 const quickEmojis = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F64F}'];
 
@@ -17,7 +18,8 @@ export default function ConversationTimeline({
   onReact,
   onEditMessage,
   onDeleteMessage,
-  onReportMessage
+  onReportMessage,
+  otherMember
 }) {
   const myId = normalizeId(currentUserId);
   const [actionTarget, setActionTarget] = useState(null);
@@ -50,9 +52,13 @@ export default function ConversationTimeline({
     );
   }
 
+  const lastSeenMessageId = [...messages]
+    .reverse()
+    .find((m) => normalizeId(m.sender) === myId && m.status === 'seen')?._id;
+
   return (
     <>
-    <div className="space-y-2.5">
+    <div className="space-y-2.5" style={{ transition: 'all 0.2s ease-out' }}>
         {visibleTimeline.map((item, index) => {
           const showDate = shouldShowDate(visibleTimeline[index - 1], item);
           if (item.kind === 'call') {
@@ -65,14 +71,17 @@ export default function ConversationTimeline({
           }
           const message = item.message;
           const mine = normalizeId(message.sender) === myId;
+          const isOptimistic = message.status === 'sending' || message.status === 'queued' || message.status === 'failed';
           return (
             <div key={`message-${message._id}`}>
               {showDate && <DateDivider value={item.createdAt} />}
               <MessageBubble
                 message={message}
                 mine={mine}
-                onLongPress={() => setActionTarget(message)}
-                onSwipeRight={() => onReply?.(message)}
+                onLongPress={isOptimistic ? undefined : () => setActionTarget(message)}
+                onSwipeRight={isOptimistic ? undefined : () => onReply?.(message)}
+                isLastSeen={message._id === lastSeenMessageId}
+                otherMember={otherMember}
               />
             </div>
           );
@@ -131,7 +140,7 @@ export default function ConversationTimeline({
   );
 }
 
-function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
+function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, otherMember }) {
   const timerRef = useRef(null);
 
   function startPress() {
@@ -144,67 +153,87 @@ function MessageBubble({ message, mine, onLongPress, onSwipeRight }) {
   }
 
   return (
-    <motion.div
-      initial={{
-        opacity: 0,
-        scale: 0.82,
-        y: 12,
-        x: mine ? 22 : -22
-      }}
-      animate={{
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        x: 0
-      }}
-      transition={{
-        type: 'spring',
-        stiffness: 380,
-        damping: 26
-      }}
-      className={`flex w-full ${mine ? 'justify-end' : 'justify-start'}`}
-    >
+    <div className={`flex w-full flex-col ${mine ? 'items-end' : 'items-start'}`}>
       <motion.div
-        drag="x"
-        dragConstraints={{ left: 0, right: 64 }}
-        dragElastic={0.25}
-        onDragEnd={(_, info) => {
-          if (info.offset.x > 42) onSwipeRight();
+        initial={{
+          opacity: 0,
+          scale: 0.82,
+          y: 12,
+          x: mine ? 22 : -22
         }}
-        onPointerDown={startPress}
-        onPointerUp={stopPress}
-        onPointerCancel={stopPress}
-        onPointerLeave={stopPress}
-        className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-accent-hover text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'}`}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          x: 0
+        }}
+        transition={{
+          type: 'spring',
+          stiffness: 380,
+          damping: 26
+        }}
+        className="w-full flex"
+        style={{ justifyContent: mine ? 'flex-end' : 'flex-start' }}
       >
-        {message.replyTo && (
-          <div className={`mb-1.5 rounded-xl border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-white/40 bg-white/10 text-white/90' : 'border-accent/40 bg-bg text-text-secondary'}`}>
-            <p className="line-clamp-2">{message.replyTo.text || 'Replied message'}</p>
+        <motion.div
+          drag={onSwipeRight ? "x" : false}
+          dragConstraints={{ left: 0, right: 64 }}
+          dragElastic={0.25}
+          onDragEnd={(_, info) => {
+            if (onSwipeRight && info.offset.x > 42) onSwipeRight();
+          }}
+          onPointerDown={onLongPress ? startPress : undefined}
+          onPointerUp={stopPress}
+          onPointerCancel={stopPress}
+          onPointerLeave={stopPress}
+          className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-accent-hover text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} transition-all duration-300`}
+          style={{
+            opacity: (message.status === 'sending' || message.status === 'queued') ? 0.7 : 1
+          }}
+        >
+          {message.replyTo && (
+            <div className={`mb-1.5 rounded-xl border-l-2 px-2.5 py-1.5 text-xs ${mine ? 'border-white/40 bg-white/10 text-white/90' : 'border-accent/40 bg-bg text-text-secondary'}`}>
+              <p className="line-clamp-2">{message.replyTo.text || 'Replied message'}</p>
+            </div>
+          )}
+          {message.media && <MediaPreview media={message.media} />}
+          {message.location && <LocationPreview location={message.location} mine={mine} />}
+          {message.text && (
+            <p className={`whitespace-pre-wrap leading-relaxed ${mine ? 'text-white' : 'text-text-primary font-medium'}`}>
+              {message.text}
+            </p>
+          )}
+          <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-white/80' : 'text-text-muted'}`}>
+            {message.editedAt && <span>edited</span>}
+            <span>{formatTime(message.createdAt)}</span>
+            {mine && <StatusIcon status={message.status} />}
           </div>
-        )}
-        {message.media && <MediaPreview media={message.media} />}
-        {message.location && <LocationPreview location={message.location} mine={mine} />}
-        {message.text && (
-          <p className={`whitespace-pre-wrap leading-relaxed ${mine ? 'text-white' : 'text-text-primary font-medium'}`}>
-            {message.text}
-          </p>
-        )}
-        <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-white/80' : 'text-text-muted'}`}>
-          {message.editedAt && <span>edited</span>}
-          <span>{formatTime(message.createdAt)}</span>
-          {mine && <StatusIcon status={message.status} />}
-        </div>
-        {!!message.reactions?.length && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {reactionSummary(message.reactions).map((reaction) => (
-              <span key={reaction.emoji} className={`rounded-full px-2 py-0.5 text-xs ${mine ? 'bg-white/20 text-white' : 'bg-bg text-text-secondary border border-border-default'}`}>
-                {reaction.emoji} {reaction.count}
-              </span>
-            ))}
-          </div>
-        )}
+          {!!message.reactions?.length && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {reactionSummary(message.reactions).map((reaction) => (
+                <span key={reaction.emoji} className={`rounded-full px-2 py-0.5 text-xs ${mine ? 'bg-white/20 text-white' : 'bg-bg text-text-secondary border border-border-default'}`}>
+                  {reaction.emoji} {reaction.count}
+                </span>
+              ))}
+            </div>
+          )}
+        </motion.div>
       </motion.div>
-    </motion.div>
+      {isLastSeen && otherMember?.avatar && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.6, y: -2 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="mt-1 flex items-center justify-end px-1"
+        >
+          <img
+            src={otherMember.avatar}
+            alt=""
+            className="h-3.5 w-3.5 rounded-full object-cover border border-border-default shadow-sm"
+          />
+        </motion.div>
+      )}
+    </div>
   );
 }
 
@@ -281,12 +310,10 @@ function ActionButton({ icon: Icon, label, onClick, tone = 'neutral', disabled =
 }
 
 function StatusIcon({ status }) {
-  if (status === 'failed') return <span className="text-coral">!</span>;
-  if (status === 'queued') return <span className="text-[9px] text-current/70">queued</span>;
+  if (status === 'failed') return <span className="text-coral font-bold">!</span>;
+  if (status === 'queued') return <span className="text-[9px] text-current/70 font-semibold">queued</span>;
   if (status === 'sending') return <span className="h-2 w-2 animate-pulse rounded-full bg-current/60" title="Sending" />;
-  if (status === 'seen') return <CheckCheck size={13} className="text-mint" aria-label="Seen" />;
-  if (status === 'delivered') return <CheckCheck size={13} aria-label="Delivered" />;
-  return <Check size={13} aria-label="Sent" />;
+  return null;
 }
 
 function CallHistoryItem({ call, currentUserId }) {
@@ -359,26 +386,7 @@ function MediaPreview({ media }) {
   if (!media.url) return <span className="mb-2 block rounded-2xl bg-bg/40 px-3 py-2 text-xs">Preparing attachment...</span>;
   if (media.type === 'image') return <img src={media.url} alt="" className="mb-2 max-h-64 rounded-2xl object-cover" />;
   if (media.type === 'audio') {
-    const hasWaveform = Array.isArray(media.waveform) && media.waveform.length > 0;
-    const waveformData = hasWaveform ? media.waveform : Array.from({ length: 24 }).map((_, index) => 8 + ((index * 7) % 22));
-
-    return (
-      <div className="mb-2 rounded-2xl bg-bg/40 p-3">
-        <div className="mb-2 flex h-10 items-end gap-1 px-1">
-          {waveformData.map((amplitude, index) => {
-            const height = Math.max(4, Math.round((amplitude / 100) * 36));
-            return (
-              <span key={index} className="w-1 rounded-full bg-accent/70 transition-all duration-200" style={{ height: `${height}px` }} />
-            );
-          })}
-        </div>
-        <div className="flex items-center justify-between text-[10px] text-text-muted mb-1 px-1 font-semibold">
-          <span>Voice note</span>
-          {media.duration && <span>{formatAudioDuration(media.duration)}</span>}
-        </div>
-        <audio src={media.url} controls className="max-w-full rounded-lg" />
-      </div>
-    );
+    return <VoiceNotePlayer media={media} />;
   }
   if (media.type === 'video') return <video src={media.url} controls className="mb-2 max-h-64 rounded-2xl" />;
   return <a href={media.url} className="mb-2 block rounded-2xl bg-bg/40 px-3 py-2 text-xs underline">{media.name || 'Open attachment'}</a>;
@@ -463,4 +471,62 @@ function formatDuration(seconds = 0) {
   const remaining = seconds % 60;
   if (!minutes) return `${remaining}s`;
   return `${minutes}m ${String(remaining).padStart(2, '0')}s`;
+}
+
+function VoiceNotePlayer({ media }) {
+  const audioRef = useRef(null);
+  const proximityNear = useProximity();
+
+  useEffect(() => {
+    if (audioRef.current) {
+      setAudioOutput(audioRef.current, !proximityNear).catch(() => {});
+    }
+  }, [proximityNear]);
+
+  const hasWaveform = Array.isArray(media.waveform) && media.waveform.length > 0;
+  const waveformData = hasWaveform ? media.waveform : Array.from({ length: 24 }).map((_, index) => 8 + ((index * 7) % 22));
+
+  return (
+    <div className="mb-2 rounded-2xl bg-bg/40 p-3">
+      <div className="mb-2 flex h-10 items-end gap-1 px-1">
+        {waveformData.map((amplitude, index) => {
+          const height = Math.max(4, Math.round((amplitude / 100) * 36));
+          return (
+            <span key={index} className="w-1 rounded-full bg-accent/70 transition-all duration-200" style={{ height: `${height}px` }} />
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between text-[10px] text-text-muted mb-1 px-1 font-semibold">
+        <span>Voice note {proximityNear ? '· Earpiece Active' : ''}</span>
+        {media.duration && <span>{formatAudioDuration(media.duration)}</span>}
+      </div>
+      <audio ref={audioRef} src={media.url} controls className="max-w-full rounded-lg" />
+    </div>
+  );
+}
+
+async function setAudioOutput(audioElement, speakerOn) {
+  if (!audioElement?.setSinkId) return;
+  try {
+    const outputs = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+    const audioOutputs = outputs.filter((device) => device.kind === 'audiooutput');
+    const speaker = audioOutputs.find((device) => /speaker|loudspeaker/i.test(device.label));
+    const earpiece = audioOutputs.find((device) => /earpiece|receiver|phone|communications|headset/i.test(device.label));
+
+    if (speakerOn) {
+      if (speaker?.deviceId) {
+        await audioElement.setSinkId(speaker.deviceId);
+      } else {
+        await audioElement.setSinkId('');
+      }
+    } else {
+      if (earpiece?.deviceId) {
+        await audioElement.setSinkId(earpiece.deviceId);
+      } else {
+        await audioElement.setSinkId('');
+      }
+    }
+  } catch (error) {
+    console.warn('setSinkId failed in VoiceNotePlayer:', error);
+  }
 }

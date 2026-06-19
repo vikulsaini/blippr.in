@@ -373,6 +373,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         ref={scrollContainerRef}
         onScroll={handleScroll}
         className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 scrollbar-thin"
+        style={{ transition: 'all 0.2s ease-out' }}
       >
         <ConversationTimeline
           messages={messages}
@@ -387,6 +388,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           onEditMessage={onEditMessage}
           onDeleteMessage={onDeleteMessage}
           onReportMessage={onReportMessage}
+          otherMember={otherMember}
         />
       </section>
 

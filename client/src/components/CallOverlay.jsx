@@ -130,8 +130,53 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                     <video ref={remoteAudioVideoRef} autoPlay playsInline style={{ display: 'none' }} />
                   </>
                 )}
-                {isVideo && call.remoteStream ? (
-                  <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-contain" />
+                {isVideo && call.remoteStream && call.quality !== 'poor' && call.status !== 'reconnecting' ? (
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className="h-full w-full object-contain"
+                    style={{ transform: 'translate3d(0,0,0)', willChange: 'transform', backfaceVisibility: 'hidden' }}
+                  />
+                ) : isVideo && call.remoteStream ? (
+                  <div className="relative grid h-full place-items-center p-6 text-center bg-slate-950 overflow-hidden">
+                    {/* Blurred background avatar */}
+                    <div className="absolute inset-0 opacity-30 blur-2xl scale-110 pointer-events-none">
+                      <img src={call.peerUser?.avatar} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col items-center">
+                      <div className="relative h-28 w-28 mb-6">
+                        <span className="absolute inset-0 animate-ping rounded-full bg-accent/20" />
+                        <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-slate-800 object-cover shadow-md border-2 border-white/10" />
+                      </div>
+                      <p className="text-lg font-semibold text-white">{call.peerUser?.name || 'Blippr friend'}</p>
+                      
+                      {/* Premium 5-bar animated audio wave graphic */}
+                      <div className="mt-6 flex items-end gap-1.5 h-12">
+                        {[0, 1, 2, 3, 4].map((bar) => (
+                          <motion.span
+                            key={bar}
+                            className="w-1.5 rounded-full bg-accent"
+                            animate={{
+                              height: [12, 48, 12]
+                            }}
+                            transition={{
+                              duration: 0.8,
+                              repeat: Infinity,
+                              delay: bar * 0.15,
+                              ease: 'easeInOut'
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Notice Banner explaining video paused to prioritize audio */}
+                      <div className="mt-8 rounded-2xl border border-warning/20 bg-warning/10 px-4 py-2 text-xs text-warning max-w-xs leading-normal animate-pulse backdrop-blur-md">
+                        Video paused to prioritize audio stream quality.
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="grid h-full place-items-center p-6 text-center">
                     <div>
@@ -169,7 +214,14 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                     {call.cameraOff ? (
                       <div className="grid h-full place-items-center text-white/45"><VideoOff size={22} /></div>
                     ) : (
-                      <video ref={localVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
+                      <video
+                        ref={localVideoRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        className="h-full w-full object-cover"
+                        style={{ transform: 'translate3d(0,0,0)', willChange: 'transform', backfaceVisibility: 'hidden' }}
+                      />
                     )}
                     <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">You</span>
                   </div>

@@ -4,6 +4,7 @@ import { getRealtimeSocket } from '../lib/realtime.js';
 import { showNativeNotification } from '../lib/native.js';
 import { startCallSound, stopCallSound, vibrate as vibrateDevice } from '../lib/sounds.js';
 import { applyVideoSenderQuality, createPeer, getCallMediaStream, getRtcIceServers } from '../lib/webrtc.js';
+import { useProximity } from '../hooks/useProximity.js';
 
 const AUDIO_ROUTE_KEY = 'blippr_call_audio_route';
 const LOW_DATA_KEY = 'blippr_call_low_data';
@@ -178,6 +179,52 @@ export function useCallSession({ activeChat, chats, currentUserId, mergeCall, se
 
   useEffect(() => () => stopRingtone(), []);
 
+  const proximityNear = useProximity();
+  const prevSpeakerRef = useRef(null);
+
+  // Proximity Routing Effect: toggles speakerphone to top earpiece receiver when phone is raised to face
+  useEffect(() => {
+    if (!callRef.current || callRef.current.status !== 'connected') {
+      prevSpeakerRef.current = null;
+      return;
+    }
+
+    if (proximityNear) {
+      if (prevSpeakerRef.current === null) {
+        prevSpeakerRef.current = callRef.current.speakerOn;
+      }
+      if (callRef.current.speakerOn) {
+        updateCall((current) => ({
+          ...current,
+          speakerOn: false,
+          audioRoute: 'earpiece'
+        }));
+      }
+    } else {
+      if (prevSpeakerRef.current !== null) {
+        const restoreSpeaker = prevSpeakerRef.current;
+        prevSpeakerRef.current = null;
+        updateCall((current) => ({
+          ...current,
+          speakerOn: restoreSpeaker,
+          audioRoute: restoreSpeaker ? 'speaker' : 'earpiece'
+        }));
+      }
+    }
+  }, [proximityNear]);
+
+  // Audio Priority Override Effect: silences remote video track data stream when quality degrades
+  useEffect(() => {
+    const remoteStream = call?.remoteStream;
+    if (!remoteStream) return;
+    const isPoor = call.quality === 'poor' || call.status === 'reconnecting';
+    remoteStream.getVideoTracks().forEach((track) => {
+      if (track.enabled === isPoor) {
+        track.enabled = !isPoor;
+      }
+    });
+  }, [call?.quality, call?.status, call?.remoteStream]);
+
   async function getLocalStream(type) {
     const lowData = readBoolPreference(LOW_DATA_KEY, lowDataMode);
     const stream = await getCallMediaStream(type, { lowData });
@@ -258,13 +305,23 @@ export function useCallSession({ activeChat, chats, currentUserId, mergeCall, se
       previous = { packetsLost, packetsReceived };
       const lossRate = deltaReceived + deltaLost ? deltaLost / (deltaReceived + deltaLost) : 0;
       const avgRtt = rttSamples ? rtt / rttSamples : 0;
+
+      const isCongested = avgRtt > 0.25 || lossRate > 0.05 || jitter > 0.05;
+      const isLowData = readBoolPreference(LOW_DATA_KEY, lowDataMode);
+
+      if (isCongested || isLowData) {
+        applyVideoSenderQuality(peer, true).catch(() => {});
+      } else {
+        applyVideoSenderQuality(peer, false).catch(() => {});
+      }
+
       const quality = callRef.current.status === 'reconnecting' || callRef.current.networkState === 'disconnected'
         ? 'reconnecting'
         : lossRate > 0.08 || avgRtt > 0.55 || jitter > 0.08
           ? 'poor'
           : 'good';
-      updateCall((current) => ({ ...current, quality, rtt: avgRtt, lossRate }));
-    }, 2500);
+      updateCall((current) => ({ ...current, quality, rtt: avgRtt, lossRate, congested: isCongested }));
+    }, 500);
   }
 
   async function createCallPeer(peerUser) {
@@ -312,7 +369,18 @@ export function useCallSession({ activeChat, chats, currentUserId, mergeCall, se
       startRingtone({ tone: 'outgoing', peerId: peerUser._id });
       const localStream = await getLocalStream(type);
       const peer = await createCallPeer(peerUser);
-      localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
+      localStream.getTracks().forEach((track) => {
+        const sender = peer.addTrack(track, localStream);
+        if (track.kind === 'video') {
+          const params = sender.getParameters();
+          params.encodings = [
+            { rid: 'q', scaleResolutionDownBy: 4.0, maxBitrate: 100000 },
+            { rid: 'h', scaleResolutionDownBy: 2.0, maxBitrate: 300000 },
+            { rid: 'f', scaleResolutionDownBy: 1.0, maxBitrate: 900000 }
+          ];
+          sender.setParameters(params).catch(() => {});
+        }
+      });
       if (readBoolPreference(LOW_DATA_KEY, lowDataMode)) await applyLowDataToSenders(true);
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
@@ -341,7 +409,18 @@ export function useCallSession({ activeChat, chats, currentUserId, mergeCall, se
       stopRingtone();
       const localStream = await getLocalStream(currentCall.type);
       const peer = await createCallPeer(currentCall.peerUser);
-      localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
+      localStream.getTracks().forEach((track) => {
+        const sender = peer.addTrack(track, localStream);
+        if (track.kind === 'video') {
+          const params = sender.getParameters();
+          params.encodings = [
+            { rid: 'q', scaleResolutionDownBy: 4.0, maxBitrate: 100000 },
+            { rid: 'h', scaleResolutionDownBy: 2.0, maxBitrate: 300000 },
+            { rid: 'f', scaleResolutionDownBy: 1.0, maxBitrate: 900000 }
+          ];
+          sender.setParameters(params).catch(() => {});
+        }
+      });
       if (readBoolPreference(LOW_DATA_KEY, lowDataMode)) await applyLowDataToSenders(true);
       await peer.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
       await flushRemoteIceQueue();
