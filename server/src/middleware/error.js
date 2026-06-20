@@ -18,9 +18,10 @@ export function errorHandler(error, req, res, _next) {
 
   res.status(status).json({
     ok: false,
-    message: status === 500 ? 'Internal server error' : error.code === 'LIMIT_FILE_SIZE' ? 'File is too large. Please choose a file under 25 MB.' : error.message,
+    message: error.message || 'Internal server error',
     code,
     requestId: req.id,
-    details: process.env.NODE_ENV === 'production' ? undefined : error.details
+    stack: error.stack,
+    details: error.details
   });
 }
