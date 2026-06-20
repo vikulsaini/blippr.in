@@ -100,6 +100,8 @@ async function boot() {
   const redisUrl = process.env.REDIS_URL || process.env.REDIS_URI || process.env.REDIS_URL_PRIVATE;
   console.log(`Environment check: MongoDB=${mongoUri ? 'set' : 'missing'}, REDIS=${redisUrl ? 'set' : 'missing'}`);
 
+  app.locals.dbStatus = { mongo: 'disconnected', redis: 'disconnected', error: null };
+
   // Start HTTP server immediately to satisfy Railway healthcheck at /health
   server.listen(port, '0.0.0.0', () => {
     console.log(`Blippr API listening on production port ${port}`);
@@ -107,13 +109,31 @@ async function boot() {
 
   // Connect to databases and initialize services in the background
   try {
+    app.locals.dbStatus.mongo = 'connecting';
     await connectMongo();
+    app.locals.dbStatus.mongo = 'connected';
+  } catch (err) {
+    app.locals.dbStatus.mongo = 'failed';
+    app.locals.dbStatus.error = `Mongo: ${err.message}`;
+    console.error('MongoDB connection failed during boot:', err.message);
+  }
+
+  try {
+    app.locals.dbStatus.redis = 'connecting';
     await connectRedis();
-    await seedAdminUser();
-  } catch (error) {
-    console.error('Database/Service initialization error during boot:', error.message);
-    // Do not call process.exit(1); let the server remain online for healthchecks,
-    // and let driver retry logic/redeployments resolve connection state.
+    app.locals.dbStatus.redis = 'connected';
+  } catch (err) {
+    app.locals.dbStatus.redis = 'failed';
+    app.locals.dbStatus.error = app.locals.dbStatus.error ? `${app.locals.dbStatus.error} | Redis: ${err.message}` : `Redis: ${err.message}`;
+    console.error('Redis connection failed during boot:', err.message);
+  }
+
+  if (app.locals.dbStatus.mongo === 'connected') {
+    try {
+      await seedAdminUser();
+    } catch (err) {
+      console.error('[Seed] Admin seeding failed:', err.message);
+    }
   }
 }
 

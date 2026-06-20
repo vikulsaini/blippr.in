@@ -46,7 +46,15 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use('/api', apiLimiter);
 
 app.get('/', (_req, res) => res.json({ ok: true, name: 'blippr', message: 'Blippr API is running' }));
-app.get('/health', (_req, res) => res.json({ ok: true, name: 'blippr', version: '1.0.4', supabaseConfigured: !!supabase }));
+app.get('/health', (_req, res) => {
+  res.json({
+    ok: true,
+    name: 'blippr',
+    version: '1.0.5',
+    supabaseConfigured: !!supabase,
+    dbStatus: app.locals.dbStatus || { status: 'unknown' }
+  });
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/users', userRoutes);
