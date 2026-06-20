@@ -881,7 +881,7 @@ export default function Auth() {
                     <button
                       type="submit"
                       disabled={loading || (mode === 'completeProfile' && (!isUsernameValid || !profile.dob || ageFromDob(profile.dob) < 18))}
-                      onClick={mode === 'completeProfile' ? verifyEmailOtp : handleGuestLogin}
+                      onClick={mode === 'completeProfile' ? submitCompleteProfile : continueAsGuest}
                       className="w-full h-14 bg-primary text-white font-bold rounded-full shadow-[0_8px_20px_rgba(124,58,237,0.25)] flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
                     >
                       {loading ? 'Please wait...' : mode === 'completeProfile' ? 'Complete Registration' : 'Enter Cafe'}
