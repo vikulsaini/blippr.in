@@ -55,34 +55,13 @@ export default {
         '4xl': '24px'
       },
       animation: {
-        'fade-slide-up': 'fadeSlideUp 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards',
-        'badge-pulse': 'badgePulse 2s ease-in-out infinite',
-        'gradient-shift': 'gradientShift 6s ease infinite',
-        'float': 'floatGlow 3s ease-in-out infinite',
-        'breathe': 'breathe 4s ease-in-out infinite',
+        'fadeSlideUp': 'fadeSlideUp 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards',
         'fadeIn': 'fadeSlideUp 0.25s ease forwards'
       },
       keyframes: {
         fadeSlideUp: {
           from: { opacity: '0', transform: 'translateY(8px)' },
           to: { opacity: '1', transform: 'translateY(0)' }
-        },
-        badgePulse: {
-          '0%, 100%': { boxShadow: '0 0 0 0 var(--accent-glow)' },
-          '50%': { boxShadow: '0 0 0 6px transparent' }
-        },
-        gradientShift: {
-          '0%': { backgroundPosition: '0% 50%' },
-          '50%': { backgroundPosition: '100% 50%' },
-          '100%': { backgroundPosition: '0% 50%' }
-        },
-        floatGlow: {
-          '0%, 100%': { transform: 'translateY(0)', boxShadow: '0 4px 16px var(--accent-glow)' },
-          '50%': { transform: 'translateY(-6px)', boxShadow: '0 8px 28px var(--accent-glow)' }
-        },
-        breathe: {
-          '0%, 100%': { opacity: '0.6', transform: 'scale(1)' },
-          '50%': { opacity: '1', transform: 'scale(1.02)' }
         }
       },
       transitionTimingFunction: {
