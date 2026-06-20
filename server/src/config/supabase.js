@@ -4,9 +4,17 @@ const rawUrl = (process.env.SUPABASE_URL || process.env.SUPABASE_URI || process.
 const rawAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY)?.trim();
 const rawServiceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY)?.trim();
 
-const supabaseUrl = (rawUrl && rawUrl !== 'undefined' && rawUrl !== 'null') ? rawUrl : null;
-const supabaseAnonKey = (rawAnonKey && rawAnonKey !== 'undefined' && rawAnonKey !== 'null') ? rawAnonKey : null;
-const supabaseServiceRoleKey = (rawServiceKey && rawServiceKey !== 'undefined' && rawServiceKey !== 'null') ? rawServiceKey : null;
+const supabaseUrl = (rawUrl && rawUrl !== 'undefined' && rawUrl !== 'null')
+  ? rawUrl
+  : 'https://ekkpkjgquiarufexfoiy.supabase.co';
+
+const supabaseAnonKey = (rawAnonKey && rawAnonKey !== 'undefined' && rawAnonKey !== 'null')
+  ? rawAnonKey
+  : 'sb_publishable_sdwPq0LDCBwwtv446BbVpA_iEmXMDEC';
+
+const supabaseServiceRoleKey = (rawServiceKey && rawServiceKey !== 'undefined' && rawServiceKey !== 'null')
+  ? rawServiceKey
+  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVra3BramdxdWlhcnVmZXhmb2l5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTg2MTI4OCwiZXhwIjoyMDk3NDM3Mjg4fQ.OmArW7JRlc9FEoG_zdINtWNAGRDZgbJLKJLfepAukjA';
 
 let clientInstance = null;
 let adminClientInstance = null;
