@@ -23,8 +23,6 @@ export default function SettingsPage() {
   const [soundPrefs, setSoundPrefs] = useState(() => loadSoundPrefs());
   const photoInputRef = useRef(null);
   const [vaultPassword, setVaultPassword] = useState('');
-  const [theme, setTheme] = useState(() => localStorage.getItem('blippr_theme') || 'light');
-
   const {
     form,
     photoUploading,
@@ -38,19 +36,6 @@ export default function SettingsPage() {
   });
 
   const saveProfile = (event) => baseSaveProfile(event, true);
-
-  function toggleTheme() {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-    localStorage.setItem('blippr_theme', nextTheme);
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark-theme');
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0b1326');
-    } else {
-      document.documentElement.classList.remove('dark-theme');
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#F8FAFC');
-    }
-  }
 
   useEffect(() => {
     if (me) {

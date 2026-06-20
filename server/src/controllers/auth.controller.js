@@ -1,7 +1,6 @@
 import Joi from 'joi';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { OAuth2Client } from 'google-auth-library';
 import { redis } from '../config/redis.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -13,18 +12,6 @@ import { issuePasswordReset, validatePasswordReset } from '../services/passwordR
 import { notifyUser, sendDirectPushNotification } from '../services/notification.service.js';
 import { clearAuthCookie, setAuthCookie, readAuthCookie } from '../utils/authCookie.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
-
-
-export const googleLoginSchema = Joi.object({
-  idToken: Joi.string().required(),
-  name: Joi.string().max(80).optional(),
-  avatar: Joi.string().uri().optional(),
-  age: Joi.number().integer().min(18).max(120).required(),
-  gender: Joi.string().valid('male', 'female').required(),
-  bio: Joi.string().max(160).allow('').optional()
-});
-
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 async function recordLogin(req, user) {
   const ip = getClientIp(req);
@@ -413,36 +400,7 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
   return sendAuth(res, signJwt(req.user), req.user);
 });
 
-export const googleLogin = asyncHandler(async (req, res) => {
-  const ticket = await googleClient.verifyIdToken({
-    idToken: req.body.idToken,
-    audience: process.env.GOOGLE_CLIENT_ID
-  });
-  const payload = ticket.getPayload();
-  const googleId = payload.sub;
-  const user = await User.findOneAndUpdate(
-    { googleId },
-    {
-      $set: {
-        googleId,
-        name: req.body.name || payload.name || 'Google User',
-        avatar: req.body.avatar || payload.picture || avatarForGender(req.body.gender, googleId),
-        age: req.body.age,
-        gender: req.body.gender,
-        bio: req.body.bio || ''
-      },
-      $setOnInsert: {
-        username: await createUniqueUsername(req.body.name || payload.name || 'google')
-      }
-    },
-    { upsert: true, new: true }
-  ).select('+lastIp +ipHistory');
-  await recordLogin(req, user);
-  if (user.createdAt && Date.now() - user.createdAt.getTime() < 5000) {
-    notifyAdminOfNewUser(req, user);
-  }
-  return sendAuth(res, signJwt(user), user);
-});
+
 
 export const logout = asyncHandler(async (req, res) => {
   const header = req.headers.authorization || '';

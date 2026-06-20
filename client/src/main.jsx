@@ -25,19 +25,7 @@ installSoundUnlock();
 initNativeApp().catch(() => {});
 repairStaleDeploymentCache().catch(() => {});
 
-/* ─── Theme Initialization ─── */
-function initTheme() {
-  const saved = localStorage.getItem('blippr_theme') || 'light';
-  if (saved === 'dark') {
-    document.documentElement.classList.add('dark-theme');
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0b1326');
-  } else {
-    document.documentElement.classList.remove('dark-theme');
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#F8FAFC');
-  }
-}
 
-initTheme();
 
 /* ─── Mouse Follow Light Effect ─── */
 function initMouseLight() {

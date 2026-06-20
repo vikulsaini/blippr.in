@@ -66,7 +66,6 @@ export default function AdminDashboard() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const [theme, setTheme] = useState(() => localStorage.getItem('blippr_theme') || 'light');
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(() => {
     return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -131,16 +130,7 @@ export default function AdminDashboard() {
     setInstallPrompt(null);
   }
 
-  function toggleTheme() {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-    localStorage.setItem('blippr_theme', nextTheme);
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark-theme');
-    } else {
-      document.documentElement.classList.remove('dark-theme');
-    }
-  }
+
 
   function handleLogout() {
     localStorage.removeItem('blippr_token');

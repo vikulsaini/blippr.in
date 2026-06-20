@@ -11,8 +11,6 @@ import {
   resetPassword,
   guestSchema,
   guestUpgradeSchema,
-  googleLogin,
-  googleLoginSchema,
   loginWithEmail,
   logout,
   resendEmailVerification,
@@ -38,7 +36,6 @@ router.post('/email/forgot-password', authLimiter, validate(forgotPasswordSchema
 router.post('/email/reset-password', authLimiter, validate(resetPasswordSchema), resetPassword);
 router.post('/guest', guestLimiter, validate(guestSchema), continueAsGuest);
 router.post('/guest/upgrade', requireAuth, validate(guestUpgradeSchema), upgradeGuest);
-router.post('/google', authLimiter, validate(googleLoginSchema), googleLogin);
 router.post('/supabase', authLimiter, validate(supabaseAuthSchema), supabaseLogin);
 router.get('/username-check', authLimiter, checkUsernameAvailable);
 router.get('/diagnostic', runDiagnostic);
