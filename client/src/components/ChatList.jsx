@@ -379,14 +379,11 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           e.preventDefault();
         }
         const rowWidth = element.offsetWidth || window.innerWidth;
+        const maxSlide = rowWidth * 0.3;
         const friction = 0.8;
         let targetX = diffX * friction;
 
-        if (targetX < 0) {
-          targetX = Math.max(-rowWidth, targetX);
-        } else {
-          targetX = Math.min(120, targetX);
-        }
+        targetX = Math.max(-maxSlide, Math.min(maxSlide, targetX));
         x.set(targetX);
       }
     }
@@ -398,18 +395,13 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
       if (drag.lockDirection === 'horizontal') {
         const currentX = x.get();
         const rowWidth = element.offsetWidth || window.innerWidth;
-        const archiveThreshold = -100;
-        const activeArchiveThreshold = Math.min(archiveThreshold, -rowWidth * 0.4);
+        const archiveThreshold = -80;
         const muteThreshold = 80;
 
-        if (currentX <= activeArchiveThreshold) {
+        if (currentX <= archiveThreshold) {
           haptics.success();
-          animate(x, 0, { duration: 0.15, ease: "easeOut" });
-          setIsCollapsing(true);
-          setTimeout(() => {
-            onSetChatPreference(chat, 'archive');
-            setIsCollapsing(false);
-          }, 150);
+          onSetChatPreference(chat, 'archive');
+          x.set(0);
         } else if (currentX >= muteThreshold) {
           haptics.tap();
           if (navigator.vibrate && navigator.userActivation?.hasBeenActive) {
@@ -476,14 +468,11 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
 
       if (drag.lockDirection === 'horizontal') {
         const rowWidth = element.offsetWidth || window.innerWidth;
+        const maxSlide = rowWidth * 0.3;
         const friction = 0.8;
         let targetX = diffX * friction;
 
-        if (targetX < 0) {
-          targetX = Math.max(-rowWidth, targetX);
-        } else {
-          targetX = Math.min(120, targetX);
-        }
+        targetX = Math.max(-maxSlide, Math.min(maxSlide, targetX));
         x.set(targetX);
       }
     }
@@ -498,18 +487,13 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
       if (drag.lockDirection === 'horizontal') {
         const currentX = x.get();
         const rowWidth = element.offsetWidth || window.innerWidth;
-        const archiveThreshold = -100;
-        const activeArchiveThreshold = Math.min(archiveThreshold, -rowWidth * 0.4);
+        const archiveThreshold = -80;
         const muteThreshold = 80;
 
-        if (currentX <= activeArchiveThreshold) {
+        if (currentX <= archiveThreshold) {
           haptics.success();
-          animate(x, 0, { duration: 0.15, ease: "easeOut" });
-          setIsCollapsing(true);
-          setTimeout(() => {
-            onSetChatPreference(chat, 'archive');
-            setIsCollapsing(false);
-          }, 150);
+          onSetChatPreference(chat, 'archive');
+          x.set(0);
         } else if (currentX >= muteThreshold) {
           haptics.tap();
           if (navigator.vibrate && navigator.userActivation?.hasBeenActive) {
