@@ -2,6 +2,86 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Resilient recovery for PWA / Service Worker stale chunk loading issues
+      window.addEventListener('error', function(e) {
+        var isScript = e.target && (e.target.tagName === 'SCRIPT' || e.target.nodeName === 'SCRIPT');
+        var isLink = e.target && (e.target.tagName === 'LINK' || e.target.nodeName === 'LINK');
+        var errMessage = (e.message || '').toLowerCase();
+        var isChunkError = errMessage.indexOf('chunk') > -1 || 
+                           errMessage.indexOf('loading css') > -1 || 
+                           errMessage.indexOf('failed to fetch dynamically imported module') > -1;
+        
+        if (isScript || isLink || isChunkError) {
+          console.warn('Stale resource load failure detected. Clearing PWA caches and unregistering Service Workers...', e);
+          
+          var swCleared = false;
+          var cacheCleared = false;
+          
+          function checkAndReload() {
+            if (swCleared && cacheCleared) {
+              console.log('Cache and SW cleared. Reloading page...');
+              window.location.reload(true);
+            }
+          }
+
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              if (!registrations || registrations.length === 0) {
+                swCleared = true;
+                checkAndReload();
+              } else {
+                var promises = [];
+                for (var i = 0; i < registrations.length; i++) {
+                  promises.push(registrations[i].unregister());
+                }
+                Promise.all(promises).then(function() {
+                  swCleared = true;
+                  checkAndReload();
+                }).catch(function() {
+                  swCleared = true;
+                  checkAndReload();
+                });
+              }
+            }).catch(function() {
+              swCleared = true;
+              checkAndReload();
+            });
+          } else {
+            swCleared = true;
+          }
+
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              if (!keys || keys.length === 0) {
+                cacheCleared = true;
+                checkAndReload();
+              } else {
+                Promise.all(keys.map(function(key) {
+                  return caches.delete(key);
+                })).then(function() {
+                  cacheCleared = true;
+                  checkAndReload();
+                }).catch(function() {
+                  cacheCleared = true;
+                  checkAndReload();
+                });
+              }
+            }).catch(function() {
+              cacheCleared = true;
+              checkAndReload();
+            });
+          } else {
+            cacheCleared = true;
+          }
+
+          // Fallback reload if SW/cache cleanup takes too long
+          setTimeout(function() {
+            window.location.reload(true);
+          }, 1200);
+        }
+      }, true);
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#F8FAFC" />
     <meta name="description" content="blippr.in — Random connections, authentic friendships. Meet people through live chat and video, send friend requests, and keep the good conversations going." />
