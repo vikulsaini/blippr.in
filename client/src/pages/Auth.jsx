@@ -149,7 +149,12 @@ export default function Auth() {
       const result = await loginWithSupabase(syncPayload);
       finishAuth(result.token);
     } catch (err) {
-      syncingTokenRef.current = null; // reset to allow retrying on error
+      // Throttle resetting the ref for 3 seconds to avoid infinite retry loops on rapid errors
+      setTimeout(() => {
+        if (syncingTokenRef.current === token) {
+          syncingTokenRef.current = null;
+        }
+      }, 3000);
       if (err.body && err.body.code === 'PROFILE_REQUIRED') {
         setSupabaseAccessToken(token);
         setMode('completeProfile');
