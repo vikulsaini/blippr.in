@@ -157,7 +157,7 @@ Share the live app link with testers and ask them to verify:
 
 Live app:
 
-`https://client-bice-one-x6xfheue7f.vercel.app`
+`https://blippr.in`
 
 ## Documentation
 

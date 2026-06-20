@@ -2,8 +2,7 @@ const defaultOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
   'https://blippr.in',
-  'https://www.blippr.in',
-  'https://client-bice-one-x6xfheue7f.vercel.app'
+  'https://www.blippr.in'
 ];
 
 const configuredOrigins = [...defaultOrigins, ...(process.env.CLIENT_URL || '').split(',')]
