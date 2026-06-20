@@ -19,6 +19,7 @@ import callRoutes from './routes/call.routes.js';
 import configRoutes from './routes/config.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { analyticsMiddleware } from './middleware/analytics.js';
+import { supabase } from './config/supabase.js';
 
 const app = express();
 
@@ -45,7 +46,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use('/api', apiLimiter);
 
 app.get('/', (_req, res) => res.json({ ok: true, name: 'blippr', message: 'Blippr API is running' }));
-app.get('/health', (_req, res) => res.json({ ok: true, name: 'blippr' }));
+app.get('/health', (_req, res) => res.json({ ok: true, name: 'blippr', version: '1.0.4', supabaseConfigured: !!supabase }));
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/users', userRoutes);
