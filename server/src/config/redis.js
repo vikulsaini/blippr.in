@@ -12,7 +12,7 @@ function normalizeRedisUrl(value = '') {
   return url;
 }
 
-const redisUrl = normalizeRedisUrl(process.env.REDIS_URL);
+const redisUrl = normalizeRedisUrl(process.env.REDIS_URL || process.env.REDIS_URI || process.env.REDIS_URL_PRIVATE || '');
 const useTls = redisUrl.startsWith('rediss://');
 
 export const redis = new Redis(redisUrl, {
@@ -27,8 +27,9 @@ redis.on('error', (error) => {
 });
 
 export async function connectRedis() {
-  if (!redisUrl) throw new Error('REDIS_URL is required');
+  if (!redisUrl) throw new Error('Redis connection URL is missing in environment variables (tried REDIS_URL, REDIS_URI, REDIS_URL_PRIVATE).');
   if (redis.status === 'wait') await redis.connect();
   await redis.ping();
   console.log('Redis connected');
 }
+

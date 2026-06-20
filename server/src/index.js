@@ -96,17 +96,29 @@ async function seedAdminUser() {
 
 async function boot() {
   console.log('Starting Blippr API');
-  const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL;
-  console.log(`Environment check: MongoDB=${mongoUri ? 'set' : 'missing'}, REDIS_URL=${process.env.REDIS_URL ? 'set' : 'missing'}`);
-  await connectMongo();
-  await connectRedis();
-  await seedAdminUser();
+  const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL || process.env.MONGODB_URI || process.env.MONGODB_URL;
+  const redisUrl = process.env.REDIS_URL || process.env.REDIS_URI || process.env.REDIS_URL_PRIVATE;
+  console.log(`Environment check: MongoDB=${mongoUri ? 'set' : 'missing'}, REDIS=${redisUrl ? 'set' : 'missing'}`);
+
+  // Start HTTP server immediately to satisfy Railway healthcheck at /health
   server.listen(port, '0.0.0.0', () => {
     console.log(`Blippr API listening on production port ${port}`);
   });
+
+  // Connect to databases and initialize services in the background
+  try {
+    await connectMongo();
+    await connectRedis();
+    await seedAdminUser();
+  } catch (error) {
+    console.error('Database/Service initialization error during boot:', error.message);
+    // Do not call process.exit(1); let the server remain online for healthchecks,
+    // and let driver retry logic/redeployments resolve connection state.
+  }
 }
 
 boot().catch((error) => {
   console.error('Failed to start Blippr', error);
   process.exit(1);
 });
+
