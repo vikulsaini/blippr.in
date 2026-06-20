@@ -16,12 +16,91 @@ const io = new Server(server, {
 app.set('io', io);
 registerSockets(io);
 
+async function seedAdminUser() {
+  const email = 'vikul93065@gmail.com';
+  try {
+    const User = (await import('./models/User.js')).default;
+    const { supabaseAdmin } = await import('./config/supabase.js');
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+    if (user) {
+      if (user.role !== 'admin') {
+        user.role = 'admin';
+        user.isVerified = true;
+        await user.save();
+        console.log(`[Seed] Updated user @${user.username} to ADMIN.`);
+      }
+      return;
+    }
+
+    console.log(`[Seed] User ${email} not found in MongoDB. Checking Supabase Auth...`);
+    if (!supabaseAdmin) {
+      console.warn('[Seed] Supabase admin client not initialized. Cannot seed admin.');
+      return;
+    }
+
+    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    if (listError) {
+      console.error(`[Seed] Failed to list Supabase users: ${listError.message}`);
+      return;
+    }
+
+    let supabaseUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let supabaseId;
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'VikulAdmin123!';
+
+    if (supabaseUser) {
+      supabaseId = supabaseUser.id;
+      console.log(`[Seed] User found in Supabase Auth. ID: ${supabaseId}. Updating password to ensure seed access...`);
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(supabaseId, {
+        password: adminPassword
+      });
+      if (updateError) {
+        console.error(`[Seed] Failed to update Supabase user password: ${updateError.message}`);
+      } else {
+        console.log(`[Seed] Successfully updated Supabase user password.`);
+      }
+    } else {
+      console.log(`[Seed] User not found in Supabase. Creating in Supabase Auth...`);
+      const { data: { user: newUser }, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: adminPassword,
+        email_confirm: true
+      });
+      if (createError) {
+        console.error(`[Seed] Failed to create Supabase user: ${createError.message}`);
+        return;
+      }
+      supabaseId = newUser.id;
+      console.log(`[Seed] Created Supabase user: ${supabaseId}`);
+    }
+
+    const username = 'vikul_admin';
+    const newMongoUser = new User({
+      email,
+      supabaseId,
+      username,
+      role: 'admin',
+      isVerified: true,
+      name: 'Vikul Admin',
+      age: 30,
+      dob: new Date('1996-01-01'),
+      gender: 'male'
+    });
+    await newMongoUser.save();
+    console.log(`[Seed] Created MongoDB ADMIN user for ${email}`);
+  } catch (err) {
+    console.error('[Seed] Admin seeding failed:', err.message);
+  }
+}
+
 async function boot() {
   console.log('Starting Blippr API');
   const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL;
   console.log(`Environment check: MongoDB=${mongoUri ? 'set' : 'missing'}, REDIS_URL=${process.env.REDIS_URL ? 'set' : 'missing'}`);
   await connectMongo();
   await connectRedis();
+  await seedAdminUser();
   server.listen(port, '0.0.0.0', () => {
     console.log(`Blippr API listening on production port ${port}`);
   });
