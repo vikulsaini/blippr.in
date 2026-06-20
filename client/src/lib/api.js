@@ -28,6 +28,20 @@ function isGuestExpired() {
 }
 
 export function getToken() {
+  const projectRef = (import.meta.env.VITE_SUPABASE_URL || 'https://ekkpkjgquiarufexfoiy.supabase.co')
+    .replace('https://', '')
+    .split('.')[0];
+  const sessionStr = localStorage.getItem(`sb-${projectRef}-auth-token`);
+  if (sessionStr) {
+    try {
+      const session = JSON.parse(sessionStr);
+      if (session?.access_token) {
+        return session.access_token;
+      }
+    } catch {
+      // ignore
+    }
+  }
   return localStorage.getItem('blippr_token');
 }
 

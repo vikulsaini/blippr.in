@@ -1,8 +1,7 @@
-import jwt from 'jsonwebtoken';
+import { supabase } from '../config/supabase.js';
 import User from '../models/User.js';
 import { trackUserActivity } from '../services/activity.service.js';
 import { readAuthCookie } from '../utils/authCookie.js';
-import { redis } from '../config/redis.js';
 
 export async function requireAuth(req, _res, next) {
   try {
@@ -13,46 +12,39 @@ export async function requireAuth(req, _res, next) {
       error.status = 401;
       throw error;
     }
-    let isBlacklisted = false;
-    try {
-      isBlacklisted = await redis.get(`jwt_blacklist:${token}`);
-    } catch (err) {
-      console.warn('Redis error during JWT blacklist check:', err.message);
-    }
-    if (isBlacklisted) {
-      const error = new Error('Session has expired. Please log in again.');
-      error.status = 401;
+
+    if (!supabase) {
+      const error = new Error('Supabase integration is not configured on the server');
+      error.status = 503;
       throw error;
     }
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Verify token directly with Supabase
+    const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
     
-    // Check session revocation timestamp in Redis
-    let revokedAt = null;
-    try {
-      revokedAt = await redis.get(`user_revoked_at:${payload.sub}`);
-    } catch (err) {
-      console.warn('Redis error during session revocation check:', err.message);
-    }
-    if (revokedAt && payload.iat < Number(revokedAt)) {
-      const error = new Error('Session has been revoked. Please log in again.');
+    if (authError || !supabaseUser) {
+      const error = new Error(authError?.message || 'Session expired or invalid token');
       error.status = 401;
       throw error;
     }
 
-    const user = await User.findById(payload.sub);
+    // Fetch corresponding profile from database
+    const user = await User.findById(supabaseUser.id);
     if (!user) {
-      const error = new Error('User not found');
+      const error = new Error('Profile not found');
       error.status = 401;
       throw error;
     }
+
     if (user.bannedUntil && user.bannedUntil.getTime() > Date.now()) {
       const error = new Error('Account temporarily restricted for safety violations.');
       error.status = 403;
       error.code = 'ACCOUNT_RESTRICTED';
       throw error;
     }
+
     req.user = user;
-    trackUserActivity(user._id, req);
+    trackUserActivity(user.id, req);
     next();
   } catch (error) {
     error.status = error.status || 401;

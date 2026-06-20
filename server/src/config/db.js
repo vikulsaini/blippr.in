@@ -1,11 +1,19 @@
-import mongoose from 'mongoose';
+import { supabaseAdmin } from './supabase.js';
 
 export async function connectMongo() {
-  mongoose.set('strictQuery', true);
-  const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL || process.env.MONGODB_URI || process.env.MONGODB_URL;
-  if (!mongoUri) {
-    throw new Error('Database connection string is missing in environment variables (tried MONGO_URI, MONGO_URL, MONGODB_URI, MONGODB_URL).');
+  if (!supabaseAdmin) {
+    throw new Error('Supabase client is not initialized. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.');
   }
-  await mongoose.connect(mongoUri);
-  console.log('MongoDB connected');
+
+  // Test connection to Supabase database by checking profiles
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .limit(1);
+
+  if (error) {
+    throw new Error(`Supabase DB connection failed: ${error.message}`);
+  }
+
+  console.log('Supabase Database (PostgreSQL) connected');
 }
