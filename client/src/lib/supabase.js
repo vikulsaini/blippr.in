@@ -1,3 +1,4 @@
+// Re-initialized Supabase Client Service Configuration
 import { createClient } from '@supabase/supabase-js';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
