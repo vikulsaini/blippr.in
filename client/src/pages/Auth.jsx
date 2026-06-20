@@ -32,7 +32,7 @@ const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', 
 const SOCIAL_PROFILES = [];
 
 export default function Auth() {
-  const isSupabaseEnabled = Boolean(supabase && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_URL !== 'undefined' && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'undefined');
+  const isSupabaseEnabled = Boolean(supabase);
   const navigate = useNavigate();
   
   // Supported modes: 'login' | 'guest' | 'completeProfile'
@@ -183,6 +183,9 @@ export default function Auth() {
     setError('');
     setLoading(true);
     try {
+      if (!supabase) {
+        throw new Error('Google sign-in is currently unavailable (Supabase configuration missing).');
+      }
       const { error: oAuthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -202,6 +205,9 @@ export default function Auth() {
     try {
       if (!isEmailValid) {
         throw new Error('Please enter a valid email address.');
+      }
+      if (!supabase) {
+        throw new Error('OTP login is currently unavailable (Supabase configuration missing).');
       }
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.toLowerCase()
@@ -251,6 +257,9 @@ export default function Auth() {
 
     setOtpSending(true);
     try {
+      if (!supabase) {
+        throw new Error('Email signup is currently unavailable (Supabase configuration missing).');
+      }
       const { error: signUpError } = await supabase.auth.signUp({
         email: email.toLowerCase(),
         password: password
@@ -270,6 +279,9 @@ export default function Auth() {
     setError('');
     setLoading(true);
     try {
+      if (!supabase) {
+        throw new Error('Email login is currently unavailable (Supabase configuration missing).');
+      }
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase(),
         password: password
@@ -290,6 +302,9 @@ export default function Auth() {
     setError('');
     setLoading(true);
     try {
+      if (!supabase) {
+        throw new Error('OTP verification is currently unavailable (Supabase configuration missing).');
+      }
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
         email: email.toLowerCase(),
         token: emailCode,
