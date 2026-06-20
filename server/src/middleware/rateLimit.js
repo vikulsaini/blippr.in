@@ -10,7 +10,7 @@ export const apiLimiter = rateLimit({
 
 export const authLimiter = rateLimit({
   windowMs: Number(process.env.AUTH_LIMIT_WINDOW_MS || 15 * 60 * 1000), // 15 minutes window
-  limit: Number(process.env.AUTH_LIMIT_MAX || 120), // default 120 requests per 15 minutes
+  limit: Number(process.env.AUTH_LIMIT_MAX || 1000), // default 1000 requests per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
