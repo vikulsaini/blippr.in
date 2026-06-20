@@ -35,10 +35,11 @@ if (supabaseUrl) {
   }
 }
 
+console.log(`[Supabase Config Init] Raw URL length: ${rawUrl ? rawUrl.length : 0}, Raw AnonKey length: ${rawAnonKey ? rawAnonKey.length : 0}`);
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ WARNING: Supabase URL or Anon Key is missing in environment variables. Supabase integration is disabled.');
+  console.warn(`⚠️ WARNING: Supabase URL or Anon Key is missing or invalid in environment variables. URL=${supabaseUrl ? 'present' : 'missing'}, AnonKey=${supabaseAnonKey ? 'present' : 'missing'}. Supabase integration is disabled.`);
 } else {
-  console.log('✅ Supabase integration successfully initialized.');
+  console.log(`✅ Supabase integration successfully initialized. URL=${supabaseUrl.substring(0, 15)}...`);
 }
 
 export const supabase = clientInstance;
