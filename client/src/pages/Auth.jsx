@@ -32,7 +32,7 @@ const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', 
 const SOCIAL_PROFILES = [];
 
 export default function Auth() {
-  const isSupabaseEnabled = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  const isSupabaseEnabled = Boolean(supabase && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_URL !== 'undefined' && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'undefined');
   const navigate = useNavigate();
   
   // Supported modes: 'login' | 'guest' | 'completeProfile'

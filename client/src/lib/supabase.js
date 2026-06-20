@@ -5,7 +5,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
 let clientInstance = null;
 
-if (supabaseUrl && supabaseAnonKey) {
+if (supabaseUrl && supabaseAnonKey && supabaseUrl !== 'undefined' && supabaseUrl !== 'null' && supabaseAnonKey !== 'undefined' && supabaseAnonKey !== 'null') {
   try {
     clientInstance = createClient(supabaseUrl, supabaseAnonKey);
   } catch (error) {
