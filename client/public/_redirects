@@ -1,0 +1,12 @@
+# Static assets fallback rules (prevent index.html fallback for missing assets)
+/assets/*               /assets/:splat          200
+/icons/*                /icons/:splat           200
+/favicon.png            /favicon.png            200
+/logo.png               /logo.png               200
+/manifest.webmanifest   /manifest.webmanifest   200
+/registerSW.js          /registerSW.js          200
+/sw.js                  /sw.js                  200
+/notification-sw.js     /notification-sw.js     200
+
+# Single Page Application fallback routing
+/*                      /index.html             200
