@@ -404,14 +404,12 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
 
         if (currentX <= activeArchiveThreshold) {
           haptics.success();
-          animate(x, -rowWidth, { duration: 0.15, ease: "easeOut" }).then(() => {
-            setIsCollapsing(true);
-            setTimeout(() => {
-              onSetChatPreference(chat, 'archive');
-              setIsCollapsing(false);
-              x.set(0);
-            }, 250);
-          });
+          animate(x, 0, { duration: 0.15, ease: "easeOut" });
+          setIsCollapsing(true);
+          setTimeout(() => {
+            onSetChatPreference(chat, 'archive');
+            setIsCollapsing(false);
+          }, 150);
         } else if (currentX >= muteThreshold) {
           haptics.tap();
           if (navigator.vibrate && navigator.userActivation?.hasBeenActive) {
@@ -421,9 +419,9 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           setTimeout(() => setMuteFlashing(false), 200);
 
           onSetChatPreference(chat, 'mute');
-          animate(x, 0, { type: 'spring', stiffness: 300, damping: 20 });
+          animate(x, 0, { type: 'spring', stiffness: 380, damping: 26 });
         } else {
-          animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
+          animate(x, 0, { type: 'spring', stiffness: 380, damping: 26 });
         }
       }
       drag.lockDirection = 'none';
@@ -506,14 +504,12 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
 
         if (currentX <= activeArchiveThreshold) {
           haptics.success();
-          animate(x, -rowWidth, { duration: 0.15, ease: "easeOut" }).then(() => {
-            setIsCollapsing(true);
-            setTimeout(() => {
-              onSetChatPreference(chat, 'archive');
-              setIsCollapsing(false);
-              x.set(0);
-            }, 250);
-          });
+          animate(x, 0, { duration: 0.15, ease: "easeOut" });
+          setIsCollapsing(true);
+          setTimeout(() => {
+            onSetChatPreference(chat, 'archive');
+            setIsCollapsing(false);
+          }, 150);
         } else if (currentX >= muteThreshold) {
           haptics.tap();
           if (navigator.vibrate && navigator.userActivation?.hasBeenActive) {
@@ -523,9 +519,9 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           setTimeout(() => setMuteFlashing(false), 200);
 
           onSetChatPreference(chat, 'mute');
-          animate(x, 0, { type: 'spring', stiffness: 300, damping: 20 });
+          animate(x, 0, { type: 'spring', stiffness: 380, damping: 26 });
         } else {
-          animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
+          animate(x, 0, { type: 'spring', stiffness: 380, damping: 26 });
         }
       }
       drag.lockDirection = 'none';
@@ -551,7 +547,7 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
         marginBottom: 0,
         opacity: 0
       } : "show"}
-      transition={isCollapsing ? { duration: 0.25, ease: [0.25, 1, 0.5, 1] } : undefined}
+      transition={isCollapsing ? { duration: 0.15, ease: [0.25, 1, 0.5, 1] } : undefined}
       className="relative mb-1.5 overflow-hidden rounded-2xl bg-bg"
     >
       {/* Mute Slide Action Background (revealed on Right Swipe) */}
@@ -568,7 +564,7 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           className="flex items-center gap-2"
         >
           {chat.muted ? <Bell size={17} /> : <BellOff size={17} />}
-          <span>{chat.muted ? 'Unmute' : 'Mute'}</span>
+          <span>{chat.muted ? 'Unmuted' : 'Muted'}</span>
         </motion.div>
       </motion.div>
 
@@ -586,7 +582,7 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           className="flex items-center gap-2"
         >
           {chat.archived ? <Mail size={17} /> : <Archive size={17} />}
-          <span>{chat.archived ? 'Unarchive' : 'Archive'}</span>
+          <span>{chat.archived ? 'Unarchived' : 'Archived'}</span>
         </motion.div>
       </motion.div>
 
