@@ -484,8 +484,8 @@ export default function Auth() {
                       {loginMethod === 'otp' ? (
                         <div className="space-y-4">
                           {!otpSent ? (
-                            <div className="flex gap-2 items-center">
-                              <div className="flex-1">
+                            <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                              <div className="w-full">
                                 <UnderlinedInput 
                                   value={email} 
                                   onChange={setEmail} 
@@ -509,8 +509,8 @@ export default function Auth() {
                               <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
                                 {emailHint || 'Verification code sent.'}
                               </p>
-                              <div className="flex gap-2 items-center">
-                                <div className="flex-1">
+                              <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                                <div className="w-full">
                                   <UnderlinedInput 
                                     value={emailCode} 
                                     onChange={setEmailCode} 
@@ -607,7 +607,7 @@ export default function Auth() {
                           />
 
                           {/* Age / DOB Input */}
-                          <div className="grid grid-cols-[1.1fr_0.9fr] gap-3 items-center">
+                          <div className="grid grid-cols-1 sm:grid-cols-[1.1fr_0.9fr] gap-3 items-center">
                             <UnderlinedInput 
                               value={profile.dob} 
                               onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
@@ -690,8 +690,8 @@ export default function Auth() {
                           <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
                             {emailHint || 'Verification code sent.'}
                           </p>
-                          <div className="flex gap-2 items-center">
-                            <div className="flex-1">
+                          <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                            <div className="w-full">
                               <UnderlinedInput 
                                 value={emailCode} 
                                 onChange={setEmailCode} 
@@ -781,7 +781,7 @@ export default function Auth() {
                         placeholder="Profile Name" 
                         isValid={profile.name.trim().length >= 2}
                       />
-                      <div className="grid grid-cols-2 gap-3.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         <UnderlinedInput 
                           value={profile.age} 
                           onChange={(value) => setProfile((c) => ({ ...c, age: value }))} 
@@ -789,7 +789,7 @@ export default function Auth() {
                           type="number" 
                           isValid={Number(profile.age) >= 18}
                         />
-                        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
+                        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs h-14 items-center">
                           {['female', 'male'].map((value) => (
                             <button
                               key={value}
@@ -954,7 +954,7 @@ export default function Auth() {
 
 function GoogleIcon() {
   return (
-    <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="currentColor">
+    <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
       <path
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
         fill="#4285F4"
@@ -987,9 +987,9 @@ function AppleIcon() {
 
 function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMode, prefix, icon: Icon, suffix, isValid }) {
   return (
-    <div className="relative flex items-center w-full">
+    <div className="relative w-full">
       {prefix && (
-        <span className="absolute left-6 text-zinc-500 text-sm font-semibold select-none">
+        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-semibold select-none">
           {prefix}
         </span>
       )}
@@ -1001,9 +1001,9 @@ function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMod
         type={type}
         inputMode={inputMode}
       />
-      {suffix && <div className="absolute right-6 flex items-center">{suffix}</div>}
+      {suffix && <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center">{suffix}</div>}
       {!suffix && isValid && (
-        <span className="absolute right-6 text-emerald-500 flex-shrink-0 animate-fadeIn">
+        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500 flex-shrink-0 animate-fadeIn">
           <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
             <path className="animate-draw-checkmark" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
@@ -1039,7 +1039,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
 
   return (
     <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-4 transition-colors duration-[350ms]">
-      <div className="grid grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <UnderlinedInput 
           value={profile.age} 
           onChange={(value) => update('age', value)} 
@@ -1047,7 +1047,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
           type="number" 
           isValid={Number(profile.age) >= 18}
         />
-        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
+        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs h-14 items-center">
           {['female', 'male'].map((value) => (
             <button
               key={value}
@@ -1069,7 +1069,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
       </div>
       
       {!compact && (
-        <div className="grid grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <UnderlinedInput 
             value={profile.dob} 
             onChange={(value) => update('dob', value)} 
