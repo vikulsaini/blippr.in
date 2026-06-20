@@ -164,6 +164,30 @@ export default function Auth() {
   useEffect(() => {
     if (!isSupabaseEnabled) return;
 
+    // Handle PKCE code exchange if redirected with a code parameter
+    const searchParams = new URLSearchParams(window.location.search);
+    const code = searchParams.get('code');
+    if (code) {
+      // Remove code from URL to keep it clean and avoid reuse
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, newUrl);
+      
+      setLoading(true);
+      supabase.auth.exchangeCodeForSession(code)
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error exchanging PKCE code for session:', error.message);
+            setError(error.message);
+            setLoading(false);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to exchange PKCE code:', err);
+          setError(err.message || 'Failed to complete login from email link.');
+          setLoading(false);
+        });
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED')) {
         const hasLocalToken = Boolean(getToken());
