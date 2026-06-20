@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-const rawUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL)?.trim();
+const rawUrl = (process.env.SUPABASE_URL || process.env.SUPABASE_URI || process.env.VITE_SUPABASE_URL)?.trim();
 const rawAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY)?.trim();
 const rawServiceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY)?.trim();
 
