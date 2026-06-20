@@ -7,6 +7,20 @@ import { initNativeApp } from './lib/native.js';
 import { installSoundUnlock } from './lib/sounds.js';
 import './styles.css';
 
+/* ─── Prevent Self-XSS Warning in DevTools ─── */
+function initConsoleWarning() {
+  console.log(
+    '%cStop!',
+    'color: #ef4444; font-size: 36px; font-weight: bold; font-family: sans-serif; text-shadow: 1px 1px 0px #000;'
+  );
+  console.log(
+    '%cUsing this console may allow attackers to impersonate you and steal your information using an attack called Self-XSS. Do not enter or paste code that you do not understand.',
+    'font-size: 14px; font-family: sans-serif; font-weight: bold;'
+  );
+}
+
+initConsoleWarning();
+
 installSoundUnlock();
 initNativeApp().catch(() => {});
 repairStaleDeploymentCache().catch(() => {});

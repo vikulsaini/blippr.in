@@ -31,6 +31,12 @@ if (supabaseUrl) {
   }
 }
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('⚠️ WARNING: Supabase URL or Anon Key is missing in environment variables. Supabase integration is disabled.');
+} else {
+  console.log('✅ Supabase integration successfully initialized.');
+}
+
 export const supabase = clientInstance;
 export const supabaseAdmin = adminClientInstance || clientInstance;
 

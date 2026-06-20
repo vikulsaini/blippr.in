@@ -386,7 +386,7 @@ export default function Auth() {
           {/* Header/Logo section */}
           <div>
             <div className="flex justify-center mb-6">
-              <BrandLogo className="text-white [&_.text-text-primary]:text-white [&_.text-text-muted]:text-zinc-500 [&_span.bg-surface]:bg-[#111827]/80 [&_span.border-border-default]:border-white/10" />
+              <BrandLogo className="text-white [&_.text-text-primary]:text-white [&_.text-text-muted]:text-zinc-400 [&_span.bg-surface]:bg-[#111827]/80 [&_span.border-border-default]:border-white/10" />
             </div>
 
             {/* Sub-mode Tab Selector (Only in Login mode, when OTP not sent) */}
@@ -395,14 +395,14 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => switchSubMode('login')}
-                  className={`flex-1 py-2.5 rounded-full text-center transition-all ${authSubMode === 'login' ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-md' : 'text-zinc-400 hover:text-white'}`}
+                  className={`flex-1 py-2.5 rounded-full text-center transition-all ${authSubMode === 'login' ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-md' : 'text-zinc-300 hover:text-white'}`}
                 >
                   Log In
                 </button>
                 <button
                   type="button"
                   onClick={() => switchSubMode('signup')}
-                  className={`flex-1 py-2.5 rounded-full text-center transition-all ${authSubMode === 'signup' ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-md' : 'text-zinc-400 hover:text-white'}`}
+                  className={`flex-1 py-2.5 rounded-full text-center transition-all ${authSubMode === 'signup' ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-md' : 'text-zinc-300 hover:text-white'}`}
                 >
                   Sign Up
                 </button>
@@ -425,7 +425,7 @@ export default function Auth() {
                     {mode === 'completeProfile' ? 'Complete Profile' : ''}
                     {mode === 'login' && (authSubMode === 'login' ? 'Welcome Back' : 'Create Account')}
                   </h2>
-                  <p className="text-xs font-semibold text-zinc-400 max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs font-semibold text-zinc-300 max-w-md mx-auto leading-relaxed">
                     {mode === 'guest' && 'Enter instantly without an email address.'}
                     {mode === 'completeProfile' && 'Choose your unique username, gender, and date of birth to complete setup.'}
                     {mode === 'login' && (authSubMode === 'login' ? 'Access your account instantly via Google, OTP, or Password.' : 'Sign up via email verification and customize your profile.')}
@@ -450,7 +450,7 @@ export default function Auth() {
                       {/* Divider */}
                       <div className="flex items-center gap-4 py-1">
                         <div className="h-[1px] flex-1 bg-white/10" />
-                        <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Or</span>
+                        <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Or</span>
                         <div className="h-[1px] flex-1 bg-white/10" />
                       </div>
                     </div>
@@ -462,7 +462,7 @@ export default function Auth() {
                       
                       {/* Login Method Toggle */}
                       {!otpSent && (
-                        <div className="flex items-center justify-center gap-6 text-[11px] font-bold text-zinc-500 mb-2 select-none">
+                        <div className="flex items-center justify-center gap-6 text-[11px] font-bold text-zinc-400 mb-2 select-none">
                           <button
                             type="button"
                             onClick={() => setLoginMethod('otp')}
@@ -532,7 +532,7 @@ export default function Auth() {
                                 <button
                                   type="button"
                                   onClick={() => { setOtpSent(false); setEmailCode(''); }}
-                                  className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition underline"
+                                  className="text-xs text-zinc-300 hover:text-white font-bold transition underline"
                                 >
                                   Change email address
                                 </button>
@@ -587,7 +587,7 @@ export default function Auth() {
                               isValid={usernameStatus === 'available'}
                             />
                             {usernameStatus === 'checking' && (
-                              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold animate-pulse">Checking...</span>
+                              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-300 text-xs font-bold animate-pulse">Checking...</span>
                             )}
                             {usernameStatus === 'taken' && (
                               <span className="absolute right-6 top-1/2 -translate-y-1/2 text-red-500 text-xs font-bold">Taken</span>
@@ -623,7 +623,7 @@ export default function Auth() {
                                   key={value}
                                   type="button"
                                   onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                                  className={`group relative rounded-full py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                                  className={`group relative rounded-full py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
                                 >
                                   {profile.gender === value && (
                                     <motion.span
@@ -651,7 +651,7 @@ export default function Auth() {
                               type="password" 
                               value={confirmPassword} 
                               onChange={(e) => setConfirmPassword(e.target.value)} 
-                              className={`w-full bg-[#111827]/40 border rounded-full py-4 px-6 pr-12 text-sm text-white placeholder:text-zinc-500 outline-none focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold ${passwordsMatch ? 'border-emerald-500/80 focus:border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.15)]' : confirmPassword.length >= 8 ? 'border-red-500/80 focus:border-red-500' : 'border-white/10 focus:border-accent/80'}`}
+                              className={`w-full bg-[#111827]/40 border rounded-full py-4 px-6 pr-12 text-sm text-white placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold ${passwordsMatch ? 'border-emerald-500/80 focus:border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.15)]' : confirmPassword.length >= 8 ? 'border-red-500/80 focus:border-red-500' : 'border-white/10 focus:border-accent/80'}`}
                               placeholder="Confirm Password"
                             />
                             {passwordsMatch && (
@@ -713,7 +713,7 @@ export default function Auth() {
                             <button
                               type="button"
                               onClick={() => { setOtpSent(false); setEmailCode(''); }}
-                              className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition underline"
+                              className="text-xs text-zinc-300 hover:text-white font-bold transition underline"
                             >
                               Go back to signup
                             </button>
@@ -736,14 +736,14 @@ export default function Auth() {
                       
                       {/* Gender Selector */}
                       <div className="space-y-1">
-                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider pl-4">Gender</label>
+                        <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider pl-4">Gender</label>
                         <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
                           {['female', 'male'].map((value) => (
                             <button
                               key={value}
                               type="button"
                               onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
                             >
                               {profile.gender === value && (
                                 <motion.span
@@ -760,7 +760,7 @@ export default function Auth() {
 
                       {/* Date of Birth */}
                       <div className="space-y-1">
-                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider pl-4">Date of Birth</label>
+                        <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider pl-4">Date of Birth</label>
                         <UnderlinedInput 
                           value={profile.dob} 
                           onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
@@ -795,7 +795,7 @@ export default function Auth() {
                               key={value}
                               type="button"
                               onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
                             >
                               {profile.gender === value && (
                                 <motion.span
@@ -817,7 +817,7 @@ export default function Auth() {
                           onChange={(e) => setGuestTermsAccepted(e.target.checked)}
                           className="mt-1 h-4 w-4 rounded border-white/10 text-cyan-400 focus:ring-cyan-400/25 bg-black/20"
                         />
-                        <label htmlFor="guest-terms" className="text-xs text-zinc-400 leading-normal font-semibold cursor-pointer">
+                        <label htmlFor="guest-terms" className="text-xs text-zinc-300 leading-normal font-semibold cursor-pointer">
                           I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Privacy Policy</a>, and I certify that I am 18 years of age or older.
                         </label>
                       </div>
@@ -852,11 +852,11 @@ export default function Auth() {
                   <div className="space-y-4 pt-4">
                     <div className="text-center">
                       {mode === 'login' ? (
-                        <button type="button" onClick={() => switchMode('guest')} className="text-xs text-zinc-500 font-bold hover:text-zinc-300 hover:underline transition">
+                        <button type="button" onClick={() => switchMode('guest')} className="text-xs text-zinc-300 font-bold hover:text-white hover:underline transition">
                           Continue as Guest
                         </button>
                       ) : (
-                        <button type="button" onClick={() => switchMode('login')} className="text-xs text-zinc-500 font-bold hover:text-zinc-300 hover:underline transition">
+                        <button type="button" onClick={() => switchMode('login')} className="text-xs text-zinc-300 font-bold hover:text-white hover:underline transition">
                           Return to Login
                         </button>
                       )}
@@ -868,14 +868,14 @@ export default function Auth() {
           </div>
 
           {/* Footer links */}
-          <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-zinc-500">
+          <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-zinc-300">
             <div className="flex items-center gap-3">
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 hover:underline">Terms of Service</a>
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-white hover:underline">Terms of Service</a>
               <span>|</span>
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 hover:underline">Privacy Policy</a>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-white hover:underline">Privacy Policy</a>
             </div>
             
-            <div className="flex items-center gap-1.5 cursor-pointer hover:text-zinc-300 transition select-none text-[11px]">
+            <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition select-none text-[11px]">
               <Globe size={13} />
               <span>ENGLISH (US)</span>
             </div>
@@ -920,8 +920,8 @@ export default function Auth() {
                   +17M
                 </div>
               </div>
-              <span className="text-xs text-zinc-400 font-semibold select-none">
-                Out regular users
+              <span className="text-xs text-zinc-300 font-semibold select-none">
+                Our regular users
               </span>
             </div>
 
@@ -930,7 +930,7 @@ export default function Auth() {
               <button 
                 type="button"
                 onClick={() => switchMode('guest')}
-                className="text-xs text-zinc-500 font-bold hover:text-zinc-300 transition"
+                className="text-xs text-zinc-300 font-bold hover:text-white transition"
               >
                 Skip
               </button>
@@ -989,14 +989,14 @@ function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMod
   return (
     <div className="relative w-full">
       {prefix && (
-        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-semibold select-none">
+        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold select-none">
           {prefix}
         </span>
       )}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={`w-full bg-[#111827]/40 border border-white/10 rounded-full py-4 ${prefix ? 'pl-11' : 'px-6'} pr-12 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold`}
+        className={`w-full bg-[#111827]/40 border border-white/10 rounded-full py-4 ${prefix ? 'pl-11' : 'px-6'} pr-12 text-sm text-white placeholder:text-zinc-400 outline-none focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold`}
         placeholder={placeholder}
         type={type}
         inputMode={inputMode}
@@ -1025,7 +1025,7 @@ function PasswordRule({ met, text }) {
       ) : (
         <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 ml-1 mr-1" />
       )}
-      <span className={met ? "text-emerald-500" : "text-zinc-500"}>
+      <span className={met ? "text-emerald-500" : "text-zinc-400"}>
         {text}
       </span>
     </div>
@@ -1053,7 +1053,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
             >
               {profile.gender === value && (
                 <motion.span
@@ -1099,7 +1099,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
         <textarea 
           value={profile.bio} 
           onChange={(event) => update('bio', event.target.value)} 
-          className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-500 focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
+          className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-400 focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
           placeholder="Write a short bio..." 
           maxLength={160} 
         />
