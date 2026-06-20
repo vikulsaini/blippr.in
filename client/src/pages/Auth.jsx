@@ -173,6 +173,10 @@ export default function Auth() {
     const searchParams = new URLSearchParams(window.location.search);
     const code = searchParams.get('code');
     if (code) {
+      // Clear any stale local token so onAuthStateChange handler doesn't skip sync
+      localStorage.removeItem('blippr_token');
+      localStorage.removeItem('blippr_is_guest');
+
       // Remove code from URL to keep it clean and avoid reuse
       const newUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, newUrl);
@@ -184,6 +188,9 @@ export default function Auth() {
             console.error('Error exchanging PKCE code for session:', error.message);
             setError(error.message);
             setLoading(false);
+          } else if (data?.session) {
+            // Directly trigger sync as fallback in case onAuthStateChange doesn't fire
+            syncSupabaseSession(data.session.access_token);
           }
         })
         .catch(err => {
