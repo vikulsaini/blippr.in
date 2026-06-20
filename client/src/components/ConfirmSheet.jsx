@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { modalOverlay, modalContent } from '../lib/motion.js';
 
 export default function ConfirmSheet({
   open,
@@ -16,18 +17,19 @@ export default function ConfirmSheet({
       {open && (
         <div className="fixed inset-x-0 bottom-0 z-[70] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
           <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            variants={modalOverlay}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="fixed inset-0 cursor-default bg-black/30 backdrop-blur-[2px]"
             onClick={onCancel}
             aria-label="Close dialog"
           />
           <motion.div
-            initial={{ y: 28, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 28, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            variants={modalContent}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="relative mx-auto max-w-md rounded-t-[26px] bg-surface border border-border-default p-5 shadow-elevated"
           >
             <div className="flex items-start justify-between gap-3">

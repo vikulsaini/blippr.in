@@ -1,6 +1,7 @@
 import { nativeHaptic } from './native.js';
 
 export function haptic(pattern = 12) {
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
   nativeHaptic(Array.isArray(pattern) ? 'select' : 'tap').then((handled) => {
     if (handled) return;
     try {
@@ -12,6 +13,7 @@ export function haptic(pattern = 12) {
 }
 
 function namedHaptic(kind, fallback) {
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
   nativeHaptic(kind).then((handled) => {
     if (handled) return;
     try {

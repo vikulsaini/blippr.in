@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { LockKeyhole, Mail, Save } from 'lucide-react';
 import { api, setToken } from '../lib/api.js';
 import { motion, AnimatePresence } from 'framer-motion';
+import { modalOverlay, modalContent } from '../lib/motion.js';
 
 export default function GuestUpgradeModal({ me }) {
   const [open, setOpen] = useState(false);
@@ -27,7 +28,7 @@ export default function GuestUpgradeModal({ me }) {
     return () => window.removeEventListener('blippr:guest-expired', show);
   }, [me]);
 
-  if (!open) return null;
+
 
   function update(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -77,17 +78,18 @@ export default function GuestUpgradeModal({ me }) {
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          variants={modalOverlay}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
           className="fixed inset-0 z-[100] grid place-items-center bg-black/55 p-4"
         >
           <motion.form
             onSubmit={submit}
-            initial={{ y: 50, scale: 0.95, opacity: 0 }}
-            animate={{ y: 0, scale: 1, opacity: 1 }}
-            exit={{ y: 50, scale: 0.95, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            variants={modalContent}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-[24px] bg-surface p-5 shadow-elevated border border-border-default"
           >
             <div className="flex items-center gap-3">

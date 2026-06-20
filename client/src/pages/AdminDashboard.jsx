@@ -57,6 +57,7 @@ import {
 import { getRealtimeSocket } from '../lib/realtime.js';
 import BrandLogo from '../components/BrandLogo.jsx';
 import { motion } from 'framer-motion';
+import { staggerContainer, fadeUpCascade } from '../lib/motion.js';
 import { API_URL } from '../lib/config.js';
 
 export default function AdminDashboard() {
@@ -936,7 +937,12 @@ export default function AdminDashboard() {
         <div className="flex-1 p-6 space-y-6 overflow-y-auto">
           {/* Header Dashboard stats exactly like Nilova top bar */}
           {stats && (
-            <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <motion.section 
+              variants={staggerContainer(0.04, 0.05)}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+            >
               <NilovaMiniCard 
                 label="Registered Users" 
                 value={stats.totalUsers} 
@@ -973,7 +979,7 @@ export default function AdminDashboard() {
                 percent={fileStats && fileStats.totalSize > 0 ? Math.round(((fileStats.cloudinary?.size || 0) / fileStats.totalSize) * 100) + '% CDN' : '0%'} 
                 growth="up" 
               />
-            </section>
+            </motion.section>
           )}
 
           {/* MAIN MODULE: ANALYTICS MONITOR */}
@@ -1859,18 +1865,31 @@ function SidebarItem({ icon, label, id, active, onClick, collapsed }) {
   return (
     <button
       onClick={() => onClick(id)}
-      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-all ${
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-all relative ${
         isSelected 
-          ? 'bg-accent/10 text-accent font-extrabold shadow-sm' 
+          ? 'text-accent font-extrabold shadow-sm' 
           : 'text-text-secondary hover:bg-bg/50 hover:text-text-primary'
       }`}
     >
-      <div className="flex items-center gap-2.5">
-        <span className={isSelected ? 'text-accent' : 'text-text-faint'}>{icon}</span>
+      {isSelected && (
+        <motion.div 
+          layoutId="active-sidebar-pill"
+          className="absolute inset-0 bg-accent/10 rounded-lg -z-10"
+          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+        />
+      )}
+      <div className="flex items-center gap-2.5 z-10">
+        <motion.span 
+          whileHover={{ scale: 1.05, rotate: 2 }}
+          transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          className={isSelected ? 'text-accent' : 'text-text-faint'}
+        >
+          {icon}
+        </motion.span>
         {!collapsed && <span>{label}</span>}
       </div>
       {!collapsed && (
-        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'text-accent rotate-90' : 'text-text-faint opacity-0'}`} />
+        <ChevronRight className={`w-3.5 h-3.5 transition-transform z-10 ${isSelected ? 'text-accent rotate-90' : 'text-text-faint opacity-0'}`} />
       )}
     </button>
   );
@@ -1878,7 +1897,12 @@ function SidebarItem({ icon, label, id, active, onClick, collapsed }) {
 
 function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
   return (
-    <div className="surface-card bg-surface p-4 sm:p-5 rounded-[12px] border border-border flex flex-col justify-between text-left shadow-sm hover:shadow transition-shadow relative overflow-hidden group">
+    <motion.div 
+      variants={fadeUpCascade}
+      whileHover={{ y: -4, scale: 1.01, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      className="surface-card bg-surface p-4 sm:p-5 rounded-[12px] border border-border flex flex-col justify-between text-left shadow-sm relative overflow-hidden group cursor-pointer will-change-motion"
+    >
       {isAccent && (
         <div className="absolute top-0 inset-x-0 h-[3.5px] bg-accent" />
       )}
@@ -1897,7 +1921,7 @@ function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
           {typeof value === 'number' ? value.toLocaleString() : value}
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

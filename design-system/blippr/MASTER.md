@@ -7,8 +7,8 @@
 ---
 
 **Project:** Blippr
-**Generated:** 2026-06-18 09:46:54
-**Category:** Dating App
+**Generated:** 2026-06-20 11:11:01
+**Category:** General
 
 ---
 
@@ -18,19 +18,17 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#E11D48` | `--color-primary` |
-| Secondary | `#FB7185` | `--color-secondary` |
-| CTA/Accent | `#2563EB` | `--color-cta` |
-| Background | `#FFF1F2` | `--color-background` |
-| Text | `#881337` | `--color-text` |
-
-**Color Notes:** Vibrant rose + engagement blue
+| Primary | `#2563EB` | `--color-primary` |
+| Secondary | `#3B82F6` | `--color-secondary` |
+| CTA/Accent | `#F97316` | `--color-cta` |
+| Background | `#F8FAFC` | `--color-background` |
+| Text | `#1E293B` | `--color-text` |
 
 ### Typography
 
 - **Heading Font:** Inter
 - **Body Font:** Inter
-- **Mood:** Modern + Friendly typography
+- **Mood:** Professional + Hierarchy
 
 ### Spacing Variables
 
@@ -62,7 +60,7 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #2563EB;
+  background: #F97316;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -79,8 +77,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #E11D48;
-  border: 2px solid #E11D48;
+  color: #2563EB;
+  border: 2px solid #2563EB;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -93,7 +91,7 @@
 
 ```css
 .card {
-  background: #FFF1F2;
+  background: #F8FAFC;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -119,9 +117,9 @@
 }
 
 .input:focus {
-  border-color: #E11D48;
+  border-color: #2563EB;
   outline: none;
-  box-shadow: 0 0 0 3px #E11D4820;
+  box-shadow: 0 0 0 3px #2563EB20;
 }
 ```
 
@@ -147,28 +145,28 @@
 
 ## Style Guidelines
 
-**Style:** Vibrant & Block-based
+**Style:** Glassmorphism
 
-**Keywords:** Bold, energetic, playful, block layout, geometric shapes, high color contrast, duotone, modern, energetic
+**Keywords:** Frosted glass, transparent, blurred background, layered, vibrant background, light source, depth, multi-layer
 
-**Best For:** Startups, creative agencies, gaming, social media, youth-focused, entertainment, consumer
+**Best For:** Modern SaaS, financial dashboards, high-end corporate, lifestyle apps, modal overlays, navigation
 
-**Key Effects:** Large sections (48px+ gaps), animated patterns, bold hover (color shift), scroll-snap, large type (32px+), 200-300ms
+**Key Effects:** Backdrop blur (10-20px), subtle border (1px solid rgba white 0.2), light reflection, Z-depth
 
 ### Page Pattern
 
-**Pattern Name:** Enterprise Gateway
+**Pattern Name:** Immersive/Interactive Experience
 
-- **Conversion Strategy:**  logo carousel,  tab switching for industries, Path selection (I am a...). Mega menu navigation. Trust signals prominent.
-- **CTA Placement:** Contact Sales (Primary) + Login (Secondary)
-- **Section Order:** 1. Hero (Video/Mission), 2. Solutions by Industry, 3. Solutions by Role, 4. Client Logos, 5. Contact Sales
+- **Conversion Strategy:** 40% higher engagement. Performance trade-off. Provide skip option. Mobile fallback essential.
+- **CTA Placement:** After interaction complete + Skip option for impatient users
+- **Section Order:** 1. Full-screen interactive element, 2. Guided product tour, 3. Key benefits revealed, 4. CTA after completion
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Generic profiles
-- ❌ No safety
+- ❌ Excessive animation
+- ❌ Dark mode by default
 
 ### Additional Forbidden Patterns
 

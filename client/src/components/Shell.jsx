@@ -52,6 +52,7 @@ export default function Shell() {
   const showMainHeader = isChats && !isConversation && !bottomNavHidden;
   const touchStartRef = useRef(null);
   const contentRef = useRef(null);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     refreshPushSubscriptionIfAllowed().catch(() => {});
@@ -89,8 +90,12 @@ export default function Shell() {
     };
   }, []);
 
-  /* Scroll to top on route change */
+  /* Scroll to top on route change (subsequent navigations only) */
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     if (contentRef.current) {
       contentRef.current.scrollTo?.({ top: 0, behavior: 'smooth' });
     }
@@ -190,11 +195,7 @@ export default function Shell() {
                 {({ isActive }) => (
                   <>
                     {isActive && (
-                      <motion.span
-                        layoutId="nav-pill"
-                        className="absolute top-0.5 h-0.5 w-5 rounded-full bg-accent"
-                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                      />
+                      <span className="absolute top-0.5 h-0.5 w-5 rounded-full bg-accent animate-fadeIn" />
                     )}
                     <span className={`grid h-7 w-7 place-items-center rounded-xl transition-all duration-200 ${isActive ? 'bg-accent text-white shadow-accent-sm' : 'bg-transparent'}`}>
                       <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
@@ -230,12 +231,7 @@ function DesktopNav({ locationPath, socketState, clock, tabs }) {
               }`}
             >
               {active && (
-                <motion.span
-                  layoutId="desktop-nav-pill"
-                  className="absolute inset-0 rounded-2xl bg-accent-tint"
-                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                  style={{ zIndex: -1 }}
-                />
+                <span className="absolute inset-0 rounded-2xl bg-accent-tint animate-fadeIn" style={{ zIndex: -1 }} />
               )}
               <span className={`grid h-9 w-9 place-items-center rounded-2xl transition-all duration-200 ${active ? 'bg-accent text-white shadow-accent-sm' : 'bg-transparent'}`}>
                 <Icon size={20} />

@@ -21,8 +21,205 @@
         }
       })();
     </script>
+    <style>
+      /* Critical CSS for Instant Paint (LCP and Hero Layout) */
+      :root {
+        --mouse-x: 50%;
+        --mouse-y: 50%;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #030712;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Inter", sans-serif;
+      }
+      .lcp-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        text-align: center;
+        padding: 80px 20px 20px 20px;
+        box-sizing: border-box;
+        position: relative;
+        background-color: #030712;
+        overflow: hidden;
+      }
+      .lcp-glow {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translate(-50%, -20%);
+        width: 850px;
+        height: 550px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      .lcp-badge {
+        margin-bottom: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        background-color: rgba(16, 185, 129, 0.05);
+        border-radius: 9999px;
+        padding: 8px 16px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #34d399;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .lcp-heading {
+        max-width: 800px;
+        font-size: 3rem;
+        font-weight: 800;
+        line-height: 1.15;
+        color: #ffffff;
+        margin: 20px 0 24px 0;
+        letter-spacing: -0.02em;
+      }
+      .lcp-heading span {
+        color: #94a3b8;
+      }
+      .lcp-paragraph {
+        max-width: 650px;
+        font-size: 1.125rem;
+        font-weight: 500;
+        line-height: 1.6;
+        color: #9ca3af;
+        margin: 0 auto 32px auto;
+      }
+      .lcp-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .lcp-btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 28px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 700;
+        background-color: #000000;
+        color: #ffffff;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+        text-decoration: none;
+      }
+      .lcp-btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 28px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        text-decoration: none;
+      }
+      #lcp-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        background-color: #030712;
+        pointer-events: auto;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.55s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      }
+      .delay-100 {
+        animation-delay: 100ms;
+      }
+      .delay-200 {
+        animation-delay: 200ms;
+      }
+      .delay-300 {
+        animation-delay: 300ms;
+      }
+      .delay-400 {
+        animation-delay: 400ms;
+      }
+      @keyframes slideLeft {
+        from {
+          transform: translateX(100%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+      .animate-slide-left {
+        animation: slideLeft 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .animate-fadeIn {
+        animation: fadeIn 0.25s ease-out forwards;
+      }
+      @media (max-width: 640px) {
+        .lcp-heading {
+          font-size: 2.25rem;
+        }
+        .lcp-paragraph {
+          font-size: 1rem;
+        }
+        .lcp-container {
+          padding-top: 60px;
+        }
+        .lcp-buttons {
+          flex-direction: column;
+          width: 100%;
+          max-width: 280px;
+        }
+      }
+    </style>
   </head>
   <body>
+    <!-- Critical Pre-rendered LCP Shell -->
+    <div id="lcp-shell" class="lcp-container">
+      <div class="lcp-glow"></div>
+      <div class="lcp-badge">
+        ★ Random chats, real connections
+      </div>
+      <h1 class="lcp-heading">
+        The future of connection <br>
+        <span>is</span> human <span>+</span> anonymous
+      </h1>
+      <p class="lcp-paragraph">
+        We help you match with interesting people, secure your private conversations, and bridge the distance to form real connections in a digital world.
+      </p>
+      <div class="lcp-buttons">
+        <a href="/auth" class="lcp-btn-primary">Join The Community</a>
+        <a href="#features" class="lcp-btn-secondary">See Features</a>
+      </div>
+    </div>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

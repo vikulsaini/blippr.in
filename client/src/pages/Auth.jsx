@@ -76,7 +76,17 @@ export default function Auth() {
 
   function finishAuth(token, isGuest = false) {
     setToken(token, isGuest);
-    navigate(isGuest ? '/app/stranger' : '/app', { replace: true });
+    let role = '';
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      role = payload.role || '';
+    } catch (e) {}
+
+    if (role === 'admin') {
+      navigate('/blippr-control-center-secure-2026', { replace: true });
+    } else {
+      navigate(isGuest ? '/app/stranger' : '/app', { replace: true });
+    }
   }
 
   function switchMode(nextMode) {
@@ -647,7 +657,7 @@ export default function Auth() {
                             {passwordsMatch && (
                               <span className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500 flex-shrink-0 animate-fadeIn">
                                 <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  <path className="animate-draw-checkmark" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
                               </span>
                             )}
@@ -818,7 +828,7 @@ export default function Auth() {
                     <motion.p 
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-2xl animate-fadeIn text-center"
+                      className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-2xl animate-fadeIn animate-shake text-center"
                     >
                       {error}
                     </motion.p>
@@ -995,7 +1005,7 @@ function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMod
       {!suffix && isValid && (
         <span className="absolute right-6 text-emerald-500 flex-shrink-0 animate-fadeIn">
           <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            <path className="animate-draw-checkmark" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </span>
       )}

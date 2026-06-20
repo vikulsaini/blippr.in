@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowDown, ArrowLeft, Camera, FileText, Image, MapPin, Mic, Navigation, Phone, Plus, Reply, Search, Send, Smile, Square, Video, X } from 'lucide-react';
 import ConversationTimeline from './chat/ConversationTimeline.jsx';
 import { getNickname, getOtherMember, normalizeId } from '../lib/chat.js';
 import { presenceText } from '../lib/presence.js';
+import { dropdownSlide, modalOverlay, modalContent } from '../lib/motion.js';
 
 const composerEmojis = ['\u{1F60A}', '\u{1F602}', '\u{1F970}', '\u{1F60D}', '\u{1F44B}', '\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F525}', '\u{1F389}', '\u{1F622}', '\u{1F62E}', '\u{1F64F}', '\u{1F914}', '\u{1F634}', '\u{1F618}', '\u{2728}'];
 
-export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onSendMedia, onSendLocation, onUpdateLiveLocation, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onEditMessage, onDeleteMessage, onReportMessage, onStartCall, isTyping = false }) {
+export default function ChatWindow({ chat, messages = [], calls = [], currentUserId, text, setText, onSend, onSendMedia, onSendLocation, onUpdateLiveLocation, onBack, onProfile, replyTo, onReply, onCancelReply, onReact, onEditMessage, onDeleteMessage, onReportMessage, onStartCall, isTyping = false, onRetryMessage }) {
   const myId = normalizeId(currentUserId);
   const otherMember = getOtherMember(chat, myId);
   const displayName = getNickname(chat, currentUserId, otherMember);
@@ -40,21 +41,23 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   const activeChatId = chat?._id;
   const lastScrolledChatRef = useRef(null);
 
+  // Synchronously lock scroll position to the bottom on chat switch before browser paint
+  useLayoutEffect(() => {
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    if (messages.length > 0) {
+      container.scrollTop = 999999;
+      lastScrolledChatRef.current = activeChatId;
+    }
+  }, [activeChatId, messages.length === 0]);
+
   useEffect(() => {
     if (!scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
     
-    const hasMessages = messages.length > 0;
     const isNewChat = lastScrolledChatRef.current !== activeChatId;
-    
-    if (isNewChat && hasMessages) {
-      container.scrollTop = container.scrollHeight;
-      lastScrolledChatRef.current = activeChatId;
-      return;
-    }
-    
-    if (isNewChat && !hasMessages) {
-      container.scrollTop = container.scrollHeight;
+    if (isNewChat) {
+      // Handled synchronously by useLayoutEffect above to avoid visual jumps
       return;
     }
     
@@ -226,14 +229,9 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
     if (!file || !onSendMedia) return;
     setEmojiOpen(false);
     setUploadError('');
-    setUploading(true);
-    try {
-      await onSendMedia(file);
-    } catch (err) {
+    onSendMedia(file).catch((err) => {
       setUploadError(err.message || 'Could not send media');
-    } finally {
-      setUploading(false);
-    }
+    });
   }
 
   async function startRecording() {
@@ -286,18 +284,13 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
 
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         if (blob.size && onSendMedia) {
-          setUploading(true);
           setUploadError('');
-          try {
-            await onSendMedia(
-              new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }),
-              { duration, waveform }
-            );
-          } catch (err) {
+          onSendMedia(
+            new File([blob], `voice-${Date.now()}.webm`, { type: blob.type }),
+            { duration, waveform }
+          ).catch((err) => {
             setUploadError(err.message || 'Could not send voice note');
-          } finally {
-            setUploading(false);
-          }
+          });
         }
       };
 
@@ -374,7 +367,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
         ref={scrollContainerRef}
         onScroll={handleScroll}
         className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 scrollbar-thin"
-        style={{ transition: 'all 0.2s ease-out' }}
+        style={{ overflowAnchor: 'auto', height: '100%' }}
       >
         <ConversationTimeline
           messages={messages}
@@ -390,6 +383,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           onDeleteMessage={onDeleteMessage}
           onReportMessage={onReportMessage}
           otherMember={otherMember}
+          onRetryMessage={onRetryMessage}
         />
       </section>
 
@@ -440,48 +434,53 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             <button type="button" onClick={() => setUploadError('')} className="rounded-full bg-border-default p-1 text-text-muted hover:text-text-primary" aria-label="Dismiss media error"><X size={13} /></button>
           </div>
         )}
-        {emojiOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.96 }}
-            className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-border-default bg-surface p-2 shadow-float"
-          >
-            {composerEmojis.map((emoji, index) => (
-              <motion.button
-                key={`${emoji}-${index}`}
-                type="button"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.015 }}
-                whileTap={{ scale: 0.82 }}
-                onClick={() => setText(`${text}${emoji}`)}
-                className="grid h-9 place-items-center rounded-xl text-xl hover:bg-surface-hover"
-              >
-                {emoji}
-              </motion.button>
-            ))}
-          </motion.div>
-        )}
-        {attachmentOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="mb-2 rounded-[22px] border border-border-default bg-surface p-3 shadow-float"
-          >
-            <p className="mb-2 px-1 text-xs font-semibold text-text-faint">Share with this friend</p>
-            <div className="grid grid-cols-4 gap-2">
-              <AttachButton icon={Image} label="Gallery" onClick={() => openPicker({ accept: 'image/*,video/*', title: 'Open gallery?', message: 'We need access to your photos and videos so you can share media in this chat.' })} />
-              <AttachButton icon={FileText} label="Document" onClick={() => openPicker({ accept: 'application/pdf,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip', title: 'Choose document?', message: 'We need access to your files so you can choose a document to share.' })} />
-              <AttachButton icon={Camera} label="Camera" onClick={() => openPicker({ accept: 'image/*,video/*', capture: 'environment', title: 'Open camera?', message: 'We need camera access so you can take a photo or video to share.' })} />
-              <AttachButton icon={MapPin} label="Location" onClick={shareCurrentLocation} />
-            </div>
-            <button type="button" onClick={shareLiveLocation} className="btn-secondary mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-2 text-xs font-semibold">
-              <Navigation size={14} />
-              Share live location
-            </button>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {emojiOpen && (
+            <motion.div
+              variants={dropdownSlide}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-border-default bg-surface p-2 shadow-float"
+            >
+              {composerEmojis.map((emoji, index) => (
+                <motion.button
+                  key={`${emoji}-${index}`}
+                  type="button"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.015 }}
+                  whileTap={{ scale: 0.82 }}
+                  onClick={() => setText(`${text}${emoji}`)}
+                  className="grid h-9 place-items-center rounded-xl text-xl hover:bg-surface-hover"
+                >
+                  {emoji}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+          {attachmentOpen && (
+            <motion.div
+              variants={dropdownSlide}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="mb-2 rounded-[22px] border border-border-default bg-surface p-3 shadow-float"
+            >
+              <p className="mb-2 px-1 text-xs font-semibold text-text-faint">Share with this friend</p>
+              <div className="grid grid-cols-4 gap-2">
+                <AttachButton icon={Image} label="Gallery" onClick={() => openPicker({ accept: 'image/*,video/*', title: 'Open gallery?', message: 'We need access to your photos and videos so you can share media in this chat.' })} />
+                <AttachButton icon={FileText} label="Document" onClick={() => openPicker({ accept: 'application/pdf,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip', title: 'Choose document?', message: 'We need access to your files so you can choose a document to share.' })} />
+                <AttachButton icon={Camera} label="Camera" onClick={() => openPicker({ accept: 'image/*,video/*', capture: 'environment', title: 'Open camera?', message: 'We need camera access so you can take a photo or video to share.' })} />
+                <AttachButton icon={MapPin} label="Location" onClick={shareCurrentLocation} />
+              </div>
+              <button type="button" onClick={shareLiveLocation} className="btn-secondary mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-2 text-xs font-semibold">
+                <Navigation size={14} />
+                Share live location
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="flex items-center gap-2 rounded-full border border-border-default bg-surface shadow-sm p-1.5">
           <input
             ref={fileInputRef}
@@ -491,18 +490,34 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             className="hidden"
             onChange={handleFilePick}
           />
-          <button type="button" onClick={openAttachmentSheet} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${attachmentOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`} aria-label="Share photos, media, files or location">
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            whileHover={{ scale: 1.05 }}
+            type="button"
+            onClick={openAttachmentSheet}
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${attachmentOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+            aria-label="Share photos, media, files or location"
+          >
             <Plus size={18} />
-          </button>
-          <button type="button" onClick={() => setEmojiOpen((open) => !open)} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${emojiOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`} aria-label="Emoji"><Smile size={18} /></button>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            whileHover={{ scale: 1.05 }}
+            type="button"
+            onClick={() => setEmojiOpen((open) => !open)}
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${emojiOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+            aria-label="Emoji"
+          >
+            <Smile size={18} />
+          </motion.button>
           <textarea
             ref={inputRef}
             value={text}
             onChange={(event) => handleTextInput(event.target.value)}
             onFocus={() => setEmojiOpen(false)}
             className="max-h-28 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-medium text-text-primary outline-none self-center"
-            placeholder={uploading ? 'Uploading...' : recording ? 'Recording voice...' : chat ? 'Message' : 'Start from Discover'}
-            disabled={!chat || uploading || recording}
+            placeholder={recording ? 'Recording voice...' : chat ? 'Message' : 'Start from Discover'}
+            disabled={!chat || recording}
             rows={1}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
@@ -512,25 +527,54 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             }}
           />
           {text.trim() ? (
-            <button disabled={!chat || uploading} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-accent-hover active:scale-[0.96] transition disabled:opacity-40" aria-label="Send"><Send size={16} /></button>
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.05 }}
+              disabled={!chat}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-accent-hover transition disabled:opacity-40"
+              aria-label="Send"
+            >
+              <Send size={16} />
+            </motion.button>
           ) : recording ? (
-            <button type="button" onClick={stopRecording} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-danger text-white hover:bg-red-600 active:scale-[0.96] transition" aria-label="Stop recording"><Square size={14} /></button>
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.05 }}
+              type="button"
+              onClick={stopRecording}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-danger text-white hover:bg-red-600 transition"
+              aria-label="Stop recording"
+            >
+              <Square size={14} />
+            </motion.button>
           ) : (
-            <button type="button" onClick={startRecording} disabled={!chat || uploading} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary active:scale-[0.96] transition disabled:opacity-40" aria-label="Voice message"><Mic size={16} /></button>
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.05 }}
+              type="button"
+              onClick={startRecording}
+              disabled={!chat}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary transition disabled:opacity-40"
+              aria-label="Voice message"
+            >
+              <Mic size={16} />
+            </motion.button>
           )}
         </div>
-        {permissionPrompt && (
-          <PermissionPrompt
-            title={permissionPrompt.title}
-            message={permissionPrompt.message}
-            onCancel={() => setPermissionPrompt(null)}
-            onContinue={() => {
-              const action = permissionPrompt.action;
-              setPermissionPrompt(null);
-              action?.();
-            }}
-          />
-        )}
+        <AnimatePresence>
+          {permissionPrompt && (
+            <PermissionPrompt
+              title={permissionPrompt.title}
+              message={permissionPrompt.message}
+              onCancel={() => setPermissionPrompt(null)}
+              onContinue={() => {
+                const action = permissionPrompt.action;
+                setPermissionPrompt(null);
+                action?.();
+              }}
+            />
+          )}
+        </AnimatePresence>
       </form>
     </div>
   );
@@ -538,8 +582,17 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
 
 function PermissionPrompt({ title, message, onCancel, onContinue }) {
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-end bg-black/45 p-3 backdrop-blur-sm">
-      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface-card w-full max-w-md rounded-[24px] p-4 shadow-elevated">
+    <motion.div
+      variants={modalOverlay}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="fixed inset-0 z-[80] grid place-items-end bg-black/45 p-3 backdrop-blur-sm"
+    >
+      <motion.div
+        variants={modalContent}
+        className="surface-card w-full max-w-md rounded-[24px] p-4 shadow-elevated"
+      >
         <div className="flex items-start gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent-light text-accent">
             <MapPin size={19} />
@@ -554,18 +607,25 @@ function PermissionPrompt({ title, message, onCancel, onContinue }) {
           <button type="button" onClick={onContinue} className="btn-primary rounded-2xl py-3 text-sm font-semibold">Continue</button>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
 function AttachButton({ icon: Icon, label, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="btn-secondary grid min-h-20 place-items-center rounded-2xl px-2 py-3 text-[11px] font-semibold text-text-secondary hover:translate-y-[-1px] transition">
+    <motion.button
+      type="button"
+      whileHover={{ y: -2, scale: 1.02 }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+      onClick={onClick}
+      className="btn-secondary grid min-h-20 place-items-center rounded-2xl px-2 py-3 text-[11px] font-semibold text-text-secondary w-full"
+    >
       <span className="grid h-9 w-9 place-items-center rounded-2xl bg-accent-tint text-accent">
         <Icon size={17} />
       </span>
       {label}
-    </button>
+    </motion.button>
   );
 }
 

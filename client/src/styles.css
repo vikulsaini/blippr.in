@@ -1071,3 +1071,126 @@ select:focus-visible {
   transform: scale(0.98) translateY(0) !important;
 }
 
+/* ═══════════════════════════════════════════
+   PREMIUM MOTION & SYSTEM TOKENS (BLIPPR)
+   ═══════════════════════════════════════════ */
+
+:root {
+  --ease-micro: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-medium-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-medium-decel: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-layout: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* GPU Hardware Acceleration Hint */
+.will-change-motion {
+  will-change: transform, opacity;
+}
+
+/* Easing utility classes */
+.transition-micro {
+  transition: all 180ms var(--ease-micro);
+}
+
+.transition-medium-back {
+  transition: all 300ms var(--ease-medium-back);
+}
+
+.transition-medium-decel {
+  transition: all 300ms var(--ease-medium-decel);
+}
+
+.transition-layout {
+  transition: all 400ms var(--ease-layout);
+}
+
+/* Success Draw Keyframe */
+@keyframes svg-checkmark-draw {
+  from {
+    stroke-dashoffset: 50;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-draw-checkmark {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: svg-checkmark-draw 350ms var(--ease-micro) forwards;
+}
+
+/* Validation Shake Keyframe */
+@keyframes shake-validation {
+  0%, 100% { transform: translateX(0); }
+  15%, 45%, 75% { transform: translateX(-6px); }
+  30%, 60%, 90% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake-validation 250ms ease-in-out;
+}
+
+/* Shimmer Loading Keyframe */
+@keyframes shimmer-loading {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05) 25%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer-loading 1.5s linear infinite !important;
+}
+
+.dark-theme .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer-loading 1.5s linear infinite !important;
+}
+
+/* Button Shimmer effect on hover */
+@keyframes button-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.btn-shimmer {
+  background-size: 200% auto;
+  animation: button-shimmer 3s linear infinite;
+}
+
+/* Accessibility: Reduced motion overrides */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-delay: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+    will-change: none !important;
+  }
+}
+

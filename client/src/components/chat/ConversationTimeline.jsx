@@ -19,7 +19,8 @@ export default function ConversationTimeline({
   onEditMessage,
   onDeleteMessage,
   onReportMessage,
-  otherMember
+  otherMember,
+  onRetryMessage
 }) {
   const myId = normalizeId(currentUserId);
   const [actionTarget, setActionTarget] = useState(null);
@@ -30,6 +31,33 @@ export default function ConversationTimeline({
   const visibleTimeline = normalizedSearch
     ? timeline.filter((item) => item.kind === 'message' && `${item.message.text || ''} ${item.message.media?.name || ''}`.toLowerCase().includes(normalizedSearch))
     : timeline;
+
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  // Progressive list windowing: render additional items when scrolling near the top
+  useEffect(() => {
+    const parent = endRef.current?.closest('.overflow-y-auto');
+    if (!parent) return;
+
+    const handleScroll = () => {
+      if (parent.scrollTop < 250) {
+        setVisibleCount((prev) => Math.min(prev + 25, visibleTimeline.length));
+      }
+    };
+
+    parent.addEventListener('scroll', handleScroll);
+    return () => parent.removeEventListener('scroll', handleScroll);
+  }, [visibleTimeline.length, endRef]);
+
+  // Reset window count to 50 when the active chat changes
+  const activeChatId = timeline[0]?.message?.chat || timeline[0]?.call?.chat || '';
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [activeChatId]);
+
+  const renderedTimeline = useMemo(() => {
+    return visibleTimeline.slice(-visibleCount);
+  }, [visibleTimeline, visibleCount]);
 
   const lastSeenMessageId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -53,7 +81,7 @@ export default function ConversationTimeline({
     setActionTarget(null);
   }
 
-  if (!visibleTimeline.length) {
+  if (!renderedTimeline.length) {
     return (
       <>
         <EmptyState name={displayName} />
@@ -64,10 +92,10 @@ export default function ConversationTimeline({
 
   return (
     <>
-      <div className="space-y-2.5" style={{ transition: 'all 0.2s ease-out' }}>
+      <div className="space-y-2.5" style={{ transition: 'none' }}>
         <AnimatePresence initial={false}>
-          {visibleTimeline.map((item, index) => {
-            const showDate = shouldShowDate(visibleTimeline[index - 1], item);
+          {renderedTimeline.map((item, index) => {
+            const showDate = shouldShowDate(renderedTimeline[index - 1], item);
             if (item.kind === 'call') {
               return (
                 <motion.div
@@ -76,6 +104,7 @@ export default function ConversationTimeline({
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.15 }}
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: '50px' }}
                 >
                   {showDate && <DateDivider value={item.createdAt} />}
                   <CallHistoryItem call={item.call} currentUserId={currentUserId} />
@@ -87,11 +116,12 @@ export default function ConversationTimeline({
             const isOptimistic = message.status === 'sending' || message.status === 'queued' || message.status === 'failed';
             return (
               <motion.div
-                key={`message-${message._id}`}
+                key={`message-${message.clientId || message._id}`}
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.15 }}
+                style={{ contentVisibility: 'auto', containIntrinsicSize: '80px' }}
               >
                 {showDate && <DateDivider value={item.createdAt} />}
                 <MessageBubble
@@ -101,6 +131,7 @@ export default function ConversationTimeline({
                   onSwipeRight={isOptimistic ? undefined : onReply}
                   isLastSeen={message._id === lastSeenMessageId}
                   otherMember={otherMember}
+                  onRetry={() => onRetryMessage?.(message.clientId || message._id)}
                 />
               </motion.div>
             );
@@ -110,62 +141,66 @@ export default function ConversationTimeline({
         <div ref={endRef} />
       </div>
 
-      {actionTarget && (
-        <MessageActionSheet
-          message={actionTarget}
-          mine={normalizeId(actionTarget.sender) === myId}
-          onClose={() => setActionTarget(null)}
-          onReact={react}
-          onReply={() => {
-            onReply?.(actionTarget);
-            setActionTarget(null);
-          }}
-          onEdit={() => {
-            setEditTarget(actionTarget);
-            setEditText(actionTarget.text || '');
-            setActionTarget(null);
-          }}
-          onDeleteMe={() => {
-            onDeleteMessage?.(actionTarget._id, 'me');
-            setActionTarget(null);
-          }}
-          onDeleteEveryone={() => {
-            onDeleteMessage?.(actionTarget._id, 'everyone');
-            setActionTarget(null);
-          }}
-          onCopy={() => {
-            copyMessage(actionTarget);
-            setActionTarget(null);
-          }}
-          onReport={() => {
-            onReportMessage?.(actionTarget);
-            setActionTarget(null);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {actionTarget && (
+          <MessageActionSheet
+            message={actionTarget}
+            mine={normalizeId(actionTarget.sender) === myId}
+            onClose={() => setActionTarget(null)}
+            onReact={react}
+            onReply={() => {
+              onReply?.(actionTarget);
+              setActionTarget(null);
+            }}
+            onEdit={() => {
+              setEditTarget(actionTarget);
+              setEditText(actionTarget.text || '');
+              setActionTarget(null);
+            }}
+            onDeleteMe={() => {
+              onDeleteMessage?.(actionTarget._id, 'me');
+              setActionTarget(null);
+            }}
+            onDeleteEveryone={() => {
+              onDeleteMessage?.(actionTarget._id, 'everyone');
+              setActionTarget(null);
+            }}
+            onCopy={() => {
+              copyMessage(actionTarget);
+              setActionTarget(null);
+            }}
+            onReport={() => {
+              onReportMessage?.(actionTarget);
+              setActionTarget(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
-      {editTarget && (
-        <EditMessageSheet
-          value={editText}
-          onChange={setEditText}
-          onClose={() => setEditTarget(null)}
-          onSave={() => {
-            const nextText = editText.trim();
-            if (nextText) onEditMessage?.(editTarget._id, nextText);
-            setEditTarget(null);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {editTarget && (
+          <EditMessageSheet
+            value={editText}
+            onChange={setEditText}
+            onClose={() => setEditTarget(null)}
+            onSave={() => {
+              const nextText = editText.trim();
+              if (nextText) onEditMessage?.(editTarget._id, nextText);
+              setEditTarget(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
 
-const MessageBubble = memo(function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, otherMember }) {
+const MessageBubble = memo(function MessageBubble({ message, mine, onLongPress, onSwipeRight, isLastSeen, otherMember, onRetry }) {
   const timerRef = useRef(null);
 
   function startPress() {
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => onLongPress?.(message), 450);
+    timerRef.current = setTimeout(() => onLongPress?.(message), 3000);
   }
 
   function stopPress() {
@@ -228,7 +263,7 @@ const MessageBubble = memo(function MessageBubble({ message, mine, onLongPress, 
           <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-white/80' : 'text-text-muted'}`}>
             {message.editedAt && <span>edited</span>}
             <span>{formatTime(message.createdAt)}</span>
-            {mine && <StatusIcon status={message.status} />}
+            {mine && <StatusIcon status={message.status} onRetry={onRetry} />}
           </div>
           {!!message.reactions?.length && (
             <div className="mt-1.5 flex flex-wrap gap-1">
@@ -273,17 +308,39 @@ const MessageBubble = memo(function MessageBubble({ message, mine, onLongPress, 
 function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, onDeleteMe, onDeleteEveryone, onCopy, onReport }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-[60] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-      <button className="fixed inset-0 cursor-default bg-black/35 backdrop-blur-[2px]" onClick={onClose} aria-label="Close message actions" />
-      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface-card relative mx-auto max-w-md rounded-t-[24px] p-3 shadow-elevated">
+      <motion.button 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="fixed inset-0 cursor-default bg-black/35 backdrop-blur-[2px]" 
+        onClick={onClose} 
+        aria-label="Close message actions" 
+      />
+      <motion.div 
+        initial={{ y: 80, opacity: 0 }} 
+        animate={{ y: 0, opacity: 1 }} 
+        exit={{ y: 80, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+        className="surface-card relative mx-auto max-w-md rounded-t-[24px] p-3 shadow-elevated"
+      >
         <div className="mb-2 flex items-center justify-between gap-3">
           <p className="truncate text-xs text-text-muted">{message.text || 'Message options'}</p>
           <button onClick={onClose} className="btn-icon h-7 w-7" aria-label="Close reactions"><X size={14} /></button>
         </div>
         <div className="grid grid-cols-6 gap-2">
           {quickEmojis.map((emoji) => (
-            <button key={emoji} onClick={() => onReact(emoji)} className="btn-secondary rounded-xl py-3 text-xl" aria-label={`React ${emoji}`}>
+            <motion.button
+              key={emoji}
+              whileHover={{ scale: 1.18, y: -2 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+              onClick={() => onReact(emoji)}
+              className="btn-secondary rounded-xl py-3 text-xl"
+              aria-label={`React ${emoji}`}
+            >
               {emoji}
-            </button>
+            </motion.button>
           ))}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -302,8 +359,22 @@ function MessageActionSheet({ message, mine, onClose, onReact, onReply, onEdit, 
 function EditMessageSheet({ value, onChange, onClose, onSave }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-[65] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-      <button className="fixed inset-0 cursor-default bg-black/40 backdrop-blur-[2px]" onClick={onClose} aria-label="Close edit message" />
-      <motion.div initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="surface-card relative mx-auto max-w-md rounded-t-[24px] p-4 shadow-elevated">
+      <motion.button 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="fixed inset-0 cursor-default bg-black/40 backdrop-blur-[2px]" 
+        onClick={onClose} 
+        aria-label="Close edit message" 
+      />
+      <motion.div 
+        initial={{ y: 80, opacity: 0 }} 
+        animate={{ y: 0, opacity: 1 }} 
+        exit={{ y: 80, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+        className="surface-card relative mx-auto max-w-md rounded-t-[24px] p-4 shadow-elevated"
+      >
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="font-semibold">Edit message</h3>
@@ -330,25 +401,36 @@ function EditMessageSheet({ value, onChange, onClose, onSave }) {
 
 function ActionButton({ icon: Icon, label, onClick, tone = 'neutral', disabled = false }) {
   return (
-    <button
+    <motion.button
       type="button"
+      whileHover={{ scale: disabled ? 1 : 1.03, y: disabled ? 0 : -1 }}
+      whileTap={{ scale: disabled ? 1 : 0.96 }}
+      transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
       disabled={disabled}
       onClick={onClick}
-      className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold disabled:opacity-35 ${tone === 'danger' ? 'border border-danger/20 bg-danger/10 text-danger hover:bg-danger/20 transition' : 'btn-secondary'}`}
+      className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold disabled:opacity-35 ${tone === 'danger' ? 'border border-danger/20 bg-danger/10 text-danger hover:bg-danger/20 transition-colors' : 'btn-secondary'}`}
     >
       <Icon size={15} />
       {label}
-    </button>
+    </motion.button>
   );
 }
 
-function StatusIcon({ status }) {
+function StatusIcon({ status, onRetry }) {
   if (status === 'failed') {
     return (
-      <span className="flex items-center gap-0.5 text-[9px] text-red-200 font-semibold" title="Failed">
-        <AlertCircle size={10} />
-        <span>failed</span>
-      </span>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRetry?.();
+        }}
+        className="flex items-center gap-1 rounded bg-danger/25 px-1.5 py-0.5 text-[10px] font-semibold text-red-300 hover:bg-danger/45 hover:text-white transition active:scale-95 cursor-pointer border-none outline-none"
+        title="Failed to send. Tap to retry."
+      >
+        <AlertCircle size={10} className="stroke-[2.5]" />
+        <span>Failed to Send. Tap to retry.</span>
+      </button>
     );
   }
   if (status === 'sending' || status === 'queued') {
@@ -444,11 +526,23 @@ function DateDivider({ value }) {
 
 function MediaPreview({ media }) {
   if (!media.url) return <span className="mb-2 block rounded-2xl bg-bg/40 px-3 py-2 text-xs">Preparing attachment...</span>;
-  if (media.type === 'image') return <img src={media.url} alt="" className="mb-2 max-h-64 rounded-2xl object-cover" />;
+  if (media.type === 'image') {
+    return (
+      <div className="mb-2 w-[260px] max-w-full aspect-[4/3] bg-surface-hover rounded-2xl overflow-hidden relative border border-border-default/10">
+        <img src={media.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+      </div>
+    );
+  }
   if (media.type === 'audio') {
     return <VoiceNotePlayer media={media} />;
   }
-  if (media.type === 'video') return <video src={media.url} controls className="mb-2 max-h-64 rounded-2xl" />;
+  if (media.type === 'video') {
+    return (
+      <div className="mb-2 w-[260px] max-w-full aspect-[16/9] bg-surface-hover rounded-2xl overflow-hidden relative border border-border-default/10">
+        <video src={media.url} controls className="h-full w-full object-cover" />
+      </div>
+    );
+  }
   return <a href={media.url} className="mb-2 block rounded-2xl bg-bg/40 px-3 py-2 text-xs underline">{media.name || 'Open attachment'}</a>;
 }
 

@@ -320,14 +320,30 @@ async function setAudioOutput(audioElement, speakerOn, callType) {
 function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = false, active = false }) {
   const tones = {
     neutral: active ? 'btn-primary' : 'btn-secondary',
-    danger: 'bg-danger text-white',
+    danger: 'bg-danger text-white hover:bg-red-600',
     mint: 'btn-primary'
   };
 
+  const isIncomingAccept = tone === 'mint';
+
   return (
-    <button onClick={onClick} disabled={disabled} className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-[18px] px-1 text-[10px] font-semibold disabled:opacity-35 sm:min-h-12 sm:text-[11px] ${tones[tone]}`}>
+    <motion.button
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
+      whileTap={{ scale: disabled ? 1 : 0.94 }}
+      animate={isIncomingAccept ? {
+        scale: [1, 1.05, 1],
+        boxShadow: ["0px 0px 0px rgba(74, 222, 128, 0)", "0px 0px 12px rgba(74, 222, 128, 0.5)", "0px 0px 0px rgba(74, 222, 128, 0)"]
+      } : {}}
+      transition={isIncomingAccept ? {
+        scale: { repeat: Infinity, duration: 1.5, ease: "easeInOut" },
+        boxShadow: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+      } : { duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-[18px] px-1 text-[10px] font-semibold disabled:opacity-35 sm:min-h-12 sm:text-[11px] ${tones[tone]} transition-colors`}
+    >
       <Icon size={19} />
       <span className="truncate">{label}</span>
-    </button>
+    </motion.button>
   );
 }

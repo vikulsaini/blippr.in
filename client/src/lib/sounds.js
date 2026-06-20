@@ -32,9 +32,13 @@ export function unlockSounds() {
 }
 
 export function installSoundUnlock() {
-  const unlock = () => unlockSounds();
-  window.addEventListener('pointerdown', unlock, { once: true, passive: true });
-  window.addEventListener('keydown', unlock, { once: true });
+  const handler = () => {
+    unlockSounds();
+    const events = ['click', 'touchstart', 'keydown', 'mousedown'];
+    events.forEach((e) => window.removeEventListener(e, handler));
+  };
+  const events = ['click', 'touchstart', 'keydown', 'mousedown'];
+  events.forEach((e) => window.addEventListener(e, handler, { passive: true }));
 }
 
 export function playTone({ frequency = 760, duration = 0.18, volume = 0.05, type = 'sine' } = {}) {

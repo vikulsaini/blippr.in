@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
-import { Archive, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X, Users, LockKeyhole, Hash, ChevronDown, ChevronRight, Mail } from 'lucide-react';
+import { dropdownSlide } from '../lib/motion.js';
+import { Archive, Bell, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X, Users, LockKeyhole, Hash, ChevronDown, ChevronRight, Mail } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
 import { haptics } from '../lib/haptics.js';
@@ -142,31 +143,39 @@ export default function ChatList({
                 </h2>
                 <ChevronDown size={15} className="text-text-muted mt-0.5" />
               </button>
-              {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute left-0 mt-2 w-48 rounded-2xl border border-border-default bg-surface p-1 shadow-elevated z-50 animate-fadeIn">
-                    <button
-                      onClick={() => {
-                        setTab('chats');
-                        setMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'chats' ? 'bg-accent/10 text-accent' : 'text-text-primary hover:bg-surface-hover'}`}
+              <AnimatePresence>
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                    <motion.div
+                      variants={dropdownSlide}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="absolute left-0 mt-2 w-48 rounded-2xl border border-border-default bg-surface p-1 shadow-elevated z-50 origin-top-left"
                     >
-                      Active Chats
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTab('archived');
-                        setMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'archived' ? 'bg-accent/10 text-accent' : 'text-text-primary hover:bg-surface-hover'}`}
-                    >
-                      Archived Chats
-                    </button>
-                  </div>
-                </>
-              )}
+                      <button
+                        onClick={() => {
+                          setTab('chats');
+                          setMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'chats' ? 'bg-accent/10 text-accent' : 'text-text-primary hover:bg-surface-hover'}`}
+                      >
+                        Active Chats
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTab('archived');
+                          setMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'archived' ? 'bg-accent/10 text-accent' : 'text-text-primary hover:bg-surface-hover'}`}
+                      >
+                        Archived Chats
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -288,89 +297,308 @@ function ToolbarButton({ icon: Icon, label, onClick, danger = false }) {
 
 const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected, typing, displayName, other, onOpen, onSelect, onSetChatPreference }) {
   const x = useMotionValue(0);
+  const [isCollapsing, setIsCollapsing] = useState(false);
+  const [muteFlashing, setMuteFlashing] = useState(false);
+  const rowRef = useRef(null);
 
-  // Archive (Swipe Right): x goes from 0 to positive
-  const archiveBg = useTransform(x, [0, 120], ['rgba(16, 185, 129, 0.1)', 'rgba(16, 185, 129, 1)']);
-  const archiveColor = useTransform(x, [0, 120], ['rgba(52, 211, 153, 1)', 'rgba(255, 255, 255, 1)']);
-  const archiveOpacity = useTransform(x, [0, 20, 120], [0, 0.4, 1]);
-  const archiveScale = useTransform(x, [0, 120, 180], [0.85, 1, 1.12]);
+  const dragInfo = useRef({
+    startX: 0,
+    startY: 0,
+    lockDirection: 'none', // 'none', 'horizontal', 'vertical'
+    hasDragged: false,
+    isDragging: false
+  });
 
-  // Mute (Swipe Left): x goes from 0 to negative
-  const muteBg = useTransform(x, [-120, 0], ['rgba(245, 158, 11, 1)', 'rgba(245, 158, 11, 0.1)']);
-  const muteColor = useTransform(x, [-120, 0], ['rgba(255, 255, 255, 1)', 'rgba(251, 191, 36, 1)']);
-  const muteOpacity = useTransform(x, [-120, -20, 0], [1, 0.4, 0]);
-  const muteScale = useTransform(x, [-180, -120, 0], [1.12, 1, 0.85]);
+  // Archive (Swipe Left): x goes from 0 to negative. Threshold is -100px.
+  const archiveBg = useTransform(x, [-100, 0, 100], ['rgba(16, 185, 129, 1)', 'rgba(16, 185, 129, 0.1)', 'rgba(16, 185, 129, 0.1)']);
+  const archiveColor = useTransform(x, [-100, 0, 100], ['rgba(255, 255, 255, 1)', 'rgba(52, 211, 153, 1)', 'rgba(52, 211, 153, 1)']);
+  const archiveOpacity = useTransform(x, [-100, -20, 0, 100], [1, 0.4, 0, 0]);
+  const archiveScale = useTransform(x, [-100, 0, 100], [1.0, 0.5, 0.5]);
 
-  function handleSwipeEnd(_, info) {
-    const offset = info.offset.x;
-    if (offset > 120) {
-      haptics.success();
-      onSetChatPreference(chat, 'archive');
-    } else if (offset < -120) {
-      haptics.tap();
-      onSetChatPreference(chat, 'mute');
+  // Mute (Swipe Right): x goes from 0 to positive. Threshold is 80px.
+  const muteBg = useTransform(x, [-100, 0, 80], ['rgba(245, 158, 11, 0.1)', 'rgba(245, 158, 11, 0.1)', 'rgba(245, 158, 11, 1)']);
+  const muteColor = useTransform(x, [-100, 0, 80], ['rgba(251, 191, 36, 1)', 'rgba(251, 191, 36, 1)', 'rgba(255, 255, 255, 1)']);
+  const muteOpacity = useTransform(x, [-100, 0, 20, 80], [0, 0, 0.4, 1]);
+  const muteScale = useTransform(x, [-100, 0, 80], [0.5, 0.5, 1.0]);
+
+  // Click prevention capture listener
+  useEffect(() => {
+    const element = rowRef.current;
+    if (!element) return;
+
+    function handleClickCapture(e) {
+      if (dragInfo.current.hasDragged) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragInfo.current.hasDragged = false;
+      }
     }
-    // Smoothly spring snap back to 0 when released
-    animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 });
-  }
+
+    element.addEventListener('click', handleClickCapture, true);
+    return () => {
+      element.removeEventListener('click', handleClickCapture, true);
+    };
+  }, []);
+
+  // Touch Events for Mobile Axis-Locking
+  useEffect(() => {
+    const element = rowRef.current;
+    if (!element) return;
+
+    const drag = dragInfo.current;
+
+    function handleTouchStart(e) {
+      if (isCollapsing) return;
+      const touch = e.touches[0];
+      drag.startX = touch.clientX;
+      drag.startY = touch.clientY;
+      drag.lockDirection = 'none';
+      drag.hasDragged = false;
+      drag.isDragging = true;
+    }
+
+    function handleTouchMove(e) {
+      if (!drag.isDragging || drag.lockDirection === 'vertical' || isCollapsing) return;
+
+      const touch = e.touches[0];
+      const diffX = touch.clientX - drag.startX;
+      const diffY = touch.clientY - drag.startY;
+
+      if (drag.lockDirection === 'none') {
+        if (Math.abs(diffY) > 10) {
+          drag.lockDirection = 'vertical';
+          return;
+        } else if (Math.abs(diffX) > 10) {
+          drag.lockDirection = 'horizontal';
+          drag.hasDragged = true;
+        }
+      }
+
+      if (drag.lockDirection === 'horizontal') {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+        const rowWidth = element.offsetWidth || window.innerWidth;
+        const friction = 0.8;
+        let targetX = diffX * friction;
+
+        if (targetX < 0) {
+          targetX = Math.max(-rowWidth, targetX);
+        } else {
+          targetX = Math.min(120, targetX);
+        }
+        x.set(targetX);
+      }
+    }
+
+    function handleTouchEnd(e) {
+      if (!drag.isDragging) return;
+      drag.isDragging = false;
+
+      if (drag.lockDirection === 'horizontal') {
+        const currentX = x.get();
+        const rowWidth = element.offsetWidth || window.innerWidth;
+        const archiveThreshold = -100;
+        const activeArchiveThreshold = Math.min(archiveThreshold, -rowWidth * 0.4);
+        const muteThreshold = 80;
+
+        if (currentX <= activeArchiveThreshold) {
+          haptics.success();
+          animate(x, -rowWidth, { duration: 0.15, ease: "easeOut" }).then(() => {
+            setIsCollapsing(true);
+            setTimeout(() => {
+              onSetChatPreference(chat, 'archive');
+              setIsCollapsing(false);
+              x.set(0);
+            }, 250);
+          });
+        } else if (currentX >= muteThreshold) {
+          haptics.tap();
+          if (navigator.vibrate && navigator.userActivation?.hasBeenActive) {
+            navigator.vibrate(15);
+          }
+          setMuteFlashing(true);
+          setTimeout(() => setMuteFlashing(false), 200);
+
+          onSetChatPreference(chat, 'mute');
+          animate(x, 0, { type: 'spring', stiffness: 300, damping: 20 });
+        } else {
+          animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
+        }
+      }
+      drag.lockDirection = 'none';
+    }
+
+    element.addEventListener('touchstart', handleTouchStart, { passive: true });
+    element.addEventListener('touchmove', handleTouchMove, { passive: false });
+    element.addEventListener('touchend', handleTouchEnd, { passive: true });
+    element.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart);
+      element.removeEventListener('touchmove', handleTouchMove);
+      element.removeEventListener('touchend', handleTouchEnd);
+      element.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [chat, isCollapsing, onSetChatPreference, x]);
+
+  // Mouse Events for Desktop drag
+  useEffect(() => {
+    const element = rowRef.current;
+    if (!element) return;
+
+    const drag = dragInfo.current;
+
+    function handleMouseDown(e) {
+      if (e.button !== 0 || isCollapsing) return;
+      drag.startX = e.clientX;
+      drag.startY = e.clientY;
+      drag.lockDirection = 'none';
+      drag.hasDragged = false;
+      drag.isDragging = true;
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    function handleMouseMove(e) {
+      if (!drag.isDragging || isCollapsing) return;
+
+      const diffX = e.clientX - drag.startX;
+      const diffY = e.clientY - drag.startY;
+
+      if (drag.lockDirection === 'none') {
+        if (Math.abs(diffX) > 5) {
+          drag.lockDirection = 'horizontal';
+          drag.hasDragged = true;
+        } else if (Math.abs(diffY) > 5) {
+          drag.lockDirection = 'vertical';
+        }
+      }
+
+      if (drag.lockDirection === 'horizontal') {
+        const rowWidth = element.offsetWidth || window.innerWidth;
+        const friction = 0.8;
+        let targetX = diffX * friction;
+
+        if (targetX < 0) {
+          targetX = Math.max(-rowWidth, targetX);
+        } else {
+          targetX = Math.min(120, targetX);
+        }
+        x.set(targetX);
+      }
+    }
+
+    function handleMouseUp(e) {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+
+      if (!drag.isDragging) return;
+      drag.isDragging = false;
+
+      if (drag.lockDirection === 'horizontal') {
+        const currentX = x.get();
+        const rowWidth = element.offsetWidth || window.innerWidth;
+        const archiveThreshold = -100;
+        const activeArchiveThreshold = Math.min(archiveThreshold, -rowWidth * 0.4);
+        const muteThreshold = 80;
+
+        if (currentX <= activeArchiveThreshold) {
+          haptics.success();
+          animate(x, -rowWidth, { duration: 0.15, ease: "easeOut" }).then(() => {
+            setIsCollapsing(true);
+            setTimeout(() => {
+              onSetChatPreference(chat, 'archive');
+              setIsCollapsing(false);
+              x.set(0);
+            }, 250);
+          });
+        } else if (currentX >= muteThreshold) {
+          haptics.tap();
+          if (navigator.vibrate && navigator.userActivation?.hasBeenActive) {
+            navigator.vibrate(15);
+          }
+          setMuteFlashing(true);
+          setTimeout(() => setMuteFlashing(false), 200);
+
+          onSetChatPreference(chat, 'mute');
+          animate(x, 0, { type: 'spring', stiffness: 300, damping: 20 });
+        } else {
+          animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
+        }
+      }
+      drag.lockDirection = 'none';
+    }
+
+    element.addEventListener('mousedown', handleMouseDown);
+
+    return () => {
+      element.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [chat, isCollapsing, onSetChatPreference, x]);
 
   return (
     <motion.div
       variants={itemVariants}
+      animate={isCollapsing ? {
+        height: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        marginTop: 0,
+        marginBottom: 0,
+        opacity: 0
+      } : "show"}
+      transition={isCollapsing ? { duration: 0.25, ease: [0.25, 1, 0.5, 1] } : undefined}
       className="relative mb-1.5 overflow-hidden rounded-2xl bg-bg"
     >
-      {/* Archive Slide Action Background */}
-      <motion.div
-        style={{
-          opacity: archiveOpacity,
-          backgroundColor: archiveBg,
-          color: archiveColor
-        }}
-        className="absolute inset-y-0 left-0 w-1/2 flex items-center justify-start pl-4 gap-2 text-xs font-bold rounded-l-2xl"
-      >
-        <motion.div
-          style={{ scale: archiveScale }}
-          className="flex items-center gap-2"
-        >
-          <Archive size={17} />
-          <span>Archive</span>
-        </motion.div>
-      </motion.div>
-
-      {/* Mute Slide Action Background */}
+      {/* Mute Slide Action Background (revealed on Right Swipe) */}
       <motion.div
         style={{
           opacity: muteOpacity,
           backgroundColor: muteBg,
           color: muteColor
         }}
-        className="absolute inset-y-0 right-0 w-1/2 flex items-center justify-end pr-4 gap-2 text-xs font-bold rounded-r-2xl"
+        className="absolute inset-y-0 left-0 w-1/2 flex items-center justify-start pl-4 gap-2 text-xs font-bold rounded-l-2xl"
       >
         <motion.div
           style={{ scale: muteScale }}
           className="flex items-center gap-2"
         >
-          <BellOff size={17} />
-          <span>Mute</span>
+          {chat.muted ? <Bell size={17} /> : <BellOff size={17} />}
+          <span>{chat.muted ? 'Unmute' : 'Mute'}</span>
+        </motion.div>
+      </motion.div>
+
+      {/* Archive Slide Action Background (revealed on Left Swipe) */}
+      <motion.div
+        style={{
+          opacity: archiveOpacity,
+          backgroundColor: archiveBg,
+          color: archiveColor
+        }}
+        className="absolute inset-y-0 right-0 w-1/2 flex items-center justify-end pr-4 gap-2 text-xs font-bold rounded-r-2xl"
+      >
+        <motion.div
+          style={{ scale: archiveScale }}
+          className="flex items-center gap-2"
+        >
+          {chat.archived ? <Mail size={17} /> : <Archive size={17} />}
+          <span>{chat.archived ? 'Unarchive' : 'Archive'}</span>
         </motion.div>
       </motion.div>
 
       <motion.article
-        drag="x"
-        style={{
-          x,
-          transition: 'background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease'
-        }}
-        dragConstraints={{ left: -120, right: 120 }}
-        dragElastic={0.2}
-        dragMomentum={false}
-        onDragEnd={handleSwipeEnd}
+        ref={rowRef}
+        style={{ x }}
         onContextMenu={(event) => {
           event.preventDefault();
           event.stopPropagation();
           onSelect();
         }}
-        className={`interactive-card relative flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : ''}`}
+        className={`relative flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left cursor-pointer transition-[background-color,border-color] duration-200 ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : 'bg-surface hover:bg-surface-hover/80'} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
       >
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center gap-3 w-full">
@@ -490,7 +718,7 @@ function ChatRowButton({ children, onOpen, onLongSelect }) {
     timerRef.current = setTimeout(() => {
       longPressRef.current = true;
       onLongSelect();
-    }, 420);
+    }, 3000);
   }
 
   function move(event) {

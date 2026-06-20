@@ -304,9 +304,16 @@ function TabButton({ active, label, onClick }) {
     <button 
       type="button"
       onClick={onClick} 
-      className={`relative cursor-pointer rounded-xl py-2 text-[11px] font-bold transition active:scale-[0.96] ${active ? 'bg-surface text-text-primary shadow-sm border border-border-default/50' : 'text-text-muted hover:text-text-primary'}`}
+      className={`relative cursor-pointer rounded-xl py-2 text-[11px] font-bold transition active:scale-[0.96] z-10 ${active ? 'text-text-primary' : 'text-text-muted hover:text-text-primary'}`}
     >
-      {label}
+      <span className="z-10 relative">{label}</span>
+      {active && (
+        <motion.span 
+          layoutId="active-profile-tab"
+          className="absolute inset-0 bg-surface rounded-xl shadow-sm border border-border-default/50 -z-10"
+          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+        />
+      )}
     </button>
   );
 }

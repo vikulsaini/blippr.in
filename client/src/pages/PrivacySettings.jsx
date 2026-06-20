@@ -209,9 +209,15 @@ function ToggleRow({ title, subtitle, checked, onChange }) {
         className={`relative inline-flex h-6 w-11 shrink-0 items-center cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-accent' : 'bg-border-default'}`}
       >
         <motion.span
-          animate={{ x: checked ? 20 : 0 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 28 }}
-          className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0"
+          animate={{ 
+            x: checked ? 20 : 0,
+            scaleX: [1, 1.25, 1],
+          }}
+          transition={{ 
+            x: { type: 'spring', stiffness: 500, damping: 28 },
+            scaleX: { duration: 0.22, ease: 'easeInOut' }
+          }}
+          className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 origin-center"
         />
       </button>
     </div>

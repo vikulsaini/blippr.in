@@ -55,3 +55,17 @@ createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// Gracefully fade out and remove LCP shell after first paint
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const shell = document.getElementById('lcp-shell');
+    if (shell) {
+      shell.style.opacity = '0';
+      shell.style.transition = 'opacity 0.25s ease-out';
+      setTimeout(() => {
+        shell.remove();
+      }, 250);
+    }
+  });
+});

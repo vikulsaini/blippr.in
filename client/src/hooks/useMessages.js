@@ -6,6 +6,7 @@ import { getRealtimeSocket } from '../lib/realtime.js';
 import { playMessageSound } from '../lib/sounds.js';
 
 const RETRY_KEY = 'blippr_message_retry_queue';
+const loadedChatsCache = new Set();
 
 function readRetryQueue() {
   try {
@@ -28,6 +29,16 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
   const typingTimerRef = useRef(null);
   const activeChatIdRef = useRef(null);
   const retryingRef = useRef(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const lastUserIdRef = useRef(null);
+
+  // Clear cache if active user changes to prevent cross-user leak
+  useEffect(() => {
+    if (currentUserId && lastUserIdRef.current !== currentUserId) {
+      loadedChatsCache.clear();
+      lastUserIdRef.current = currentUserId;
+    }
+  }, [currentUserId]);
 
   const mergeCall = useCallback((updatedCall) => {
     if (!updatedCall?._id) return;
@@ -57,8 +68,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
   }, [activeChat]);
 
   useEffect(() => {
-    activeChatIdRef.current = activeChat?._id || null;
-    if (!activeChat) {
+    const chatId = activeChat?._id;
+    activeChatIdRef.current = chatId || null;
+    if (!chatId) {
       setMessages([]);
       setCalls([]);
       return;
@@ -74,24 +86,37 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       return;
     }
     const socket = getRealtimeSocket();
-    socket.emit('chat:join', { chatId: activeChat._id });
-    setMessages(readCache(`messages:${activeChat._id}`, currentUserId, []));
-    setCalls(readCache(`calls:${activeChat._id}`, currentUserId, []));
+    socket.emit('chat:join', { chatId });
+
+    // Instantly load from local cache
+    const cachedMsgs = readCache(`messages:${chatId}`, currentUserId, []);
+    const cachedCalls = readCache(`calls:${chatId}`, currentUserId, []);
+    setMessages(cachedMsgs);
+    setCalls(cachedCalls);
+
+    // Skip server fetching if this chat was already fetched in this session
+    if (loadedChatsCache.has(chatId)) {
+      api(`/api/chats/${chatId}/read`, { method: 'PATCH' }).catch(() => {});
+      setChats((current) => current.map((chat) => (chat._id === chatId ? { ...chat, unreadCount: 0 } : chat)));
+      return;
+    }
+
     Promise.all([
-      api(`/api/chats/${activeChat._id}/messages`),
-      api(`/api/chats/${activeChat._id}/calls`)
+      api(`/api/chats/${chatId}/messages`),
+      api(`/api/chats/${chatId}/calls`)
     ])
       .then(async ([messageData, callData]) => {
-        if (activeChatIdRef.current !== activeChat._id) return;
+        if (activeChatIdRef.current !== chatId) return;
         setMessages(messageData.messages);
         setCalls(callData.calls || []);
-        writeCache(`messages:${activeChat._id}`, messageData.messages, currentUserId);
-        writeCache(`calls:${activeChat._id}`, callData.calls || [], currentUserId);
-        await api(`/api/chats/${activeChat._id}/read`, { method: 'PATCH' });
-        setChats((current) => current.map((chat) => (chat._id === activeChat._id ? { ...chat, unreadCount: 0 } : chat)));
+        writeCache(`messages:${chatId}`, messageData.messages, currentUserId);
+        writeCache(`calls:${chatId}`, callData.calls || [], currentUserId);
+        loadedChatsCache.add(chatId);
+        await api(`/api/chats/${chatId}/read`, { method: 'PATCH' });
+        setChats((current) => current.map((chat) => (chat._id === chatId ? { ...chat, unreadCount: 0 } : chat)));
       })
       .catch(() => {});
-  }, [activeChat, currentUserId, setChats]);
+  }, [activeChat?._id, currentUserId, setChats, refreshTrigger]);
 
   useEffect(() => {
     if (activeChat?._id && currentUserId) writeCache(`messages:${activeChat._id}`, messages, currentUserId);
@@ -112,6 +137,26 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       if (isForActiveChat) {
         setMessages((current) => {
           if (current.some((item) => item._id === message._id)) return current;
+          if (mine) {
+            let foundIndex = -1;
+            if (message.media?.url) {
+              foundIndex = current.findIndex((item) => item.sender === currentUserId && (item.status === 'sending' || item.status === 'queued') && item.media?.type === message.media.type);
+            } else if (message.location) {
+              foundIndex = current.findIndex((item) => item.sender === currentUserId && (item.status === 'sending' || item.status === 'queued') && item.location?.type === message.location.type);
+            } else {
+              foundIndex = current.findIndex((item) => item.sender === currentUserId && (item.status === 'sending' || item.status === 'queued') && item.text === message.text);
+            }
+            if (foundIndex !== -1) {
+              const next = [...current];
+              const optimisticClientId = next[foundIndex].clientId || next[foundIndex]._id;
+              next[foundIndex] = {
+                ...message,
+                clientId: optimisticClientId,
+                status: message.status || 'sent'
+              };
+              return next;
+            }
+          }
           return [...current, message];
         });
       }
@@ -203,7 +248,13 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
   }, []);
 
   useEffect(() => {
+    let isInitial = true;
     function retry() {
+      if (!isInitial) {
+        loadedChatsCache.clear();
+        setRefreshTrigger((prev) => prev + 1);
+      }
+      isInitial = false;
       flushRetryQueue().catch(() => {});
     }
     window.addEventListener('online', retry);
@@ -223,6 +274,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     const tempId = `temp-${Date.now()}`;
     const optimisticMessage = {
       _id: tempId,
+      clientId: tempId,
       chat: activeChat._id,
       sender: currentUserId,
       text: messageText,
@@ -246,7 +298,17 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
         method: 'POST',
         body: JSON.stringify({ text: messageText, replyTo: repliedMessage?._id })
       });
-      setMessages((current) => current.map((item) => (item._id === tempId ? message : item)).filter((item, index, all) => all.findIndex((entry) => entry._id === item._id) === index));
+      setMessages((current) => {
+        const hasRealId = current.some((item) => item._id === message._id);
+        if (hasRealId) {
+          return current.filter((item) => item._id !== tempId);
+        }
+        return current.map((item) =>
+          item._id === tempId
+            ? { ...item, _id: message._id, status: message.status || 'sent', clientId: tempId }
+            : item
+        );
+      });
     } catch {
       const queued = {
         tempId,
@@ -267,6 +329,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     const tempId = `temp-media-${Date.now()}`;
     const optimisticMessage = {
       _id: tempId,
+      clientId: tempId,
       chat: activeChat._id,
       sender: currentUserId,
       text: '',
@@ -309,7 +372,17 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
           }
         })
       });
-      setMessages((current) => current.map((item) => (item._id === tempId ? message : item)));
+      setMessages((current) => {
+        const hasRealId = current.some((item) => item._id === message._id);
+        if (hasRealId) {
+          return current.filter((item) => item._id !== tempId);
+        }
+        return current.map((item) =>
+          item._id === tempId
+            ? { ...item, _id: message._id, status: message.status || 'sent', media: message.media, clientId: tempId }
+            : item
+        );
+      });
       URL.revokeObjectURL(previewUrl);
     } catch (err) {
       setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
@@ -323,6 +396,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     const now = new Date();
     const optimisticMessage = {
       _id: tempId,
+      clientId: tempId,
       chat: activeChat._id,
       sender: currentUserId,
       text: live ? 'Shared live location' : 'Shared current location',
@@ -354,7 +428,17 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
           location: { latitude, longitude, accuracy, type: live ? 'live' : 'current', durationMs }
         })
       });
-      setMessages((current) => current.map((item) => (item._id === tempId ? message : item)));
+      setMessages((current) => {
+        const hasRealId = current.some((item) => item._id === message._id);
+        if (hasRealId) {
+          return current.filter((item) => item._id !== tempId);
+        }
+        return current.map((item) =>
+          item._id === tempId
+            ? { ...item, _id: message._id, status: message.status || 'sent', location: message.location, clientId: tempId }
+            : item
+        );
+      });
       return message;
     } catch (err) {
       setMessages((current) => current.map((item) => (item._id === tempId ? { ...item, status: 'failed' } : item)));
@@ -420,6 +504,66 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     });
   }, [activeChat, currentUserId]);
 
+  const retryMessage = useCallback(async (tempId) => {
+    setMessages((current) => {
+      const msg = current.find((m) => m._id === tempId || m.clientId === tempId);
+      if (!msg) return current;
+
+      (async () => {
+        try {
+          let res;
+          if (msg.media) {
+            res = await api(`/api/chats/${msg.chat}/messages`, {
+              method: 'POST',
+              body: JSON.stringify({
+                media: msg.media,
+                replyTo: msg.replyTo?._id
+              })
+            });
+          } else if (msg.location) {
+            res = await api(`/api/chats/${msg.chat}/messages`, {
+              method: 'POST',
+              body: JSON.stringify({
+                text: msg.text,
+                location: {
+                  latitude: msg.location.coordinates[1],
+                  longitude: msg.location.coordinates[0],
+                  accuracy: msg.location.accuracy,
+                  type: msg.location.type
+                },
+                replyTo: msg.replyTo?._id
+              })
+            });
+          } else {
+            res = await api(`/api/chats/${msg.chat}/messages`, {
+              method: 'POST',
+              body: JSON.stringify({
+                text: msg.text,
+                replyTo: msg.replyTo?._id
+              })
+            });
+          }
+
+          const { message } = res;
+          writeRetryQueue(readRetryQueue().filter((item) => item.tempId !== tempId));
+          setMessages((prev) => prev.map((item) =>
+            (item._id === tempId || item.clientId === tempId)
+              ? { ...item, _id: message._id, status: message.status || 'sent', clientId: tempId }
+              : item
+          ));
+        } catch {
+          setMessages((prev) => prev.map((item) =>
+            (item._id === tempId || item.clientId === tempId) ? { ...item, status: 'failed' } : item
+          ));
+        }
+      })();
+
+      return current.map((item) =>
+        (item._id === tempId || item.clientId === tempId) ? { ...item, status: 'sending' } : item
+      );
+    });
+  }, []);
+
   return {
     messages,
     calls,
@@ -437,6 +581,7 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     reactToMessage,
     editMessage,
     deleteMessage,
-    reportMessage
+    reportMessage,
+    retryMessage
   };
 }

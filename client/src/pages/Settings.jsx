@@ -555,9 +555,15 @@ function ToggleRow({ title, subtitle, checked, onChange }) {
       </span>
       <span className={`relative h-7 w-12 rounded-full transition-all duration-300 flex items-center ${checked ? 'bg-accent' : 'bg-border-default'}`}>
         <motion.span
-          animate={{ x: checked ? 24 : 4 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 28 }}
-          className="h-5 w-5 rounded-full bg-white shadow-card"
+          animate={{ 
+            x: checked ? 24 : 4,
+            scaleX: [1, 1.25, 1],
+          }}
+          transition={{ 
+            x: { type: 'spring', stiffness: 500, damping: 28 },
+            scaleX: { duration: 0.22, ease: 'easeInOut' }
+          }}
+          className="h-5 w-5 rounded-full bg-white shadow-card origin-center"
         />
       </span>
     </button>

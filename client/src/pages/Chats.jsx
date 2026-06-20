@@ -63,7 +63,8 @@ export default function Chats() {
     reactToMessage,
     editMessage,
     deleteMessage,
-    reportMessage
+    reportMessage,
+    retryMessage
   } = useMessages({ activeChat, currentUserId, setChats });
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
@@ -368,6 +369,7 @@ export default function Chats() {
               onReportMessage={reportMessage}
               onStartCall={callSession.startCall}
               isTyping={!!typingChats?.[activeChat._id]}
+              onRetryMessage={retryMessage}
             />
           </motion.div>
         )}
