@@ -481,7 +481,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="flex items-center gap-2 rounded-full border border-border-default bg-surface shadow-sm p-1.5">
+        <div className="flex items-center gap-2 rounded-full border border-border-default bg-surface-glass backdrop-blur-md shadow-sm p-1.5">
           <input
             ref={fileInputRef}
             type="file"

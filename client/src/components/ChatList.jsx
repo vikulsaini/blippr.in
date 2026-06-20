@@ -92,6 +92,15 @@ export default function ChatList({
 
   const archivedCount = useMemo(() => chats.filter((chat) => chat.archived).length, [chats]);
 
+  const activeFriends = useMemo(() => {
+    return chats
+      .map((chat) => {
+        const other = getOtherMember(chat, currentUserId);
+        return other ? { ...other, chat } : null;
+      })
+      .filter((item) => item && item.isOnline);
+  }, [chats, currentUserId]);
+
   useEffect(() => {
     if (query.trim().length < 3) return;
     const timer = setTimeout(async () => {
@@ -120,7 +129,7 @@ export default function ChatList({
 
   return (
     <section className="flex min-h-0 flex-1 flex-col px-2 pt-2 md:px-4 md:pt-3">
-      <div className="sticky top-0 z-10 -mx-3 bg-surface/90 px-3 pb-3 backdrop-blur-xl md:-mx-4 md:px-4">
+      <div className="sticky top-0 z-10 -mx-3 bg-[#F8FAFC]/70 px-3 pb-3 backdrop-blur-xl md:-mx-4 md:px-4">
         {selectedChats.size ? (
           <SelectionToolbar
             count={selectedChats.size}
@@ -216,7 +225,35 @@ export default function ChatList({
       </div>
 
       <div data-chat-feed onScroll={handleScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin px-4 space-y-4">
-
+        {tab === 'chats' && activeFriends.length > 0 && (
+          <section className="mb-2 shrink-0">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-3">Active Now</h3>
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none scroll-smooth">
+              {activeFriends.map((friend) => {
+                const displayName = getNickname(friend.chat, currentUserId, friend);
+                return (
+                  <div
+                    key={friend._id}
+                    onClick={() => onOpenChat(friend.chat)}
+                    className="flex flex-col items-center gap-1.5 flex-shrink-0 active:scale-95 transition-transform cursor-pointer"
+                  >
+                    <div className="relative w-14 h-14 rounded-full p-0.5 border-2 border-accent shadow-[0_0_12px_rgba(124,58,237,0.15)] bg-surface">
+                      {friend.avatar ? (
+                        <img className="w-full h-full rounded-full object-cover" src={friend.avatar} alt={displayName} />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-gradient-to-tr from-accent to-accent-light flex items-center justify-center text-white font-bold text-sm">
+                          {displayName ? displayName.charAt(0).toUpperCase() : 'F'}
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success rounded-full border-2 border-surface presence-glow"></div>
+                    </div>
+                    <span className="text-[11px] font-semibold text-text-secondary max-w-[64px] truncate">{displayName.split(' ')[0]}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {loading ? (
           <ChatSkeleton />
@@ -596,7 +633,7 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           event.stopPropagation();
           onSelect();
         }}
-        className={`relative flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left cursor-pointer transition-[background-color,border-color] duration-200 ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : 'bg-surface hover:bg-surface-hover/80'} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
+        className={`relative flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left cursor-pointer transition-[background-color,border-color] duration-200 ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : 'glass-card hover:bg-white/90'} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
       >
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center gap-3 w-full">

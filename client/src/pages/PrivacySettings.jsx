@@ -87,35 +87,37 @@ export default function PrivacySettings() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24">
+    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+      
       {/* Header */}
-      <header className="flex items-center gap-3.5 mb-6">
+      <header className="flex items-center gap-3.5 mb-8">
         <button 
           onClick={() => navigate('/app/profile')} 
-          className="btn-icon h-10 w-10 flex items-center justify-center rounded-full hover:bg-surface-hover transition active:scale-95" 
+          className="text-primary hover:opacity-80 p-2 -ml-2 rounded-full transition active:scale-95" 
           aria-label="Back to profile"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={22} />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-text-primary">Privacy & security</h2>
+          <h2 className="text-xl font-black text-white tracking-tight">Privacy &amp; Security</h2>
           <p className="text-xs text-text-muted">Control your visibility and safety preferences</p>
         </div>
       </header>
 
       <div className="space-y-6">
+        
         {/* Toggle Settings Form */}
         <form onSubmit={savePrivacy} className="space-y-5">
-          <div className="surface-card rounded-[22px] border border-border-default bg-surface p-5 shadow-card space-y-5">
+          <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-2 space-y-1 shadow-card">
             <ToggleRow 
-              title="Show last seen" 
-              subtitle="Let friends see when you were last active" 
+              title="Show Last Active" 
+              subtitle="Allow friends to see your offline presence timer" 
               checked={showLastSeen} 
               onChange={() => setShowLastSeen(!showLastSeen)} 
             />
             <ToggleRow 
-              title="Read receipts" 
-              subtitle="Send seen status when you read messages" 
+              title="Read Receipts" 
+              subtitle="Send visible seen confirmation on incoming messages" 
               checked={readReceipts} 
               onChange={() => setReadReceipts(!readReceipts)} 
             />
@@ -123,7 +125,7 @@ export default function PrivacySettings() {
 
           <button 
             type="submit" 
-            className="btn-primary flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold shadow-accent-sm hover:opacity-95 transition-all duration-200"
+            className="w-full bg-primary hover:brightness-110 text-white font-bold text-sm py-4 rounded-full shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <Save size={16} />
             Save Visibility Settings
@@ -131,28 +133,30 @@ export default function PrivacySettings() {
         </form>
 
         {/* Hidden Chat Vault Card */}
-        <div className="surface-card rounded-[22px] border border-border-default bg-surface p-5 shadow-card space-y-4">
-          <div className="flex items-center gap-2 text-accent">
+        <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-5 shadow-card space-y-4">
+          <div className="flex items-center gap-2 text-primary">
             <LockKeyhole size={18} />
-            <h3 className="text-xs font-extrabold text-text-primary">Hidden Chat Vault</h3>
+            <h3 className="text-xs font-black uppercase tracking-wider text-white">Hidden Chat Vault</h3>
           </div>
-          <p className="text-[11px] leading-relaxed text-text-muted font-semibold">
-            Set a password to hide archived chats. Type this password in Blippr's search bar to reveal and unlock your hidden vaults.
+          <p className="text-[11px] leading-relaxed text-text-muted font-medium">
+            Set a custom password to hide archived conversation feeds. Type this password in Blippr's search inputs to reveal and unlock your hidden vaults.
           </p>
           <label className="block">
-            <span className="text-xs font-bold text-text-muted">Vault Password (leave empty to remove)</span>
-            <input 
-              type="password"
-              value={vaultPassword} 
-              onChange={(e) => setVaultPassword(e.target.value)} 
-              placeholder="Enter Vault Password" 
-              className="mt-2 w-full rounded-xl border border-border-default bg-bg px-4 py-3 text-xs text-text-primary outline-none focus:border-accent transition-colors font-semibold"
-            />
+            <span className="text-xs font-bold text-text-muted ml-1">Vault Password (leave empty to remove)</span>
+            <div className="mt-1.5 bg-[#171f33]/40 border border-white/10 rounded-2xl p-0.5 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/45 transition-all">
+              <input 
+                type="password"
+                value={vaultPassword} 
+                onChange={(e) => setVaultPassword(e.target.value)} 
+                placeholder="Enter Vault Password" 
+                className="w-full bg-transparent border-none focus:ring-0 text-sm font-semibold px-4 py-3 placeholder-white/20 text-white outline-none"
+              />
+            </div>
           </label>
           <button 
             type="button" 
             onClick={saveVaultPassword} 
-            className="btn-secondary w-full rounded-xl py-2.5 text-xs font-bold transition"
+            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl py-2.5 text-xs font-bold transition"
           >
             Update Vault Password
           </button>
@@ -163,34 +167,38 @@ export default function PrivacySettings() {
           <div className="flex items-center gap-3 px-1">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-danger/10 text-danger"><Ban size={17} /></span>
             <div>
-              <p className="text-xs font-bold text-text-primary">Blocked users</p>
-              <p className="text-[10px] text-text-muted font-medium">{blockedUsers.length ? `${blockedUsers.length} users hidden from matching` : 'No blocked users'}</p>
+              <p className="text-xs font-bold text-white">Blocked Users</p>
+              <p className="text-[10px] text-text-muted font-medium">{blockedUsers.length ? `${blockedUsers.length} users match-restricted` : 'No blocked users'}</p>
             </div>
           </div>
           <div className="space-y-2">
             {blockedUsers.map((blockedUser) => (
-              <div key={blockedUser._id} className="flex items-center gap-3 rounded-2xl border border-border-default bg-surface p-3 shadow-card transition duration-200">
-                <img src={blockedUser.avatar} alt="" className="h-10 w-10 rounded-full bg-bg object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-bold text-text-primary">{blockedUser.name}</p>
-                  <p className="truncate text-[10px] text-text-muted mt-0.5">@{blockedUser.username}</p>
+              <div key={blockedUser._id} className="flex items-center justify-between gap-3 bg-[#171f33]/40 border border-white/5 rounded-2xl p-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img src={blockedUser.avatar} alt="" className="h-10 w-10 rounded-full bg-[#0b1326] object-cover border border-white/5" />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-white leading-tight">{blockedUser.name}</p>
+                    <p className="truncate text-[10px] text-text-muted mt-0.5">@{blockedUser.username}</p>
+                  </div>
                 </div>
                 <button 
                   onClick={() => unblockUser(blockedUser._id)} 
-                  className="btn-primary grid h-9 w-9 place-items-center rounded-xl shrink-0" 
+                  className="bg-primary hover:brightness-110 text-white p-2.5 rounded-full shrink-0 active:scale-95 transition" 
                   aria-label={`Unblock ${blockedUser.name}`}
+                  title="Unblock User"
                 >
-                  <Unlock size={15} />
+                  <Unlock size={14} />
                 </button>
               </div>
             ))}
             {!blockedUsers.length && (
-              <p className="rounded-2xl border border-border-default bg-bg px-4 py-4 text-center text-xs text-text-faint font-semibold">
+              <p className="bg-[#171f33]/20 border border-white/5 rounded-2xl px-4 py-4 text-center text-xs text-text-faint font-semibold">
                 Blocked people will appear here.
               </p>
             )}
           </div>
         </div>
+
       </div>
     </div>
   );
@@ -198,16 +206,16 @@ export default function PrivacySettings() {
 
 function ToggleRow({ title, subtitle, checked, onChange }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-bold text-text-primary">{title}</p>
-        <p className="text-[10px] text-text-muted mt-1 leading-normal font-semibold">{subtitle}</p>
+    <button 
+      type="button" 
+      onClick={onChange} 
+      className="flex w-full items-center justify-between p-3.5 hover:bg-white/5 active:bg-white/10 rounded-2xl transition text-left"
+    >
+      <div className="min-w-0 flex-1 pr-4">
+        <p className="text-sm font-semibold text-white truncate">{title}</p>
+        <p className="text-xs text-text-muted mt-0.5 leading-normal">{subtitle}</p>
       </div>
-      <button
-        type="button"
-        onClick={onChange}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-accent' : 'bg-border-default'}`}
-      >
+      <span className={`relative h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out flex ${checked ? 'bg-primary' : 'bg-white/10'}`}>
         <motion.span
           animate={{ 
             x: checked ? 20 : 0,
@@ -217,9 +225,9 @@ function ToggleRow({ title, subtitle, checked, onChange }) {
             x: { type: 'spring', stiffness: 500, damping: 28 },
             scaleX: { duration: 0.22, ease: 'easeInOut' }
           }}
-          className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 origin-center"
+          className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 origin-center"
         />
-      </button>
-    </div>
+      </span>
+    </button>
   );
 }

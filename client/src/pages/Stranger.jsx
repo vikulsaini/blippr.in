@@ -501,6 +501,7 @@ export default function Stranger() {
 
   return (
     <div className={shellClass}>
+      <ElectricCanvas />
       {showVideo && (
         <section
           onPointerMove={revealVideoChrome}
@@ -752,7 +753,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
         </div>
       </div>
       <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/78 via-black/22 to-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-10 transition duration-300 sm:px-3 ${chromeVisible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}>
-        <div className="pointer-events-auto mx-auto grid w-full max-w-md grid-cols-3 gap-2 rounded-[24px] bg-black/38 p-2 backdrop-blur-md sm:max-w-3xl sm:grid-cols-6 sm:gap-3 sm:rounded-full sm:p-2.5">
+        <div className="pointer-events-auto mx-auto grid w-full max-w-md grid-cols-3 gap-2 rounded-[24px] bg-[#171f33]/65 border border-white/5 p-2 backdrop-blur-md sm:max-w-3xl sm:grid-cols-6 sm:gap-3 sm:rounded-full sm:p-2.5">
           {actions}
         </div>
       </div>
@@ -760,24 +761,31 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
   );
 }
 
-function ModeTabs({ value, onChange, compact = false }) {
+function ModeTabs({ value, onChange }) {
   const modes = [
-    { value: 'chat', label: 'Chat' },
-    { value: 'video', label: 'VC' }
+    { value: 'chat', label: 'Chat', icon: MessageCircle },
+    { value: 'video', label: 'Video', icon: Video }
   ];
 
   return (
-    <div data-no-tab-swipe className={`flex shrink-0 rounded-full bg-black/36 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${compact ? 'backdrop-blur-md' : ''}`}>
-      {modes.map((mode) => (
-        <button
-          key={mode.value}
-          type="button"
-          onClick={() => onChange(mode.value)}
-          className={`rounded-full font-semibold transition ${compact ? 'px-3.5 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm' : 'px-4 py-2 text-sm'} ${value === mode.value ? 'bg-gradient-to-r from-mint to-sky text-ink shadow-[0_10px_24px_rgba(20,184,166,0.24)]' : 'text-white/42 hover:text-white/75'}`}
-        >
-          {mode.label}
-        </button>
-      ))}
+    <div data-no-tab-swipe className="glass-panel p-1 rounded-full flex gap-1 relative shadow-inner">
+      {modes.map((mode) => {
+        const Icon = mode.icon;
+        const active = value === mode.value;
+        return (
+          <button
+            key={mode.value}
+            type="button"
+            onClick={() => onChange(mode.value)}
+            className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${
+              active ? 'bg-accent text-white shadow-md' : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            <Icon size={14} />
+            <span>{mode.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -838,60 +846,42 @@ function ConnectionQualityIndicator({ state }) {
 
 function EmptyRandom({ finding, queueText, activeUsers }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid h-full min-h-0 place-items-center text-center py-12 px-4">
-      <div className="rounded-[24px] p-6 max-w-sm bg-surface shadow-card text-center flex flex-col items-center">
-        {finding ? (
-          <div className="flex flex-col items-center">
-            {/* Elegant Radar Ripple Animation */}
-            <div className="relative flex items-center justify-center h-28 w-28 mb-4">
-              <motion.div
-                className="absolute inset-0 rounded-full bg-accent/10"
-                animate={{ scale: [1, 2.2], opacity: [0.6, 0] }}
-                transition={{ repeat: Infinity, duration: 2, ease: 'easeOut' }}
-              />
-              <motion.div
-                className="absolute inset-0 rounded-full bg-accent/20"
-                animate={{ scale: [1, 1.6], opacity: [0.8, 0] }}
-                transition={{ repeat: Infinity, duration: 2, ease: 'easeOut', delay: 0.6 }}
-              />
-              <motion.span
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}
-                className="tone-ring relative grid h-16 w-16 place-items-center rounded-full bg-accent text-white shadow-glow"
-              >
-                <Shuffle size={26} />
-              </motion.span>
-            </div>
-            <p className="text-base font-semibold text-text-primary min-h-[1.75rem] transition-all duration-300">
-              {queueText}
-            </p>
-            <p className="mt-2 text-xs text-text-muted leading-relaxed">
-              Tip: Stay in the chat for 3+ minutes to unlock the friend request option.
-            </p>
-          </div>
-        ) : (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden py-8 px-4"
+    >
+      <div className="relative w-full max-w-sm aspect-square flex items-center justify-center">
+        {finding && (
           <>
-            <span className="tone-ring grid h-16 w-16 place-items-center rounded-full bg-accent-light text-accent mb-4">
-              <Shuffle size={26} />
-            </span>
-            <p className="text-lg font-semibold text-text-primary">
-              Ready to start matching?
-            </p>
-            <p className="mt-2 text-xs text-text-muted leading-relaxed">
-              Tap the Start button in the bottom action bar to begin finding a random connection.
-            </p>
-            {activeUsers > 0 && (
-              <p className="mt-4 text-[11px] font-semibold text-accent/80 bg-accent/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                <span className="relative flex h-2 w-2 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
-                </span>
-                {activeUsers} {activeUsers === 1 ? 'user' : 'users'} active now
-              </p>
-            )}
+            <div className="pulse-circle" style={{ animationDelay: '0s' }}></div>
+            <div className="pulse-circle" style={{ animationDelay: '1s' }}></div>
+            <div className="pulse-circle" style={{ animationDelay: '2s' }}></div>
           </>
         )}
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-24 h-24 rounded-full bg-accent flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.3)] animate-bounce duration-[2000ms]">
+            <Shuffle className="text-white text-5xl" size={40} />
+          </div>
+          <div className="mt-8 text-center">
+            <h2 className="text-xl font-semibold text-accent animate-pulse">
+              {finding ? 'Searching...' : 'Ready to Match'}
+            </h2>
+            <p className="text-xs text-text-muted mt-2">
+              {finding ? queueText : 'Connecting you with someone electric'}
+            </p>
+          </div>
+        </div>
       </div>
+      {activeUsers > 0 && !finding && (
+        <p className="mt-4 text-[11px] font-semibold text-accent bg-accent-light px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+          </span>
+          {activeUsers} {activeUsers === 1 ? 'user' : 'users'} active now
+        </p>
+      )}
     </motion.div>
   );
 }
@@ -917,3 +907,88 @@ function SafetyModal({ open, onClose, onAgree }) {
     </div>
   );
 }
+
+function ElectricCanvas() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let sparks = [];
+    let animationFrameId;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Spark {
+      constructor() {
+        this.init();
+      }
+
+      init() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 1.5;
+        this.speedY = (Math.random() - 0.5) * 1.5;
+        this.opacity = Math.random() * 0.5 + 0.2;
+        this.life = Math.random() * 100 + 50;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.life--;
+        if (this.life <= 0) this.init();
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(124, 58, 237, ${this.opacity})`;
+        ctx.fill();
+
+        sparks.forEach(other => {
+          let dx = this.x - other.x;
+          let dy = this.y - other.y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 80) {
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = `rgba(124, 58, 237, ${0.08 * (1 - dist / 80)})`;
+            ctx.stroke();
+          }
+        });
+      }
+    }
+
+    for (let i = 0; i < 40; i++) {
+      sparks.push(new Spark());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      sparks.forEach(s => {
+        s.update();
+        s.draw();
+      });
+      animationFrameId = requestAnimationFrame(animate);
+    }
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="electric-canvas" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, opacity: 0.4 }} />;
+}
+

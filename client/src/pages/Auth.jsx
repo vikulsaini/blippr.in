@@ -417,578 +417,501 @@ export default function Auth() {
   }
 
   return (
-    <main className="relative min-h-screen w-full bg-[#030508] text-white flex items-center justify-center p-4 md:p-8 overflow-hidden font-sans">
-      {/* Top Ambient Glow Orb */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[450px] bg-gradient-to-b from-[#1d4ed8]/35 via-[#2563eb]/10 to-transparent rounded-full blur-[120px] pointer-events-none z-0" />
+    <main className="min-h-screen w-full bg-[#F8FAFC] text-[#191c1e] flex flex-col items-center justify-center p-4 overflow-hidden relative vibrant-gradient">
+      {/* Background decoration */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
 
-      {/* Main Container */}
-      <div className="relative z-10 w-full max-w-6xl grid lg:grid-cols-[1.1fr_0.9fr] gap-8 xl:gap-16 items-stretch min-h-[700px]">
-        
-        {/* Left Column: Form Content */}
-        <div className="flex flex-col justify-between bg-black/30 backdrop-blur-2xl border border-white/5 shadow-2xl rounded-[2.5rem] p-6 sm:p-10 lg:p-12 space-y-8 relative overflow-hidden">
-          
-          {/* Header/Logo section */}
-          <div>
-            <div className="flex justify-center mb-6">
-              <BrandLogo className="text-white [&_.text-text-primary]:text-white [&_.text-text-muted]:text-zinc-400 [&_span.bg-surface]:bg-[#111827]/80 [&_span.border-border-default]:border-white/10" />
-            </div>
+      {/* Content Canvas */}
+      <div className="w-full max-w-md flex flex-col items-center gap-6 z-10 animate-fadeIn duration-500">
+        {/* Brand Logo Area */}
+        <div className="mb-4 text-center">
+          <h1 className="font-display-lg text-4xl font-bold text-primary tracking-tighter">Blippr</h1>
+          <p className="text-xs text-[#4a4455]/60 uppercase tracking-widest mt-1">Electric Social Connection</p>
+        </div>
 
-            {/* Sub-mode Tab Selector (Only in Login mode, when OTP not sent) */}
-            {mode === 'login' && !otpSent && (
-              <div className="flex rounded-full bg-[#111827]/60 p-1 border border-white/5 text-xs mb-6 max-w-sm mx-auto font-bold">
-                <button
-                  type="button"
-                  onClick={() => switchSubMode('login')}
-                  className={`flex-1 py-2.5 rounded-full text-center transition-all ${authSubMode === 'login' ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-md' : 'text-zinc-300 hover:text-white'}`}
-                >
-                  Log In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchSubMode('signup')}
-                  className={`flex-1 py-2.5 rounded-full text-center transition-all ${authSubMode === 'signup' ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-md' : 'text-zinc-300 hover:text-white'}`}
-                >
-                  Sign Up
-                </button>
-              </div>
-            )}
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`${mode}-${authSubMode}`}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.22 }}
-                className="space-y-5"
+        {/* Auth Card */}
+        <div className="glass-panel w-full p-8 rounded-3xl shadow-2xl flex flex-col gap-6 bg-white/70 backdrop-blur-xl border border-black/5">
+          {/* Tab Toggle (Only in Login mode, when OTP not sent) */}
+          {mode === 'login' && !otpSent && (
+            <div className="flex p-1 bg-slate-100/50 rounded-full w-full overflow-hidden border border-black/5 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => switchSubMode('login')}
+                className={`flex-1 py-2.5 rounded-full text-center transition-all duration-300 ${authSubMode === 'login' ? 'bg-primary text-white shadow-md' : 'text-[#4a4455] hover:text-primary'}`}
               >
-                {/* Form Headline */}
-                <div className="space-y-1.5 text-center">
-                  <h2 className="text-2xl font-extrabold tracking-tight text-white">
-                    {mode === 'guest' ? 'Guest Setup' : ''}
-                    {mode === 'completeProfile' ? 'Complete Profile' : ''}
-                    {mode === 'login' && (authSubMode === 'login' ? 'Welcome Back' : 'Create Account')}
-                  </h2>
-                  <p className="text-xs font-semibold text-zinc-300 max-w-md mx-auto leading-relaxed">
-                    {mode === 'guest' && 'Enter instantly without an email address.'}
-                    {mode === 'completeProfile' && 'Choose your unique username, gender, and date of birth to complete setup.'}
-                    {mode === 'login' && (authSubMode === 'login' ? 'Access your account instantly via Google, OTP, or Password.' : 'Sign up via email verification and customize your profile.')}
-                  </p>
-                </div>
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => switchSubMode('signup')}
+                className={`flex-1 py-2.5 rounded-full text-center transition-all duration-300 ${authSubMode === 'signup' ? 'bg-primary text-white shadow-md' : 'text-[#4a4455] hover:text-primary'}`}
+              >
+                Sign Up
+              </button>
+            </div>
+          )}
 
-                <form onSubmit={(e) => e.preventDefault()} className="space-y-4 pt-1">
-                  
-                  {/* Google OAuth Button (if not otpSent) */}
-                  {mode === 'login' && !otpSent && (
-                    <div className="space-y-4">
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={signInWithGoogle}
-                        className="w-full h-13 px-6 rounded-full border border-white/10 hover:border-accent/50 hover:bg-white/5 flex items-center gap-3 justify-center transition active:scale-95 bg-[#111827]/40 font-semibold text-xs text-white disabled:opacity-50"
-                      >
-                        <GoogleIcon />
-                        <span>Continue with Google</span>
-                      </button>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${mode}-${authSubMode}`}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.22 }}
+              className="flex flex-col gap-5"
+            >
+              {/* Form Headline */}
+              <div className="text-center">
+                <h2 className="text-xl font-bold tracking-tight text-[#191c1e]">
+                  {mode === 'guest' ? 'Guest Setup' : ''}
+                  {mode === 'completeProfile' ? 'Complete Profile' : ''}
+                  {mode === 'login' && (authSubMode === 'login' ? 'Welcome Back' : 'Create Account')}
+                </h2>
+                <p className="text-xs font-semibold text-[#4a4455]/70 mt-1 max-w-xs mx-auto leading-relaxed">
+                  {mode === 'guest' && 'Enter instantly without an email address.'}
+                  {mode === 'completeProfile' && 'Choose your unique username, gender, and date of birth to complete setup.'}
+                  {mode === 'login' && (authSubMode === 'login' ? 'Access your account instantly via Google, OTP, or Password.' : 'Sign up via email verification and customize your profile.')}
+                </p>
+              </div>
 
-                      {/* Divider */}
-                      <div className="flex items-center gap-4 py-1">
-                        <div className="h-[1px] flex-1 bg-white/10" />
-                        <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Or</span>
-                        <div className="h-[1px] flex-1 bg-white/10" />
+              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
+                
+                {/* Google OAuth Button */}
+                {mode === 'login' && !otpSent && (
+                  <div className="flex flex-col gap-4">
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={signInWithGoogle}
+                      className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-3.5 rounded-full font-bold text-sm active:scale-95 transition-all shadow-md hover:bg-slate-50 disabled:opacity-50 border border-black/10"
+                    >
+                      <GoogleIcon />
+                      <span>Continue with Google</span>
+                    </button>
+
+                    {/* Divider */}
+                    <div className="flex items-center gap-4 py-1">
+                      <div className="h-[1px] flex-1 bg-black/10" />
+                      <span className="text-[#4a4455]/40 text-[10px] font-bold uppercase tracking-wider">OR</span>
+                      <div className="h-[1px] flex-1 bg-black/10" />
+                    </div>
+                  </div>
+                )}
+
+                {/* LOGIN SUB-MODE SURFACES */}
+                {mode === 'login' && authSubMode === 'login' && (
+                  <div className="flex flex-col gap-4">
+                    {/* Login Method Toggle */}
+                    {!otpSent && (
+                      <div className="flex items-center justify-center gap-6 text-[11px] font-bold text-[#4a4455]/60 mb-2 select-none">
+                        <button
+                          type="button"
+                          onClick={() => setLoginMethod('otp')}
+                          className={`pb-1 border-b-2 transition ${loginMethod === 'otp' ? 'text-primary border-primary' : 'border-transparent hover:text-slate-800'}`}
+                        >
+                          OTP Code
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLoginMethod('password')}
+                          className={`pb-1 border-b-2 transition ${loginMethod === 'password' ? 'text-primary border-primary' : 'border-transparent hover:text-slate-800'}`}
+                        >
+                          Password
+                        </button>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* LOGIN SUB-MODE SURFACES */}
-                  {mode === 'login' && authSubMode === 'login' && (
-                    <div className="space-y-4">
-                      
-                      {/* Login Method Toggle */}
-                      {!otpSent && (
-                        <div className="flex items-center justify-center gap-6 text-[11px] font-bold text-zinc-400 mb-2 select-none">
-                          <button
-                            type="button"
-                            onClick={() => setLoginMethod('otp')}
-                            className={`pb-1 border-b-2 transition ${loginMethod === 'otp' ? 'text-accent border-accent' : 'border-transparent hover:text-zinc-300'}`}
-                          >
-                            OTP Code
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setLoginMethod('password')}
-                            className={`pb-1 border-b-2 transition ${loginMethod === 'password' ? 'text-accent border-accent' : 'border-transparent hover:text-zinc-300'}`}
-                          >
-                            Password
-                          </button>
-                        </div>
-                      )}
-
-                      {/* OTP Login Method */}
-                      {loginMethod === 'otp' ? (
-                        <div className="space-y-4">
-                          {!otpSent ? (
-                            <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
-                              <div className="w-full">
-                                <UnderlinedInput 
-                                  value={email} 
-                                  onChange={setEmail} 
-                                  placeholder="Email Address" 
-                                  type="email" 
-                                  isValid={isEmailValid}
-                                  disabled={loading || otpSending}
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                disabled={!isEmailValid || loading || otpSending}
-                                onClick={sendEmailOtp}
-                                className="h-14 px-5 rounded-full border border-accent/35 hover:border-accent hover:bg-accent/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none text-accent"
-                              >
-                                {otpSending ? 'Sending...' : 'Send OTP'}
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-4 animate-fadeIn">
-                              <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
-                                {emailHint || 'Verification code sent.'}
-                              </p>
-                              <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
-                                <div className="w-full">
-                                  <UnderlinedInput 
-                                    value={emailCode} 
-                                    onChange={setEmailCode} 
-                                    placeholder="6-digit OTP code" 
-                                    inputMode="numeric" 
-                                    isValid={emailCode.length === 6}
-                                  />
-                                </div>
-                                <button
-                                  type="button"
-                                  disabled={emailCode.length !== 6 || loading}
-                                  onClick={verifyEmailOtp}
-                                  className="h-14 px-6 rounded-full bg-gradient-to-r from-accent to-accent-hover text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
-                                >
-                                  {loading ? 'Verifying...' : 'Verify'}
-                                </button>
-                              </div>
-                              <div className="text-center pt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => { setOtpSent(false); setEmailCode(''); }}
-                                  className="text-xs text-zinc-300 hover:text-white font-bold transition underline"
-                                >
-                                  Change email address
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        /* Password Login Method */
-                        <div className="space-y-4 animate-fadeIn">
-                          <UnderlinedInput 
-                            value={email} 
-                            onChange={setEmail} 
-                            placeholder="Email Address" 
-                            type="email" 
-                            isValid={isEmailValid}
-                            disabled={loading}
-                          />
-                          <UnderlinedInput 
-                            value={password} 
-                            onChange={setPassword} 
-                            placeholder="Password" 
-                            type="password" 
-                            isValid={password.length >= 8}
-                            disabled={loading}
-                          />
-                          <button
-                            type="submit"
-                            onClick={handleEmailPasswordLogin}
-                            disabled={loading || !isEmailValid || password.length < 8}
-                            className="w-full h-14 bg-gradient-to-r from-accent to-accent-hover text-white font-bold rounded-full shadow-lg shadow-accent/25 active:scale-95 transition disabled:opacity-50 text-xs"
-                          >
-                            {loading ? 'Signing in...' : 'Sign In'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* SIGN UP SUB-MODE SURFACES */}
-                  {mode === 'login' && authSubMode === 'signup' && (
-                    <div className="space-y-4">
-                      {!otpSent ? (
-                        <div className="space-y-4 animate-fadeIn">
-                          {/* Username with availability checker */}
-                          <div className="relative">
-                            <UnderlinedInput 
-                              value={profile.username} 
-                              onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
-                              placeholder="Choose Username" 
-                              prefix="@"
-                              isValid={usernameStatus === 'available'}
-                            />
-                            {usernameStatus === 'checking' && (
-                              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-300 text-xs font-bold animate-pulse">Checking...</span>
-                            )}
-                            {usernameStatus === 'taken' && (
-                              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-red-500 text-xs font-bold">Taken</span>
-                            )}
-                            {usernameStatus === 'available' && (
-                              <span className="absolute right-12 top-1/2 -translate-y-1/2 text-emerald-500 text-[10px] font-bold">Available</span>
-                            )}
-                          </div>
-
-                          {/* Email input */}
-                          <UnderlinedInput 
-                            value={email} 
-                            onChange={setEmail} 
-                            placeholder="Email Address" 
-                            type="email" 
-                            isValid={isEmailValid}
-                          />
-
-                          {/* Age / DOB Input */}
-                          <div className="grid grid-cols-1 sm:grid-cols-[1.1fr_0.9fr] gap-3 items-center">
-                            <UnderlinedInput 
-                              value={profile.dob} 
-                              onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
-                              placeholder="Date of Birth" 
-                              type="date" 
-                              isValid={profile.dob && ageFromDob(profile.dob) >= 18}
-                            />
-                            
-                            {/* Gender Select */}
-                            <div className="grid grid-cols-2 gap-0.5 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-[11px] h-14 items-center">
-                              {['female', 'male'].map((value) => (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                                  className={`group relative rounded-full py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
-                                >
-                                  {profile.gender === value && (
-                                    <motion.span
-                                      layoutId="signup-gender-pill"
-                                      className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
-                                      transition={{ type: 'spring', stiffness: 450, damping: 26 }}
-                                    />
-                                  )}
-                                  {value}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Password & Matcher Effect */}
-                          <UnderlinedInput 
-                            value={password} 
-                            onChange={setPassword} 
-                            placeholder="Password (8+ chars)" 
-                            type="password" 
-                            isValid={password.length >= 8}
-                          />
-                          <div className="relative">
-                            <input 
-                              type="password" 
-                              value={confirmPassword} 
-                              onChange={(e) => setConfirmPassword(e.target.value)} 
-                              className={`w-full bg-[#111827]/40 border rounded-full py-4 px-6 pr-12 text-sm text-white placeholder:text-zinc-400 outline-none focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold ${passwordsMatch ? 'border-emerald-500/80 focus:border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.15)]' : confirmPassword.length >= 8 ? 'border-red-500/80 focus:border-red-500' : 'border-white/10 focus:border-accent/80'}`}
-                              placeholder="Confirm Password"
-                            />
-                            {passwordsMatch && (
-                              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500 flex-shrink-0 animate-fadeIn">
-                                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                  <path className="animate-draw-checkmark" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              </span>
-                            )}
-                          </div>
-
-                          {confirmPassword && !passwordsMatch && (
-                            <p className="text-[10px] text-red-400 font-semibold pl-4">
-                              {password.length < 8 ? 'Password must be at least 8 characters' : 'Passwords do not match'}
-                            </p>
-                          )}
-                          {passwordsMatch && (
-                            <p className="text-[10px] text-emerald-400 font-semibold pl-4 flex items-center gap-1.5 animate-fadeIn">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-                              Passwords match!
-                            </p>
-                          )}
-
-                          <button
-                            type="submit"
-                            onClick={handleEmailSignup}
-                            disabled={otpSending || usernameStatus !== 'available' || !isEmailValid || !profile.dob || ageFromDob(profile.dob) < 18 || password.length < 8 || password !== confirmPassword}
-                            className="w-full h-14 bg-gradient-to-r from-accent to-accent-hover text-white font-bold rounded-full shadow-lg shadow-accent/25 active:scale-95 transition disabled:opacity-50 text-xs mt-2"
-                          >
-                            {otpSending ? 'Sending OTP...' : 'Send Signup OTP'}
-                          </button>
-                        </div>
-                      ) : (
-                        /* OTP Verification Box for Signup */
-                        <div className="space-y-4 animate-fadeIn">
-                          <p className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-accent font-semibold leading-relaxed">
-                            {emailHint || 'Verification code sent.'}
-                          </p>
+                    {/* OTP Login Method */}
+                    {loginMethod === 'otp' ? (
+                      <div className="flex flex-col gap-4">
+                        {!otpSent ? (
                           <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                             <div className="w-full">
                               <UnderlinedInput 
-                                value={emailCode} 
-                                onChange={setEmailCode} 
-                                placeholder="6-digit OTP code" 
-                                inputMode="numeric" 
-                                isValid={emailCode.length === 6}
+                                value={email} 
+                                onChange={setEmail} 
+                                placeholder="Email Address" 
+                                type="email" 
+                                isValid={isEmailValid}
+                                disabled={loading || otpSending}
                               />
                             </div>
                             <button
                               type="button"
-                              disabled={emailCode.length !== 6 || loading}
-                              onClick={verifyEmailOtp}
-                              className="h-14 px-6 rounded-full bg-gradient-to-r from-accent to-accent-hover text-white font-bold text-xs transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                              disabled={!isEmailValid || loading || otpSending}
+                              onClick={sendEmailOtp}
+                              className="h-14 px-5 rounded-full border border-primary/30 hover:bg-primary/5 font-bold text-xs transition active:scale-95 disabled:opacity-30 text-primary"
                             >
-                              {loading ? 'Verifying...' : 'Verify'}
+                              {otpSending ? 'Sending...' : 'Send OTP'}
                             </button>
                           </div>
-                          <div className="text-center pt-2">
-                            <button
-                              type="button"
-                              onClick={() => { setOtpSent(false); setEmailCode(''); }}
-                              className="text-xs text-zinc-300 hover:text-white font-bold transition underline"
-                            >
-                              Go back to signup
-                            </button>
+                        ) : (
+                          <div className="flex flex-col gap-4 animate-fadeIn">
+                            <p className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-primary font-semibold leading-relaxed">
+                              {emailHint || 'Verification code sent.'}
+                            </p>
+                            <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                              <div className="w-full">
+                                <UnderlinedInput 
+                                  value={emailCode} 
+                                  onChange={setEmailCode} 
+                                  placeholder="6-digit OTP code" 
+                                  inputMode="numeric" 
+                                  isValid={emailCode.length === 6}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                disabled={emailCode.length !== 6 || loading}
+                                onClick={verifyEmailOtp}
+                                className="h-14 px-6 rounded-full bg-primary text-white font-bold text-xs transition active:scale-95 disabled:opacity-50"
+                              >
+                                {loading ? 'Verifying...' : 'Verify'}
+                              </button>
+                            </div>
+                            <div className="text-center pt-2">
+                              <button
+                                type="button"
+                                onClick={() => { setOtpSent(false); setEmailCode(''); }}
+                                className="text-xs text-[#4a4455] hover:text-primary font-bold transition underline"
+                              >
+                                Change email address
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Password Login Method */
+                      <div className="flex flex-col gap-4 animate-fadeIn">
+                        <UnderlinedInput 
+                          value={email} 
+                          onChange={setEmail} 
+                          placeholder="Email Address" 
+                          type="email" 
+                          isValid={isEmailValid}
+                          disabled={loading}
+                        />
+                        <UnderlinedInput 
+                          value={password} 
+                          onChange={setPassword} 
+                          placeholder="Password" 
+                          type="password" 
+                          isValid={password.length >= 8}
+                          disabled={loading}
+                        />
+                        <button
+                          type="submit"
+                          onClick={handleEmailPasswordLogin}
+                          disabled={loading || !isEmailValid || password.length < 8}
+                          className="w-full h-14 bg-primary text-white font-bold rounded-full shadow-[0_8px_20px_rgba(124,58,237,0.25)] active:scale-95 transition-all hover:brightness-110 disabled:opacity-50 text-xs"
+                        >
+                          {loading ? 'Signing in...' : 'Sign In'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SIGN UP SUB-MODE SURFACES */}
+                {mode === 'login' && authSubMode === 'signup' && (
+                  <div className="flex flex-col gap-4">
+                    {!otpSent ? (
+                      <div className="flex flex-col gap-4 animate-fadeIn">
+                        {/* Username Checker */}
+                        <div className="relative">
+                          <UnderlinedInput 
+                            value={profile.username} 
+                            onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
+                            placeholder="Choose Username" 
+                            prefix="@"
+                            isValid={usernameStatus === 'available'}
+                          />
+                          {usernameStatus === 'checking' && (
+                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-text-muted text-xs font-bold animate-pulse">Checking...</span>
+                          )}
+                          {usernameStatus === 'taken' && (
+                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-danger text-xs font-bold">Taken</span>
+                          )}
+                          {usernameStatus === 'available' && (
+                            <span className="absolute right-12 top-1/2 -translate-y-1/2 text-success text-[10px] font-bold">Available</span>
+                          )}
+                        </div>
+
+                        {/* Email input */}
+                        <UnderlinedInput 
+                          value={email} 
+                          onChange={setEmail} 
+                          placeholder="Email Address" 
+                          type="email" 
+                          isValid={isEmailValid}
+                        />
+
+                        {/* Age / DOB Input */}
+                        <div className="grid grid-cols-1 sm:grid-cols-[1.1fr_0.9fr] gap-3 items-center">
+                          <UnderlinedInput 
+                            value={profile.dob} 
+                            onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
+                            placeholder="Date of Birth" 
+                            type="date" 
+                            isValid={profile.dob && ageFromDob(profile.dob) >= 18}
+                          />
+                          
+                          {/* Gender Select */}
+                          <div className="grid grid-cols-2 gap-0.5 rounded-full border border-border-default bg-slate-100/50 p-1 text-[11px] h-14 items-center">
+                            {['female', 'male'].map((value) => (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => setProfile((c) => ({ ...c, gender: value }))}
+                                className={`group relative rounded-full py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-[#4a4455] hover:text-primary'}`}
+                              >
+                                {profile.gender === value && (
+                                  <motion.span
+                                    layoutId="signup-gender-pill"
+                                    className="absolute inset-0 rounded-full bg-primary -z-10 shadow-md"
+                                    transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                                  />
+                                )}
+                                {value}
+                              </button>
+                            ))}
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
 
-                  {/* COMPLETE PROFILE FIELDS */}
-                  {mode === 'completeProfile' && (
-                    <div className="space-y-5 animate-fadeIn">
-                      <UnderlinedInput 
-                        value={profile.username} 
-                        onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
-                        placeholder="Choose Username" 
-                        prefix="@"
-                        isValid={isUsernameValid}
-                      />
-                      
-                      {/* Gender Selector */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider pl-4">Gender</label>
-                        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs">
-                          {['female', 'male'].map((value) => (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
-                            >
-                              {profile.gender === value && (
-                                <motion.span
-                                  layoutId="complete-gender-pill"
-                                  className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
-                                  transition={{ type: 'spring', stiffness: 450, damping: 26 }}
-                                />
-                              )}
-                              {value}
-                            </button>
-                          ))}
+                        {/* Password Fields */}
+                        <UnderlinedInput 
+                          value={password} 
+                          onChange={setPassword} 
+                          placeholder="Password (8+ chars)" 
+                          type="password" 
+                          isValid={password.length >= 8}
+                        />
+                        <div className="relative">
+                          <input 
+                            type="password" 
+                            value={confirmPassword} 
+                            onChange={(e) => setConfirmPassword(e.target.value)} 
+                            className={`w-full bg-slate-100/40 border rounded-full py-4 px-6 pr-12 text-sm text-[#191c1e] placeholder:text-[#4a4455]/60 outline-none focus:ring-2 focus:ring-primary/25 transition-all duration-200 font-semibold ${passwordsMatch ? 'border-success/80 focus:border-success shadow-[0_0_12px_rgba(16,185,129,0.15)]' : confirmPassword.length >= 8 ? 'border-danger/80 focus:border-danger' : 'border-black/5 focus:border-primary/80'}`}
+                            placeholder="Confirm Password"
+                          />
+                          {passwordsMatch && (
+                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-success flex-shrink-0 animate-fadeIn">
+                              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+
+                        {confirmPassword && !passwordsMatch && (
+                          <p className="text-[10px] text-danger font-semibold pl-4">
+                            {password.length < 8 ? 'Password must be at least 8 characters' : 'Passwords do not match'}
+                          </p>
+                        )}
+                        {passwordsMatch && (
+                          <p className="text-[10px] text-success font-semibold pl-4 flex items-center gap-1.5 animate-fadeIn">
+                            <span className="h-1.5 w-1.5 rounded-full bg-success animate-ping" />
+                            Passwords match!
+                          </p>
+                        )}
+
+                        <button
+                          type="submit"
+                          onClick={handleEmailSignup}
+                          disabled={otpSending || usernameStatus !== 'available' || !isEmailValid || !profile.dob || ageFromDob(profile.dob) < 18 || password.length < 8 || password !== confirmPassword}
+                          className="w-full h-14 bg-primary text-white font-bold rounded-full shadow-[0_8px_20px_rgba(124,58,237,0.25)] active:scale-95 transition-all hover:brightness-110 disabled:opacity-50 text-xs mt-2"
+                        >
+                          {otpSending ? 'Sending OTP...' : 'Create Account'}
+                        </button>
+                      </div>
+                    ) : (
+                      /* OTP Code for signup */
+                      <div className="flex flex-col gap-4 animate-fadeIn">
+                        <p className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-primary font-semibold leading-relaxed">
+                          {emailHint || 'Verification code sent.'}
+                        </p>
+                        <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                          <div className="w-full">
+                            <UnderlinedInput 
+                              value={emailCode} 
+                              onChange={setEmailCode} 
+                              placeholder="6-digit OTP code" 
+                              inputMode="numeric" 
+                              isValid={emailCode.length === 6}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            disabled={emailCode.length !== 6 || loading}
+                            onClick={verifyEmailOtp}
+                            className="h-14 px-6 rounded-full bg-primary text-white font-bold text-xs transition active:scale-95 disabled:opacity-50"
+                          >
+                            {loading ? 'Verifying...' : 'Verify'}
+                          </button>
+                        </div>
+                        <div className="text-center pt-2">
+                          <button
+                            type="button"
+                            onClick={() => { setOtpSent(false); setEmailCode(''); }}
+                            className="text-xs text-[#4a4455] hover:text-primary font-bold transition underline"
+                          >
+                            Go back to signup
+                          </button>
                         </div>
                       </div>
+                    )}
+                  </div>
+                )}
 
-                      {/* Date of Birth */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider pl-4">Date of Birth</label>
-                        <UnderlinedInput 
-                          value={profile.dob} 
-                          onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
-                          placeholder="DOB" 
-                          type="date" 
-                          isValid={profile.dob && ageFromDob(profile.dob) >= 18}
-                        />
+                {/* COMPLETE PROFILE FIELDS */}
+                {mode === 'completeProfile' && (
+                  <div className="flex flex-col gap-5 animate-fadeIn">
+                    <UnderlinedInput 
+                      value={profile.username} 
+                      onChange={(value) => setProfile((c) => ({ ...c, username: value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))} 
+                      placeholder="Choose Username" 
+                      prefix="@"
+                      isValid={isUsernameValid}
+                    />
+                    
+                    {/* Gender Selector */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-[#4a4455] font-bold uppercase tracking-wider pl-4">Gender</label>
+                      <div className="grid grid-cols-2 gap-1 rounded-full border border-black/5 bg-slate-100/50 p-1 text-xs">
+                        {['female', 'male'].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setProfile((c) => ({ ...c, gender: value }))}
+                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-[#4a4455] hover:text-primary'}`}
+                          >
+                            {profile.gender === value && (
+                              <motion.span
+                                layoutId="complete-gender-pill"
+                                className="absolute inset-0 rounded-full bg-primary -z-10 shadow-md"
+                                transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                              />
+                            )}
+                            {value}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  )}
 
-                  {/* GUEST FIELDS */}
-                  {mode === 'guest' && (
-                    <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-4 transition-colors duration-[350ms]">
+                    {/* Date of Birth */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-[#4a4455] font-bold uppercase tracking-wider pl-4">Date of Birth</label>
                       <UnderlinedInput 
-                        value={profile.name} 
-                        onChange={(value) => setProfile((c) => ({ ...c, name: value }))} 
-                        placeholder="Profile Name" 
-                        isValid={profile.name.trim().length >= 2}
+                        value={profile.dob} 
+                        onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
+                        placeholder="DOB" 
+                        type="date" 
+                        isValid={profile.dob && ageFromDob(profile.dob) >= 18}
                       />
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        <UnderlinedInput 
-                          value={profile.age} 
-                          onChange={(value) => setProfile((c) => ({ ...c, age: value }))} 
-                          placeholder="Age (18+)" 
-                          type="number" 
-                          isValid={Number(profile.age) >= 18}
-                        />
-                        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs h-14 items-center">
-                          {['female', 'male'].map((value) => (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
-                            >
-                              {profile.gender === value && (
-                                <motion.span
-                                  layoutId="guest-gender-pill"
-                                  className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
-                                  transition={{ type: 'spring', stiffness: 450, damping: 26 }}
-                                />
-                              )}
-                              {value}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2.5 pt-2 select-none">
-                        <input
-                          id="guest-terms"
-                          type="checkbox"
-                          checked={guestTermsAccepted}
-                          onChange={(e) => setGuestTermsAccepted(e.target.checked)}
-                          className="mt-1 h-4 w-4 rounded border-white/10 text-cyan-400 focus:ring-cyan-400/25 bg-black/20"
-                        />
-                        <label htmlFor="guest-terms" className="text-xs text-zinc-300 leading-normal font-semibold cursor-pointer">
-                          I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">Privacy Policy</a>, and I certify that I am 18 years of age or older.
-                        </label>
-                      </div>
-                    </div>
-                  )}
-
-                  {error && (
-                    <motion.p 
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-2xl animate-fadeIn animate-shake text-center"
-                    >
-                      {error}
-                    </motion.p>
-                  )}
-
-                  {/* Actions Row: Submit Button (only for Guest or Complete Profile modes) */}
-                  {(mode === 'guest' || mode === 'completeProfile') && (
-                    <div className="space-y-4 mt-8 pt-2">
-                      <button
-                        type="submit"
-                        disabled={loading || (mode === 'completeProfile' && (!isUsernameValid || !profile.dob || ageFromDob(profile.dob) < 18))}
-                        className="w-full h-14 bg-gradient-to-r from-accent via-accent-hover to-success hover:from-accent-hover hover:to-success text-white font-bold rounded-full shadow-lg shadow-accent/20 flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
-                      >
-                        {loading ? 'Please wait...' : mode === 'completeProfile' ? 'Complete Registration' : 'Enter Cafe'}
-                        <ChevronRight size={18} />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Mode Switching & Navigation Links */}
-                  <div className="space-y-4 pt-4">
-                    <div className="text-center">
-                      {mode === 'login' ? (
-                        <button type="button" onClick={() => switchMode('guest')} className="text-xs text-zinc-300 font-bold hover:text-white hover:underline transition">
-                          Continue as Guest
-                        </button>
-                      ) : (
-                        <button type="button" onClick={() => switchMode('login')} className="text-xs text-zinc-300 font-bold hover:text-white hover:underline transition">
-                          Return to Login
-                        </button>
-                      )}
                     </div>
                   </div>
-                </form>
-              </motion.div>
-            </AnimatePresence>
-          </div>
+                )}
 
-          {/* Footer links */}
-          <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-zinc-300">
-            <div className="flex items-center gap-3">
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-white hover:underline">Terms of Service</a>
-              <span>|</span>
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-white hover:underline">Privacy Policy</a>
-            </div>
-            
-            <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition select-none text-[11px]">
-              <Globe size={13} />
-              <span>ENGLISH (US)</span>
-            </div>
-          </div>
-        </div>
+                {/* GUEST FIELDS */}
+                {mode === 'guest' && (
+                  <div className="flex flex-col gap-4 rounded-2xl border border-black/5 bg-slate-100/30 p-4 transition-colors duration-[350ms]">
+                    <UnderlinedInput 
+                      value={profile.name} 
+                      onChange={(value) => setProfile((c) => ({ ...c, name: value }))} 
+                      placeholder="Profile Name" 
+                      isValid={profile.name.trim().length >= 2}
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <UnderlinedInput 
+                        value={profile.age} 
+                        onChange={(value) => setProfile((c) => ({ ...c, age: value }))} 
+                        placeholder="Age (18+)" 
+                        type="number" 
+                        isValid={Number(profile.age) >= 18}
+                      />
+                      <div className="grid grid-cols-2 gap-1 rounded-full border border-black/5 bg-slate-100/50 p-1 text-xs h-14 items-center">
+                        {['female', 'male'].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setProfile((c) => ({ ...c, gender: value }))}
+                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-[#4a4455] hover:text-primary'}`}
+                          >
+                            {profile.gender === value && (
+                              <motion.span
+                                layoutId="guest-gender-pill"
+                                className="absolute inset-0 rounded-full bg-primary -z-10 shadow-md"
+                                transition={{ type: 'spring', stiffness: 450, damping: 26 }}
+                              />
+                            )}
+                            {value}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2.5 pt-2 select-none">
+                      <input
+                        id="guest-terms"
+                        type="checkbox"
+                        checked={guestTermsAccepted}
+                        onChange={(e) => setGuestTermsAccepted(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-black/10 text-primary focus:ring-primary/25 bg-slate-100"
+                      />
+                      <label htmlFor="guest-terms" className="text-xs text-[#4a4455] leading-normal font-semibold cursor-pointer">
+                        I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>, and I certify that I am 18 years of age or older.
+                      </label>
+                    </div>
+                  </div>
+                )}
 
-        {/* Right Column: Modern Visual Onboarding Panel (Desktop/Tablet) */}
-        <div className="hidden lg:flex relative rounded-[2.5rem] bg-gradient-to-b from-[#0B0F19] to-[#030508] border border-white/5 shadow-2xl p-10 flex-col justify-between items-stretch overflow-hidden">
-          {/* Logo Header */}
-          <div className="flex items-center gap-2">
-            <BrandLogo compact className="text-white [&_span.bg-surface]:bg-[#111827]/80 [&_span.border-border-default]:border-white/10" />
-          </div>
+                {error && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs font-semibold text-danger bg-danger/10 border border-danger/25 p-3 rounded-2xl animate-fadeIn text-center animate-shake"
+                  >
+                    {error}
+                  </motion.p>
+                )}
 
-          {/* Central Globe illustration */}
-          <div className="flex-1 flex items-center justify-center py-6 relative">
-            <div className="absolute w-72 h-72 bg-accent/15 rounded-full blur-[80px] z-0" />
-            <img 
-              src="/auth_globe.png" 
-              alt="Glowing Earth Globe" 
-              className="w-80 h-80 object-contain relative z-10 animate-[pulse_6s_infinite_ease-in-out]" 
-            />
-          </div>
+                {/* Actions Row: Submit Button (only for Guest or Complete Profile modes) */}
+                {(mode === 'guest' || mode === 'completeProfile') && (
+                  <div className="space-y-4 mt-4 pt-2">
+                    <button
+                      type="submit"
+                      disabled={loading || (mode === 'completeProfile' && (!isUsernameValid || !profile.dob || ageFromDob(profile.dob) < 18))}
+                      onClick={mode === 'completeProfile' ? verifyEmailOtp : handleGuestLogin}
+                      className="w-full h-14 bg-primary text-white font-bold rounded-full shadow-[0_8px_20px_rgba(124,58,237,0.25)] flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
+                    >
+                      {loading ? 'Please wait...' : mode === 'completeProfile' ? 'Complete Registration' : 'Enter Cafe'}
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+                )}
 
-          {/* Onboarding Typography */}
-          <div className="space-y-4">
-            <span className="text-xs font-bold text-accent uppercase tracking-[0.2em] select-none">Connect Instantly</span>
-            <h3 className="text-3xl font-extrabold leading-tight text-white select-none">
-              Share <span className="bg-gradient-to-r from-accent to-success bg-clip-text text-transparent">Moment</span><br />
-              Around You!
-            </h3>
-          </div>
-
-          {/* Stats & Controls */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
-            {/* Avatar row */}
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2.5">
-                <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80" alt="User 1" />
-                <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80" alt="User 2" />
-                <img className="w-8 h-8 rounded-full border border-[#030508] object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80" alt="User 3" />
-                <div className="w-8 h-8 rounded-full border border-[#030508] bg-gradient-to-r from-accent to-accent-hover flex items-center justify-center text-[10px] font-bold text-white">
-                  +17M
+                {/* Mode Switching */}
+                <div className="text-center pt-2">
+                  {mode === 'login' ? (
+                    <button type="button" onClick={() => switchMode('guest')} className="text-xs text-[#4a4455] font-bold hover:text-primary hover:underline transition">
+                      Continue as Guest
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => switchMode('login')} className="text-xs text-[#4a4455] font-bold hover:text-primary hover:underline transition">
+                      Return to Login
+                    </button>
+                  )}
                 </div>
-              </div>
-              <span className="text-xs text-zinc-300 font-semibold select-none">
-                Our regular users
-              </span>
-            </div>
-
-            {/* Next/Skip buttons */}
-            <div className="flex items-center gap-4">
-              <button 
-                type="button"
-                onClick={() => switchMode('guest')}
-                className="text-xs text-zinc-300 font-bold hover:text-white transition"
-              >
-                Skip
-              </button>
-              <button
-                type="button"
-                onClick={() => switchMode(mode === 'login' ? 'guest' : 'login')}
-                className="w-12 h-12 rounded-full bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent flex items-center justify-center text-white shadow-lg shadow-accent/25 active:scale-95 transition"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
+              </form>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
+        {/* Security Badge */}
+        <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-200/40 backdrop-blur-sm border border-black/5 opacity-80 shadow-sm text-xs font-semibold text-[#4a4455] self-center">
+          <ShieldCheck size={16} className="text-[#00687a]" />
+          <span className="uppercase tracking-wider">End-to-End Encrypted Access</span>
+        </div>
       </div>
     </main>
   );
@@ -1033,21 +956,21 @@ function UnderlinedInput({ value, onChange, placeholder, type = 'text', inputMod
   return (
     <div className="relative w-full">
       {prefix && (
-        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold select-none">
+        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-text-muted text-sm font-semibold select-none">
           {prefix}
         </span>
       )}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={`w-full bg-[#111827]/40 border border-white/10 rounded-full py-4 ${prefix ? 'pl-11' : 'px-6'} pr-12 text-sm text-white placeholder:text-zinc-400 outline-none focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold`}
+        className={`w-full bg-surface-hover/40 border border-border-default rounded-full py-4 ${prefix ? 'pl-11' : 'px-6'} pr-12 text-sm text-text-primary placeholder:text-text-muted/60 outline-none focus:border-accent/80 focus:ring-2 focus:ring-accent/25 transition-all duration-200 font-semibold`}
         placeholder={placeholder}
         type={type}
         inputMode={inputMode}
       />
       {suffix && <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center">{suffix}</div>}
       {!suffix && isValid && (
-        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500 flex-shrink-0 animate-fadeIn">
+        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-success flex-shrink-0 animate-fadeIn">
           <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
             <path className="animate-draw-checkmark" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
@@ -1061,7 +984,7 @@ function PasswordRule({ met, text }) {
   return (
     <div className="flex items-center gap-2 text-[11px] font-semibold">
       {met ? (
-        <span className="text-emerald-500 flex items-center justify-center">
+        <span className="text-success flex items-center justify-center">
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
@@ -1069,7 +992,7 @@ function PasswordRule({ met, text }) {
       ) : (
         <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 ml-1 mr-1" />
       )}
-      <span className={met ? "text-emerald-500" : "text-zinc-400"}>
+      <span className={met ? "text-success" : "text-text-muted"}>
         {text}
       </span>
     </div>
@@ -1082,7 +1005,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-4 transition-colors duration-[350ms]">
+    <div className="space-y-4 rounded-2xl border border-border-default bg-surface-hover/30 p-4 transition-colors duration-[350ms]">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <UnderlinedInput 
           value={profile.age} 
@@ -1091,18 +1014,18 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
           type="number" 
           isValid={Number(profile.age) >= 18}
         />
-        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-[#111827]/40 p-1 text-xs h-14 items-center">
+        <div className="grid grid-cols-2 gap-1 rounded-full border border-border-default bg-surface-hover/40 p-1 text-xs h-14 items-center">
           {['female', 'male'].map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => update('gender', value)}
-              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
+              className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-text-secondary hover:text-text-primary'}`}
             >
               {profile.gender === value && (
                 <motion.span
                   layoutId="signup-gender-pill"
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-accent to-accent-hover -z-10 shadow-md"
+                  className="absolute inset-0 rounded-full bg-accent -z-10 shadow-md"
                   transition={{ type: 'spring', stiffness: 450, damping: 26 }}
                 />
               )}
@@ -1143,7 +1066,7 @@ function ProfileSetup({ profile, setProfile, compact = false }) {
         <textarea 
           value={profile.bio} 
           onChange={(event) => update('bio', event.target.value)} 
-          className="min-h-20 w-full resize-none rounded-2xl border border-white/10 bg-[#111827]/40 px-4 py-3.5 text-xs text-white outline-none placeholder:text-zinc-400 focus:border-accent/80 focus:ring-2 focus:ring-accent/20 transition-all duration-200 font-semibold" 
+          className="min-h-20 w-full resize-none rounded-2xl border border-border-default bg-surface-hover/40 px-4 py-3.5 text-xs text-text-primary outline-none placeholder:text-text-muted/60 focus:border-accent/80 focus:ring-2 focus:ring-accent/25 transition-all duration-200 font-semibold" 
           placeholder="Write a short bio..." 
           maxLength={160} 
         />

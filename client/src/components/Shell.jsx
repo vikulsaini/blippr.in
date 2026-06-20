@@ -179,28 +179,25 @@ export default function Shell() {
       <GuestUpgradeModal me={me} />
       <ToastProvider />
       {!navHidden && (
-        <nav className="safe-bottom premium-nav fixed inset-x-3 bottom-2 z-20 mx-auto max-w-[22rem] rounded-3xl px-2 pt-1 backdrop-blur-sm md:hidden">
-          <div className={activeTabs.length === 1 ? "flex justify-center" : "grid grid-cols-4"}>
+        <nav className="fixed bottom-0 inset-x-0 z-50 bg-white/80 backdrop-blur-lg border-t border-black/5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)] flex justify-around items-center h-20 pb-safe md:hidden">
+          <div className="flex w-full justify-around items-center px-4">
             {activeTabs.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={to === '/app'}
                 className={({ isActive }) =>
-                  `group relative flex min-h-[2.75rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 text-xs transition-all duration-200 active:scale-[0.96] ${
-                    isActive ? 'text-accent' : 'text-text-faint hover:text-text-secondary'
+                  `group relative flex flex-col items-center justify-center gap-1.5 transition-all duration-200 active:scale-[0.92] ${
+                    isActive ? 'text-primary font-bold' : 'text-[#4a4455]/60 hover:text-primary'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
-                    {isActive && (
-                      <span className="absolute top-0.5 h-0.5 w-5 rounded-full bg-accent animate-fadeIn" />
-                    )}
-                    <span className={`grid h-7 w-7 place-items-center rounded-xl transition-all duration-200 ${isActive ? 'bg-accent text-white shadow-accent-sm' : 'bg-transparent'}`}>
+                    <span className={`grid h-8 w-8 place-items-center rounded-xl transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-[0_4px_12px_rgba(124,58,237,0.25)]' : 'bg-transparent'}`}>
                       <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
                     </span>
-                    <span className={`text-[9px] font-semibold leading-none ${isActive ? 'text-accent' : 'text-text-faint'}`}>{label}</span>
+                    <span className={`text-[10px] font-bold tracking-wide uppercase leading-none ${isActive ? 'text-primary' : 'text-[#4a4455]/60'}`}>{label}</span>
                   </>
                 )}
               </NavLink>
@@ -215,8 +212,8 @@ export default function Shell() {
 function DesktopNav({ locationPath, socketState, clock, tabs }) {
   const connected = socketState === 'connected' || socketState === 'reconnected';
   return (
-    <aside className="premium-nav hidden min-h-0 rounded-3xl p-2 md:flex md:flex-col">
-      <nav className="mt-2 grid gap-2">
+    <aside className="premium-nav hidden min-h-0 glass-card rounded-[2rem] p-2 md:flex md:flex-col border border-black/5 shadow-sm">
+      <nav className="mt-2 grid gap-3">
         {tabs.map(({ to, label, icon: Icon }) => {
           const active = to === '/app' ? locationPath === '/app' : locationPath === to;
           return (
@@ -227,22 +224,19 @@ function DesktopNav({ locationPath, socketState, clock, tabs }) {
               title={label}
               aria-label={label}
               className={`group relative flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.96] ${
-                active ? 'bg-accent-tint text-accent' : 'text-text-faint hover:bg-surface-hover hover:text-text-secondary'
+                active ? 'bg-primary/5 text-primary' : 'text-[#4a4455]/60 hover:bg-slate-100 hover:text-[#191c1e]'
               }`}
             >
-              {active && (
-                <span className="absolute inset-0 rounded-2xl bg-accent-tint animate-fadeIn" style={{ zIndex: -1 }} />
-              )}
-              <span className={`grid h-9 w-9 place-items-center rounded-2xl transition-all duration-200 ${active ? 'bg-accent text-white shadow-accent-sm' : 'bg-transparent'}`}>
+              <span className={`grid h-9 w-9 place-items-center rounded-2xl transition-all duration-200 ${active ? 'bg-primary text-white shadow-[0_4px_12px_rgba(124,58,237,0.25)]' : 'bg-transparent'}`}>
                 <Icon size={20} />
               </span>
             </NavLink>
           );
         })}
       </nav>
-      <div className="mt-auto flex flex-col items-center justify-center gap-3 rounded-2xl border border-border-default bg-surface p-3 shadow-card transition-all duration-300" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
+      <div className="mt-auto flex flex-col items-center justify-center gap-3 rounded-2xl border border-black/5 bg-slate-100/60 p-3 shadow-sm transition-all duration-300" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
         <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-success text-success' : 'bg-gold text-gold'}`} />
-        <span className="h-2 w-7 rounded-full bg-text-muted/60 border border-border-hover/30 transition-all duration-300" />
+        <span className="h-2 w-7 rounded-full bg-[#4a4455]/20 border border-black/5 transition-all duration-300" />
       </div>
     </aside>
   );

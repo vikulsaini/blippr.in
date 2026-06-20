@@ -64,33 +64,37 @@ export default function LocationSettings() {
   const locationShared = !!user?.location?.updatedAt;
 
   return (
-    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24">
+    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+      
       {/* Header */}
-      <header className="flex items-center gap-3.5 mb-6">
+      <header className="flex items-center gap-3.5 mb-8">
         <button 
           onClick={() => navigate('/app/profile')} 
-          className="btn-icon h-10 w-10 flex items-center justify-center rounded-full hover:bg-surface-hover transition active:scale-95" 
+          className="text-primary hover:opacity-80 p-2 -ml-2 rounded-full transition active:scale-95" 
           aria-label="Back to profile"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={22} />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-text-primary">Matchmaking location</h2>
+          <h2 className="text-xl font-black text-white tracking-tight">Matchmaking Location</h2>
           <p className="text-xs text-text-muted">Proximity matching coordinates settings</p>
         </div>
       </header>
 
       <div className="space-y-5">
-        <div className="surface-card rounded-[22px] border border-border-default bg-surface p-5 shadow-card text-center space-y-5 relative overflow-hidden">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent/10 text-accent">
-            <MapPin size={24} className={refreshing ? 'animate-bounce' : ''} />
+        <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-6 shadow-card text-center space-y-5 relative overflow-hidden">
+          {/* Ambient inner glow */}
+          <div className="absolute -right-10 -top-10 w-24 h-24 bg-primary/10 blur-2xl rounded-full pointer-events-none" />
+          
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
+            <MapPin size={26} className={refreshing ? 'animate-bounce' : ''} />
           </div>
           
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-text-primary">
+            <h3 className="text-sm font-black text-white">
               {locationShared ? 'Location Shared Successfully' : 'Location Not Shared'}
             </h3>
-            <p className="text-xs text-text-muted font-medium max-w-xs mx-auto leading-relaxed">
+            <p className="text-xs text-text-muted font-medium max-w-xs mx-auto leading-relaxed mt-1">
               {locationShared 
                 ? `Last updated: ${new Date(user.location.updatedAt).toLocaleDateString()} at ${new Date(user.location.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
                 : 'Blippr matches you with online users nearby if location is shared. Share location coordinates from your browser.'}
@@ -98,7 +102,7 @@ export default function LocationSettings() {
           </div>
 
           {locationShared && user?.location?.coordinates && (
-            <div className="text-[10px] text-text-faint font-extrabold bg-bg py-2 px-3 rounded-xl w-fit mx-auto border border-border-default">
+            <div className="text-[10px] text-primary font-extrabold bg-primary/10 py-2.5 px-3.5 rounded-xl w-fit mx-auto border border-primary/20">
               LAT: {user.location.coordinates[1]?.toFixed(4)} · LNG: {user.location.coordinates[0]?.toFixed(4)}
             </div>
           )}
@@ -108,7 +112,7 @@ export default function LocationSettings() {
           type="button" 
           onClick={refreshLocation}
           disabled={refreshing}
-          className="btn-primary flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold shadow-accent-sm hover:opacity-95 transition-all duration-200 disabled:opacity-75"
+          className="w-full bg-primary hover:brightness-110 text-white font-bold text-sm py-4 rounded-full shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70"
         >
           <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
           {refreshing ? 'Retrieving coordinates...' : 'Refresh Location'}

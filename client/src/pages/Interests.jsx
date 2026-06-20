@@ -55,47 +55,50 @@ export default function Interests() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24">
+    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+      
       {/* Header */}
-      <header className="flex items-center gap-3.5 mb-6">
+      <header className="flex items-center gap-3.5 mb-8">
         <button 
           onClick={() => navigate('/app/profile')} 
-          className="btn-icon h-10 w-10 flex items-center justify-center rounded-full hover:bg-surface-hover transition active:scale-95" 
+          className="text-primary hover:opacity-80 p-2 -ml-2 rounded-full transition active:scale-95" 
           aria-label="Back to profile"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={22} />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-text-primary">Hobbies & interests</h2>
+          <h2 className="text-xl font-black text-white tracking-tight">Hobbies &amp; Interests</h2>
           <p className="text-xs text-text-muted">Interests help Blippr match you with related users</p>
         </div>
       </header>
 
       <form onSubmit={saveInterests} className="space-y-5">
-        <div className="surface-card rounded-[22px] border border-border-default bg-surface p-5 shadow-card space-y-4">
-          <div className="flex items-center gap-2.5 text-accent">
+        <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-5 shadow-card space-y-4">
+          <div className="flex items-center gap-2 text-primary px-1">
             <Sparkles size={18} />
-            <h3 className="text-xs font-bold text-text-primary">Tell us what you like</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-white">Tell us what you like</h3>
           </div>
           
           <label className="block">
-            <span className="text-xs font-bold text-text-muted">Interests (comma separated)</span>
-            <textarea 
-              value={interestsText} 
-              onChange={(e) => setInterestsText(e.target.value)} 
-              placeholder="e.g. music, coding, gaming, cinema, reading" 
-              className="mt-2.5 min-h-[120px] w-full resize-none rounded-xl border border-border-default bg-bg px-4 py-3 text-xs outline-none text-text-primary placeholder:text-text-faint focus:border-accent transition-colors font-semibold leading-relaxed" 
-            />
+            <span className="text-xs font-bold text-text-muted ml-1">Interests (comma separated)</span>
+            <div className="mt-2 bg-[#171f33]/40 border border-white/10 rounded-2xl p-0.5 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/45 transition-all">
+              <textarea 
+                value={interestsText} 
+                onChange={(e) => setInterestsText(e.target.value)} 
+                placeholder="e.g. music, coding, gaming, cinema, reading" 
+                className="w-full min-h-[120px] bg-transparent border-none focus:ring-0 text-sm font-semibold px-4 py-3 placeholder-white/20 text-white outline-none resize-none scrollbar-none leading-relaxed" 
+              />
+            </div>
           </label>
           
-          <p className="text-[10px] leading-relaxed text-text-muted font-semibold">
+          <p className="text-[10px] leading-relaxed text-text-muted font-bold ml-1">
             Tip: Use commas to separate interests (e.g. "gaming, rock climbing"). Max 12 tags. Interests are case-insensitive.
           </p>
 
           {interestsText.split(',').filter(item => item.trim()).length > 0 && (
             <div className="pt-2">
-              <span className="text-[10px] font-bold text-text-muted block mb-2">Preview Tags:</span>
-              <motion.div layout className="flex flex-wrap gap-1.5">
+              <span className="text-[10px] font-black text-text-muted uppercase tracking-wider block mb-3 ml-1">Preview Tags:</span>
+              <motion.div layout className="flex flex-wrap gap-2">
                 <AnimatePresence>
                   {interestsText.split(',').map((item, idx) => {
                     const cleaned = item.trim().toLowerCase();
@@ -108,7 +111,7 @@ export default function Interests() {
                         exit={{ scale: 0.8, opacity: 0 }}
                         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                         key={`${cleaned}-${idx}`}
-                        className="inline-flex items-center gap-1 rounded-lg border border-accent/20 bg-accent/5 px-2.5 py-1 text-[10px] font-bold text-accent"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-xs font-bold text-primary"
                       >
                         {cleaned}
                       </motion.span>
@@ -122,7 +125,7 @@ export default function Interests() {
 
         <button 
           type="submit" 
-          className="btn-primary flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold shadow-accent-sm hover:opacity-95 transition-all duration-200"
+          className="w-full bg-primary hover:brightness-110 text-white font-bold text-sm py-4 rounded-full shadow-glow active:scale-95 transition-all flex items-center justify-center gap-2 mt-4"
         >
           <Save size={16} />
           Save Interests
