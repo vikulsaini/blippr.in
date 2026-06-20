@@ -12,7 +12,9 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        importScripts: ['/notification-sw.js']
+        importScripts: ['/notification-sw.js'],
+        navigateFallback: null,
+        globPatterns: ['**/*.{js,css,png,webmanifest}']
       },
       manifest: {
         id: '/',
