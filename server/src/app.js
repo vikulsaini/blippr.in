@@ -50,7 +50,7 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     name: 'blippr',
-    version: '1.0.5',
+    version: '1.0.6',
     supabaseConfigured: !!supabase,
     dbStatus: app.locals.dbStatus || { status: 'unknown' }
   });
