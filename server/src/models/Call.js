@@ -160,7 +160,8 @@ const Call = {
 
   find(query = {}) {
     let q = supabaseAdmin.from('calls').select('*');
-    if (query.chatId) q = q.eq('chat_id', query.chatId);
+    const chatId = query.chat || query.chatId || query.chat_id;
+    if (chatId) q = q.eq('chat_id', chatId);
     
     const builder = {
       async then(resolve, reject) {
@@ -177,8 +178,15 @@ const Call = {
       sort(sortStr) {
         if (sortStr) {
           const desc = sortStr.startsWith('-');
-          const field = desc ? sortStr.slice(1) : sortStr;
-          q = q.order(field === 'startedAt' ? 'started_at' : field, { ascending: !desc });
+          let field = desc ? sortStr.slice(1) : sortStr;
+          if (field === 'startedAt') field = 'started_at';
+          else if (field === 'createdAt') field = 'created_at';
+          else if (field === 'updatedAt') field = 'updated_at';
+          else if (field === 'answeredAt') field = 'answered_at';
+          else if (field === 'endedAt') field = 'ended_at';
+          else if (field === 'durationSeconds') field = 'duration_seconds';
+          
+          q = q.order(field, { ascending: !desc });
         }
         return this;
       },
