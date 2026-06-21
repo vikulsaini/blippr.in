@@ -5,8 +5,27 @@
     <script>
       // Resilient recovery for PWA / Service Worker stale chunk loading issues
       window.addEventListener('error', function(e) {
-        var isScript = e.target && (e.target.tagName === 'SCRIPT' || e.target.nodeName === 'SCRIPT');
-        var isLink = e.target && (e.target.tagName === 'LINK' || e.target.nodeName === 'LINK');
+        var targetEl = e.target;
+        var isScript = false;
+        var isLink = false;
+        
+        if (targetEl) {
+          var tag = (targetEl.tagName || targetEl.nodeName || '').toUpperCase();
+          if (tag === 'SCRIPT') {
+            var src = targetEl.src || '';
+            // Only flag same-origin scripts (our own build chunks)
+            if (!src || src.indexOf(window.location.origin) === 0 || (src.indexOf('http') !== 0 && src.indexOf('//') !== 0)) {
+              isScript = true;
+            }
+          } else if (tag === 'LINK') {
+            var href = targetEl.href || '';
+            // Only flag same-origin stylesheets/assets
+            if (!href || href.indexOf(window.location.origin) === 0 || (href.indexOf('http') !== 0 && href.indexOf('//') !== 0)) {
+              isLink = true;
+            }
+          }
+        }
+        
         var errMessage = (e.message || '').toLowerCase();
         var isChunkError = errMessage.indexOf('chunk') > -1 || 
                            errMessage.indexOf('loading css') > -1 || 

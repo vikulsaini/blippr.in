@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://blippr.in; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.supabase.co https://res.cloudinary.com https://lh3.googleusercontent.com https://images.unsplash.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; connect-src 'self' https://api.blippr.in wss://api.blippr.in https://*.supabase.co wss://*.supabase.co https://blippr.in https://blippr.in/cdn-cgi/rum; media-src 'self' blob: https://*.supabase.co https://res.cloudinary.com; worker-src 'self' blob:; frame-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self' https://*.supabase.co;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://blippr.in https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.supabase.co https://res.cloudinary.com https://lh3.googleusercontent.com https://images.unsplash.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; connect-src 'self' https://api.blippr.in wss://api.blippr.in https://*.supabase.co wss://*.supabase.co https://blippr.in https://blippr.in/cdn-cgi/rum https://cloudflareinsights.com; media-src 'self' blob: https://*.supabase.co https://res.cloudinary.com; worker-src 'self' blob:; frame-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self' https://*.supabase.co;"
         },
         {
           "key": "X-Frame-Options",
