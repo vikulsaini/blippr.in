@@ -1,6 +1,6 @@
 import multer from 'multer';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { findMediaFile, openMediaDownloadStream, uploadBuffer } from '../services/media.service.js';
+import { uploadBuffer } from '../services/media.service.js';
 
 export const upload = multer({
   storage: multer.memoryStorage(),
@@ -57,24 +57,9 @@ export const uploadMedia = asyncHandler(async (req, res) => {
 });
 
 export const getMediaFile = asyncHandler(async (req, res) => {
-  const file = await findMediaFile(req.params.id);
-  if (!file) {
-    const error = new Error('Media not found');
-    error.status = 404;
-    throw error;
-  }
-
-  res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
-  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename || 'blippr-media')}"`);
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  const stream = openMediaDownloadStream(req.params.id);
-  stream.on('error', () => {
-    if (!res.headersSent) res.status(404).end();
-    else res.end();
-  });
-  stream.pipe(res);
+  const error = new Error('GridFS media files are deprecated. Access Supabase public URLs directly.');
+  error.status = 404;
+  throw error;
 });
 
 function mediaTypeFor(mimeType = '', resourceType = '') {
