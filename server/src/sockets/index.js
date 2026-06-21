@@ -243,31 +243,19 @@ export function registerSockets(io) {
 
     socket.on('message:delivered', async ({ messageId }) => {
       const message = await Message.findOneAndUpdate(
-        { _id: messageId, 'deliveryReceipts.user': socket.user._id },
-        {
-          $set: {
-            status: 'delivered',
-            'deliveryReceipts.$.status': 'delivered',
-            'deliveryReceipts.$.deliveredAt': new Date()
-          }
-        },
-        { new: true }
+        { _id: messageId },
+        { status: 'delivered' }
       );
       if (message) io.to(`chat:${message.chat}`).emit('message:status', { messageId, status: message.status });
     });
 
     socket.on('message:seen', async ({ messageId }) => {
       const message = await Message.findOneAndUpdate(
-        { _id: messageId, 'deliveryReceipts.user': socket.user._id },
+        { _id: messageId },
         {
           $addToSet: { seenBy: socket.user._id },
-          $set: {
-            status: 'seen',
-            'deliveryReceipts.$.status': 'seen',
-            'deliveryReceipts.$.seenAt': new Date()
-          }
-        },
-        { new: true }
+          status: 'seen'
+        }
       );
       if (message) io.to(`chat:${message.chat}`).emit('message:status', { messageId, status: message.status });
     });

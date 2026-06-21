@@ -214,14 +214,7 @@ export const listMessages = asyncHandler(async (req, res) => {
   const io = req.app.get('io');
   await Message.updateMany(
     { chat: chat._id, sender: { $ne: req.user._id }, status: 'sent', deletedAt: { $exists: false } },
-    {
-      $set: {
-        status: 'delivered',
-        'deliveryReceipts.$[receipt].status': 'delivered',
-        'deliveryReceipts.$[receipt].deliveredAt': new Date()
-      }
-    },
-    { arrayFilters: [{ 'receipt.user': req.user._id, 'receipt.status': 'sent' }] }
+    { status: 'delivered' }
   );
   io?.to(`chat:${chat._id}`).emit('message:delivered', { chatId: chat._id, userId: req.user._id });
 
@@ -408,21 +401,6 @@ export const markChatRead = asyncHandler(async (req, res) => {
         $set: { status: 'seen' },
         $addToSet: { seenBy: req.user._id }
       }
-    );
-    await Message.updateMany(
-      {
-        chat: chat._id,
-        sender: { $ne: req.user._id },
-        deletedAt: { $exists: false },
-        'deliveryReceipts.user': req.user._id
-      },
-      {
-        $set: {
-          'deliveryReceipts.$[receipt].status': 'seen',
-          'deliveryReceipts.$[receipt].seenAt': new Date()
-        }
-      },
-      { arrayFilters: [{ 'receipt.user': req.user._id }] }
     );
     req.app.get('io')?.to(`chat:${chat._id}`).emit('message:seen', { chatId: chat._id, userId: req.user._id });
   }

@@ -137,13 +137,11 @@ test('mark chat read clears unread count and safely handles messages without rec
   assert.equal(error, null);
   assert.equal(chat.unreadCounts.get(userA), 0);
   assert.equal(chat.saveCalls, 1);
-  assert.equal(updateCalls.length, 2);
+  assert.equal(updateCalls.length, 1);
   assert.deepEqual(updateCalls[0].update, {
     $set: { status: 'seen' },
     $addToSet: { seenBy: userA }
   });
-  assert.equal(updateCalls[1].filter['deliveryReceipts.user'], userA);
-  assert.deepEqual(updateCalls[1].options, { arrayFilters: [{ 'receipt.user': userA }] });
   assert.deepEqual(res.body, { ok: true });
   assert.deepEqual(io.emissions, [
     { room: `chat:${chatId}`, event: 'message:seen', payload: { chatId, userId: userA } }

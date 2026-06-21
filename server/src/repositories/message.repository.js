@@ -144,24 +144,72 @@ export const messageRepository = {
    * Update multiple messages (seen receipts, etc.)
    */
   async updateMany(filter = {}, update = {}) {
-    const payload = {};
-    const setObj = update.$set || update;
-    for (const [k, v] of Object.entries(setObj)) {
-      if (!k.startsWith('$')) {
-        let pgKey = k;
-        if (k === 'seenBy') pgKey = 'seen_by';
-        else if (k === 'deletedFor') pgKey = 'deleted_for';
-        payload[pgKey] = v;
+    let q = db.from('messages').select('*');
+    
+    if (filter.chatId || filter.chat) q = q.eq('chat_id', filter.chatId || filter.chat);
+    
+    if (filter.senderId || filter.sender) {
+      const senderVal = filter.senderId || filter.sender;
+      if (senderVal && typeof senderVal === 'object' && senderVal.$ne) {
+        q = q.neq('sender_id', senderVal.$ne);
+      } else {
+        q = q.eq('sender_id', senderVal);
+      }
+    }
+    
+    if (filter.status) q = q.eq('status', filter.status);
+    
+    if (filter.deletedAt) {
+      if (filter.deletedAt.$exists === false) {
+        q = q.is('deleted_at', null);
+      } else if (filter.deletedAt.$exists === true) {
+        q = q.not('deleted_at', 'is', null);
       }
     }
 
-    let q = db.from('messages').update(payload);
-    if (filter.chatId || filter.chat) q = q.eq('chat_id', filter.chatId || filter.chat);
-    if (filter.senderId || filter.sender) q = q.eq('sender_id', filter.senderId || filter.sender);
+    const { data: rows, error: findError } = await q;
+    if (findError) throw findError;
 
-    const { error } = await q;
-    if (error) throw error;
-    return { modifiedCount: 1 };
+    let modifiedCount = 0;
+    for (const row of rows) {
+      let seenBy = row.seen_by || [];
+      let deletedFor = row.deleted_for || [];
+      let status = row.status;
+      let deletedAt = row.deleted_at;
+
+      if (update.$set) {
+        if (update.$set.status) status = update.$set.status;
+        if (update.$set.deletedAt) deletedAt = update.$set.deletedAt;
+      }
+      if (update.status) status = update.status;
+
+      if (update.$addToSet) {
+        if (update.$addToSet.seenBy) {
+          const val = update.$addToSet.seenBy;
+          if (!seenBy.includes(val)) seenBy.push(val);
+        }
+        if (update.$addToSet.deletedFor) {
+          const val = update.$addToSet.deletedFor;
+          if (!deletedFor.includes(val)) deletedFor.push(val);
+        }
+      }
+
+      const { error: updateError } = await db
+        .from('messages')
+        .update({
+          status,
+          seen_by: seenBy,
+          deleted_for: deletedFor,
+          deleted_at: deletedAt,
+          updated_at: new Date()
+        })
+        .eq('id', row.id);
+
+      if (updateError) throw updateError;
+      modifiedCount++;
+    }
+
+    return { modifiedCount };
   },
 
   /**
