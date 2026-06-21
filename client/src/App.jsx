@@ -26,6 +26,20 @@ function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/auth" replace />;
 }
 
+function AdminRoute({ children }) {
+  const token = getToken();
+  if (!token) return <Navigate to="/auth" replace />;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (payload.role === 'admin') {
+      return children;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return <Navigate to="/app" replace />;
+}
+
 export default function App() {
   useAuthInvalidRedirect();
 
@@ -60,9 +74,9 @@ export default function App() {
         <Route
           path="/blippr-control-center-secure-2026"
           element={
-            <PrivateRoute>
+            <AdminRoute>
               <AdminDashboard />
-            </PrivateRoute>
+            </AdminRoute>
           }
         />
         <Route path="/stranger" element={<Navigate to="/app/stranger" replace />} />

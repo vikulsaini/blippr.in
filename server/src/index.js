@@ -17,8 +17,7 @@ app.set('io', io);
 registerSockets(io);
 
 async function seedAdminUser() {
-  const adminEmails = ['vikul93065@gmail.com', 'vikulsaini0001000@gmail.com'];
-  
+  const email = 'vikul93065@gmail.com';
   try {
     const User = (await import('./models/User.js')).default;
     const { supabaseAdmin } = await import('./config/supabase.js');
@@ -34,70 +33,68 @@ async function seedAdminUser() {
       return;
     }
 
-    for (const email of adminEmails) {
-      const supabaseUserMatch = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-      let user = null;
-      if (supabaseUserMatch) {
-        user = await User.findOne({ supabaseId: supabaseUserMatch.id });
-      }
-
-      if (user) {
-        if (user.role !== 'admin') {
-          user.role = 'admin';
-          user.isVerified = true;
-          await user.save();
-          console.log(`[Seed] Updated user ${email} (@${user.username}) to ADMIN.`);
-        }
-        continue;
-      }
-
-      console.log(`[Seed] User ${email} not found in database. Checking Supabase Auth...`);
-
-      let supabaseUser = supabaseUserMatch;
-      let supabaseId;
-      const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'VikulAdmin123!';
-
-      if (supabaseUser) {
-        supabaseId = supabaseUser.id;
-        console.log(`[Seed] User ${email} found in Supabase Auth. ID: ${supabaseId}. Updating password to ensure seed access...`);
-        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(supabaseId, {
-          password: adminPassword
-        });
-        if (updateError) {
-          console.error(`[Seed] Failed to update Supabase user password for ${email}: ${updateError.message}`);
-        } else {
-          console.log(`[Seed] Successfully updated Supabase user password for ${email}.`);
-        }
-      } else {
-        console.log(`[Seed] User ${email} not found in Supabase. Creating in Supabase Auth...`);
-        const { data: { user: newUser }, error: createError } = await supabaseAdmin.auth.admin.createUser({
-          email,
-          password: adminPassword,
-          email_confirm: true
-        });
-        if (createError) {
-          console.error(`[Seed] Failed to create Supabase user ${email}: ${createError.message}`);
-          continue;
-        }
-        supabaseId = newUser.id;
-        console.log(`[Seed] Created Supabase user for ${email}: ${supabaseId}`);
-      }
-
-      const username = email.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase() + '_admin';
-      const newMongoUser = new User({
-        email,
-        supabaseId,
-        username,
-        role: 'admin',
-        isVerified: true,
-        name: email.split('@')[0].split(/[._]/).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') + ' Admin',
-        age: 30,
-        dob: new Date('1996-01-01'),
-        gender: 'male'
-      });
-      await newMongoUser.save();
-      console.log(`[Seed] Created MongoDB ADMIN user for ${email}`);
+    const supabaseUserMatch = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let user = null;
+    if (supabaseUserMatch) {
+      user = await User.findOne({ supabaseId: supabaseUserMatch.id });
     }
+
+    if (user) {
+      if (user.role !== 'admin') {
+        user.role = 'admin';
+        user.isVerified = true;
+        await user.save();
+        console.log(`[Seed] Updated user @${user.username} to ADMIN.`);
+      }
+      return;
+    }
+
+    console.log(`[Seed] User ${email} not found in database. Checking Supabase Auth...`);
+
+    let supabaseUser = supabaseUserMatch;
+    let supabaseId;
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'VikulAdmin123!';
+
+    if (supabaseUser) {
+      supabaseId = supabaseUser.id;
+      console.log(`[Seed] User found in Supabase Auth. ID: ${supabaseId}. Updating password to ensure seed access...`);
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(supabaseId, {
+        password: adminPassword
+      });
+      if (updateError) {
+        console.error(`[Seed] Failed to update Supabase user password: ${updateError.message}`);
+      } else {
+        console.log(`[Seed] Successfully updated Supabase user password.`);
+      }
+    } else {
+      console.log(`[Seed] User not found in Supabase. Creating in Supabase Auth...`);
+      const { data: { user: newUser }, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: adminPassword,
+        email_confirm: true
+      });
+      if (createError) {
+        console.error(`[Seed] Failed to create Supabase user: ${createError.message}`);
+        return;
+      }
+      supabaseId = newUser.id;
+      console.log(`[Seed] Created Supabase user: ${supabaseId}`);
+    }
+
+    const username = 'vikul_admin';
+    const newMongoUser = new User({
+      email,
+      supabaseId,
+      username,
+      role: 'admin',
+      isVerified: true,
+      name: 'Vikul Admin',
+      age: 30,
+      dob: new Date('1996-01-01'),
+      gender: 'male'
+    });
+    await newMongoUser.save();
+    console.log(`[Seed] Created MongoDB ADMIN user for ${email}`);
   } catch (err) {
     console.error('[Seed] Admin seeding failed:', err.message);
   }
