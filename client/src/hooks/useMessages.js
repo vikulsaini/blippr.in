@@ -102,20 +102,28 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     }
 
     Promise.all([
-      api(`/api/chats/${chatId}/messages`),
-      api(`/api/chats/${chatId}/calls`)
+      api(`/api/chats/${chatId}/messages`).catch((err) => {
+        console.error('Failed to fetch messages:', err);
+        return { messages: [] };
+      }),
+      api(`/api/chats/${chatId}/calls`).catch((err) => {
+        console.error('Failed to fetch calls:', err);
+        return { calls: [] };
+      })
     ])
       .then(async ([messageData, callData]) => {
         if (activeChatIdRef.current !== chatId) return;
-        setMessages(messageData.messages);
+        setMessages(messageData.messages || []);
         setCalls(callData.calls || []);
-        writeCache(`messages:${chatId}`, messageData.messages, currentUserId);
+        writeCache(`messages:${chatId}`, messageData.messages || [], currentUserId);
         writeCache(`calls:${chatId}`, callData.calls || [], currentUserId);
         loadedChatsCache.add(chatId);
-        await api(`/api/chats/${chatId}/read`, { method: 'PATCH' });
+        await api(`/api/chats/${chatId}/read`, { method: 'PATCH' }).catch(() => {});
         setChats((current) => current.map((chat) => (chat._id === chatId ? { ...chat, unreadCount: 0 } : chat)));
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Failed to process chat loading:', err);
+      });
   }, [activeChat?._id, currentUserId, setChats, refreshTrigger]);
 
   useEffect(() => {

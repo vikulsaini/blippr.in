@@ -61,16 +61,34 @@ const User = {
   },
 
   async create(data) {
-    const payload = mapUserToPostgres(data);
-    if (data.supabaseId) {
-      payload.id = data.supabaseId;
-    } else if (data._id) {
-      payload.id = data._id;
+    let id = data.supabaseId || data._id || data.id;
+    let email = data.email;
+    if (!id) {
+      const guestEmail = `guest_${crypto.randomUUID()}@blippr.local`;
+      const guestPassword = crypto.randomUUID();
+      email = guestEmail;
+      
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: guestEmail,
+        password: guestPassword,
+        email_confirm: true,
+        user_metadata: {
+          is_guest: true,
+          name: data.name || 'Guest User',
+          username: data.username || `guest_${crypto.randomUUID().substring(0, 8)}`,
+          avatar: data.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${crypto.randomUUID()}`
+        }
+      });
+      if (authError) throw authError;
+      id = authData.user.id;
     }
+
+    const payload = mapUserToPostgres({ ...data, email });
+    payload.id = id;
     
     const { data: row, error } = await supabaseAdmin
       .from('profiles')
-      .insert(payload)
+      .upsert(payload)
       .select()
       .single();
     if (error) throw error;

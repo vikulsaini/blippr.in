@@ -326,11 +326,8 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
     emailVerifiedAt: new Date()
   });
 
-  // 3. Delete old guest profile row
-  await supabaseAdmin
-    .from('profiles')
-    .delete()
-    .eq('id', oldId);
+  // 3. Delete old guest auth user (which automatically cascades to delete the profile row)
+  await supabaseAdmin.auth.admin.deleteUser(oldId);
 
   return sendAuth(res, signJwt(user), user);
 });
