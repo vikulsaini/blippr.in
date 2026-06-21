@@ -1,5 +1,5 @@
-import { supabase } from '../config/supabase.js';
-import User from '../models/User.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
+import { mapUserFromPostgres } from '../utils/userMapper.js';
 import { trackUserActivity } from '../services/activity.service.js';
 import { readAuthCookie } from '../utils/authCookie.js';
 
@@ -19,8 +19,9 @@ export async function requireAuth(req, _res, next) {
       throw error;
     }
 
-    // Verify token directly with Supabase
-    const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
+    // Verify token directly with Supabase Auth
+    const { data, error: authError } = await supabase.auth.getUser(token);
+    const supabaseUser = data?.user;
     
     if (authError || !supabaseUser) {
       const error = new Error(authError?.message || 'Session expired or invalid token');
@@ -28,13 +29,20 @@ export async function requireAuth(req, _res, next) {
       throw error;
     }
 
-    // Fetch corresponding profile from database
-    const user = await User.findById(supabaseUser.id);
-    if (!user) {
+    // Fetch corresponding profile from database directly
+    const { data: userProfile, error: dbError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', supabaseUser.id)
+      .maybeSingle();
+
+    if (dbError || !userProfile) {
       const error = new Error('Profile not found');
       error.status = 401;
       throw error;
     }
+
+    const user = mapUserFromPostgres(userProfile);
 
     if (user.bannedUntil && user.bannedUntil.getTime() > Date.now()) {
       const error = new Error('Account temporarily restricted for safety violations.');

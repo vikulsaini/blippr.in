@@ -1,49 +1,8 @@
 import { supabaseAdmin } from '../config/supabase.js';
 
-class NotificationSubscriptionInstance {
-  constructor(data) {
-    Object.assign(this, data);
-  }
-
-  async save() {
-    const payload = {
-      user_id: this.user || this.userId || this.user_id,
-      endpoint: this.endpoint,
-      keys: this.keys,
-      user_agent: this.userAgent || this.user_agent || null,
-      updated_at: new Date()
-    };
-
-    const id = this.id || this._id;
-    if (id) {
-      const { data, error } = await supabaseAdmin
-        .from('notification_subscriptions')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapSubscriptionFromPostgres(data));
-    } else {
-      const { data, error } = await supabaseAdmin
-        .from('notification_subscriptions')
-        .insert(payload)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapSubscriptionFromPostgres(data));
-    }
-    return this;
-  }
-
-  toObject() {
-    return { ...this };
-  }
-}
-
-function mapSubscriptionFromPostgres(row) {
+export function mapSubscriptionFromPostgres(row) {
   if (!row) return null;
-  return new NotificationSubscriptionInstance({
+  return {
     _id: row.id,
     id: row.id,
     user: row.user_id,
@@ -52,71 +11,38 @@ function mapSubscriptionFromPostgres(row) {
     keys: row.keys,
     userAgent: row.user_agent,
     createdAt: row.created_at ? new Date(row.created_at) : null,
-    updatedAt: row.updated_at ? new Date(row.updated_at) : null
-  });
-}
+    updatedAt: row.updated_at ? new Date(row.updated_at) : null,
 
-function mapSubscriptionFieldToPg(field) {
-  const mapping = {
-    _id: 'id',
-    id: 'id',
-    user: 'user_id',
-    userId: 'user_id',
-    endpoint: 'endpoint',
-    keys: 'keys',
-    userAgent: 'user_agent',
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
-  };
-  return mapping[field] || field;
-}
+    async save() {
+      const payload = {
+        user_id: this.user || this.userId || this.user_id,
+        endpoint: this.endpoint,
+        keys: this.keys,
+        user_agent: this.userAgent || this.user_agent || null,
+        updated_at: new Date()
+      };
 
-function applySubscriptionFilters(q, query) {
-  let res = q;
-  for (const [key, value] of Object.entries(query)) {
-    const pgKey = mapSubscriptionFieldToPg(key);
-
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      for (const [op, val] of Object.entries(value)) {
-        if (op === '$nin') {
-          if (Array.isArray(val) && val.length > 0) {
-            res = res.not(pgKey, 'in', `(${val.map(id => `"${id}"`).join(',')})`);
-          }
-        } else if (op === '$ne') {
-          res = res.neq(pgKey, val);
-        } else if (op === '$lt') {
-          res = res.lt(pgKey, val);
-        } else if (op === '$gte') {
-          res = res.gte(pgKey, val);
-        } else if (op === '$in') {
-          if (Array.isArray(val) && val.length > 0) {
-            res = res.in(pgKey, val);
-          }
-        }
-      }
-    } else if (key === '$or') {
-      const orStrings = value.map(filterObj => {
-        const [orKey, orVal] = Object.entries(filterObj)[0];
-        const pgOrKey = mapSubscriptionFieldToPg(orKey);
-        if (orVal && typeof orVal === 'object') {
-          if (orVal.$ne) {
-            return `${pgOrKey}.neq.${orVal.$ne}`;
-          }
-        }
-        return `${pgOrKey}.eq.${orVal}`;
-      });
-      res = res.or(orStrings.join(','));
-    } else {
-      res = res.eq(pgKey, value);
+      const { data, error } = await supabaseAdmin
+        .from('notification_subscriptions')
+        .update(payload)
+        .eq('id', this.id)
+        .select()
+        .single();
+      if (error) throw error;
+      Object.assign(this, mapSubscriptionFromPostgres(data));
+      return this;
     }
-  }
-  return res;
+  };
 }
 
 const NotificationSubscription = {
   async findOne(query = {}) {
     let q = supabaseAdmin.from('notification_subscriptions').select('*');
-    q = applySubscriptionFilters(q, query);
+    if (query._id) q = q.eq('id', query._id);
+    if (query.endpoint) q = q.eq('endpoint', query.endpoint);
+    if (query.user) q = q.eq('user_id', query.user);
+    if (query.userId) q = q.eq('user_id', query.userId);
+    
     const { data, error } = await q.limit(1).maybeSingle();
     if (error) throw error;
     return mapSubscriptionFromPostgres(data);
@@ -133,18 +59,21 @@ const NotificationSubscription = {
     return mapSubscriptionFromPostgres(data);
   },
 
-  async findOneAndUpdate(filter, update, options = {}) {
-    // In services/notification.service.js:
-    // NotificationSubscription.findOneAndUpdate({ endpoint }, { ... }, { upsert: true, new: true })
+  async findOneAndUpdate(filter = {}, update = {}, options = {}) {
     let q = supabaseAdmin.from('notification_subscriptions').select('*');
-    q = applySubscriptionFilters(q, filter);
-    const { data: matched, error: findError } = await q.limit(1).maybeSingle();
+    if (filter.endpoint) q = q.eq('endpoint', filter.endpoint);
+    if (filter.user) q = q.eq('user_id', filter.user);
+    if (filter.userId) q = q.eq('user_id', filter.userId);
     
+    const { data: matched, error: findError } = await q.limit(1).maybeSingle();
+    if (findError) throw findError;
+
     const payload = {};
     const setObj = update.$set || update;
     for (const [k, v] of Object.entries(setObj)) {
       if (!k.startsWith('$')) {
-        payload[mapSubscriptionFieldToPg(k)] = v;
+        const pgKey = k === 'userAgent' ? 'user_agent' : k === 'userId' || k === 'user' ? 'user_id' : k;
+        payload[pgKey] = v;
       }
     }
 
@@ -159,12 +88,11 @@ const NotificationSubscription = {
       return mapSubscriptionFromPostgres(updatedRow);
     } else {
       if (options.upsert) {
-        // combine filter fields and update fields
         const insertPayload = { ...filter, ...payload };
-        // map filter keys
         const pgInsertPayload = {};
         for (const [k, v] of Object.entries(insertPayload)) {
-          pgInsertPayload[mapSubscriptionFieldToPg(k)] = v;
+          const pgKey = k === 'userAgent' ? 'user_agent' : k === 'userId' || k === 'user' ? 'user_id' : k;
+          pgInsertPayload[pgKey] = v;
         }
 
         const { data: insertedRow, error: insertError } = await supabaseAdmin
@@ -180,13 +108,27 @@ const NotificationSubscription = {
   },
 
   async create(data) {
-    const inst = new NotificationSubscriptionInstance(data);
-    return inst.save();
+    const payload = {
+      user_id: data.user || data.userId || data.user_id,
+      endpoint: data.endpoint,
+      keys: data.keys,
+      user_agent: data.userAgent || data.user_agent || null,
+      updated_at: new Date()
+    };
+    const { data: row, error } = await supabaseAdmin
+      .from('notification_subscriptions')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapSubscriptionFromPostgres(row);
   },
 
   async deleteMany(query = {}) {
     let q = supabaseAdmin.from('notification_subscriptions').delete();
-    q = applySubscriptionFilters(q, query);
+    if (query.user) q = q.eq('user_id', query.user);
+    if (query.userId) q = q.eq('user_id', query.userId);
+    if (query.endpoint) q = q.eq('endpoint', query.endpoint);
     const { error } = await q;
     if (error) throw error;
     return { deletedCount: 1 };
@@ -194,38 +136,30 @@ const NotificationSubscription = {
 
   find(query = {}) {
     let q = supabaseAdmin.from('notification_subscriptions').select('*');
-    q = applySubscriptionFilters(q, query);
+    if (query.user) q = q.eq('user_id', query.user);
+    if (query.userId) q = q.eq('user_id', query.userId);
 
     const builder = {
       async then(resolve, reject) {
         try {
           const { data, error } = await q;
           if (error) throw error;
-          const mapped = (data || []).map(mapSubscriptionFromPostgres);
-          resolve(mapped);
+          resolve((data || []).map(mapSubscriptionFromPostgres));
         } catch (err) {
           reject(err);
         }
       },
-      select() {
-        return this;
-      },
-      limit(n) {
-        q = q.limit(n);
-        return this;
-      },
+      select() { return this; },
+      limit(n) { q = q.limit(n); return this; },
       sort(sortStr) {
         if (sortStr) {
           const desc = sortStr.startsWith('-');
           const field = desc ? sortStr.slice(1) : sortStr;
-          const pgField = mapSubscriptionFieldToPg(field);
-          q = q.order(pgField, { ascending: !desc });
+          q = q.order(field === 'createdAt' ? 'created_at' : field, { ascending: !desc });
         }
         return this;
       },
-      lean() {
-        return this;
-      }
+      lean() { return this; }
     };
     return builder;
   }

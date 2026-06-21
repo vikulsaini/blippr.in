@@ -1,0 +1,7 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://blippr.in; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.supabase.co https://res.cloudinary.com https://lh3.googleusercontent.com https://images.unsplash.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; connect-src 'self' https://api.blippr.in wss://api.blippr.in https://*.supabase.co wss://*.supabase.co https://blippr.in https://blippr.in/cdn-cgi/rum; media-src 'self' blob: https://*.supabase.co https://res.cloudinary.com; worker-src 'self' blob:; frame-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self' https://*.supabase.co;
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload

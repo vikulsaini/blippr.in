@@ -365,39 +365,116 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  const existing = await User.findOne({ email: req.body.email, _id: { $ne: req.user._id } });
+  const existing = await User.findOne({ email: req.body.email });
   if (existing) {
     const error = new Error('Email is already registered');
     error.status = 409;
     throw error;
   }
 
-  req.user.name = req.body.name;
-  req.user.email = req.body.email;
-  req.user.username = req.user.username || (await createUniqueUsername(req.body.name));
-  req.user.passwordHash = await bcrypt.hash(req.body.password, 12);
-  req.user.emailVerifiedAt = emailVerificationEnabled() ? undefined : new Date();
-  req.user.age = req.body.age;
-  req.user.dob = req.body.dob;
-  req.user.contact = req.body.contact || '';
-  req.user.gender = req.body.gender;
-  req.user.avatar = req.user.avatar || avatarForGender(req.body.gender, req.user.username);
-  req.user.bio = req.body.bio || req.user.bio || '';
-  req.user.interests = req.body.interests || req.user.interests || [];
-  req.user.isGuest = false;
-  req.user.guestExpiresAt = undefined;
-  await req.user.save();
+  // 1. Create the user in Supabase Auth
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: req.body.email,
+    password: req.body.password,
+    email_confirm: true
+  });
+  if (authError) throw authError;
 
-  if (emailVerificationEnabled()) {
-    const { code, delivery } = await issueEmailVerification(req.user.email);
-    return sendAuth(res, signJwt(req.user), req.user, 200, {
-      verificationRequired: true,
-      emailSent: delivery.sent,
-      message: delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Check server console for code.'
-    });
+  const oldId = req.user.id;
+  const newId = authData.user.id;
+  const username = req.user.username || (await createUniqueUsername(req.body.name));
+
+  // 2. Create the new profile
+  const user = await User.create({
+    _id: newId,
+    supabaseId: newId,
+    email: req.body.email.toLowerCase(),
+    username,
+    name: req.body.name,
+    age: Number(req.body.age),
+    dob: req.body.dob,
+    contact: req.body.contact || '',
+    gender: req.body.gender,
+    avatar: req.user.avatar || avatarForGender(req.body.gender, username),
+    bio: req.body.bio || req.user.bio || '',
+    interests: req.body.interests || req.user.interests || [],
+    isGuest: false,
+    emailVerifiedAt: new Date()
+  });
+
+  // 3. Migrate references in chats table
+  const { data: chatsToUpdate } = await supabaseAdmin
+    .from('chats')
+    .select('id, members')
+    .contains('members', [oldId]);
+
+  if (chatsToUpdate && chatsToUpdate.length > 0) {
+    for (const chat of chatsToUpdate) {
+      const updatedMembers = chat.members.map(m => m === oldId ? newId : m);
+      await supabaseAdmin
+        .from('chats')
+        .update({ members: updatedMembers })
+        .eq('id', chat.id);
+    }
   }
 
-  return sendAuth(res, signJwt(req.user), req.user);
+  // Migrate references in messages table
+  await supabaseAdmin
+    .from('messages')
+    .update({ sender_id: newId })
+    .eq('sender_id', oldId);
+
+  // Migrate references in friend_requests table
+  await supabaseAdmin
+    .from('friend_requests')
+    .update({ sender_id: newId })
+    .eq('sender_id', oldId);
+
+  await supabaseAdmin
+    .from('friend_requests')
+    .update({ receiver_id: newId })
+    .eq('receiver_id', oldId);
+
+  // Migrate references in calls table
+  await supabaseAdmin
+    .from('calls')
+    .update({ host_id: newId })
+    .eq('host_id', oldId);
+
+  await supabaseAdmin
+    .from('calls')
+    .update({ peer_id: newId })
+    .eq('peer_id', oldId);
+
+  // Migrate references in notifications table
+  await supabaseAdmin
+    .from('notifications')
+    .update({ user_id: newId })
+    .eq('user_id', oldId);
+
+  await supabaseAdmin
+    .from('notifications')
+    .update({ actor_id: newId })
+    .eq('actor_id', oldId);
+
+  // Migrate references in reports table
+  await supabaseAdmin
+    .from('reports')
+    .update({ reporter_id: newId })
+    .eq('reporter_id', oldId);
+
+  await supabaseAdmin
+    .from('reports')
+    .update({ reported_id: newId })
+    .eq('reported_id', oldId);
+
+  // 4. Delete old guest profile row
+  await supabaseAdmin
+    .from('profiles')
+    .delete()
+    .eq('id', oldId);
+
+  return sendAuth(res, signJwt(user), user);
 });
 
 
@@ -441,7 +518,8 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
   const { accessToken, name, username, age, gender, bio, interests } = req.body;
 
   // Verify access token with Supabase Auth
-  const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(accessToken);
+  const { data, error } = await supabase.auth.getUser(accessToken);
+  const supabaseUser = data?.user;
   
   if (error || !supabaseUser) {
     const err = new Error(error?.message || 'Invalid Supabase access token');

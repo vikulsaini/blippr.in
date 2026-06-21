@@ -1,56 +1,8 @@
 import { supabaseAdmin } from '../config/supabase.js';
 
-class NotificationInstance {
-  constructor(data) {
-    Object.assign(this, data);
-  }
-
-  async save() {
-    const payload = {
-      user_id: this.user || this.userId || this.user_id,
-      type: this.type || 'system',
-      title: this.title,
-      body: this.body || '',
-      url: this.url || null,
-      request_id: this.requestId || this.request_id || null,
-      chat_id: this.chatId || this.chat_id || null,
-      message_id: this.messageId || this.message_id || null,
-      call_id: this.callId || this.call_id || null,
-      actor_id: this.actor || this.actorId || this.actor_id || null,
-      read_at: this.readAt || null,
-      updated_at: new Date()
-    };
-
-    const id = this.id || this._id;
-    if (id) {
-      const { data, error } = await supabaseAdmin
-        .from('notifications')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapNotificationFromPostgres(data));
-    } else {
-      const { data, error } = await supabaseAdmin
-        .from('notifications')
-        .insert(payload)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapNotificationFromPostgres(data));
-    }
-    return this;
-  }
-
-  toObject() {
-    return { ...this };
-  }
-}
-
-function mapNotificationFromPostgres(row) {
+export function mapNotificationFromPostgres(row) {
   if (!row) return null;
-  return new NotificationInstance({
+  return {
     _id: row.id,
     id: row.id,
     user: row.user_id,
@@ -66,78 +18,44 @@ function mapNotificationFromPostgres(row) {
     actor: row.actor_id,
     readAt: row.read_at ? new Date(row.read_at) : null,
     createdAt: row.created_at ? new Date(row.created_at) : null,
-    updatedAt: row.updated_at ? new Date(row.updated_at) : null
-  });
-}
+    updatedAt: row.updated_at ? new Date(row.updated_at) : null,
 
-function mapNotificationFieldToPg(field) {
-  const mapping = {
-    _id: 'id',
-    id: 'id',
-    user: 'user_id',
-    userId: 'user_id',
-    type: 'type',
-    title: 'title',
-    body: 'body',
-    url: 'url',
-    requestId: 'request_id',
-    chatId: 'chat_id',
-    messageId: 'message_id',
-    callId: 'call_id',
-    actor: 'actor_id',
-    readAt: 'read_at',
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
-  };
-  return mapping[field] || field;
-}
+    async save() {
+      const payload = {
+        user_id: this.user || this.userId || this.user_id,
+        type: this.type || 'system',
+        title: this.title,
+        body: this.body || '',
+        url: this.url || null,
+        request_id: this.requestId || this.request_id || null,
+        chat_id: this.chatId || this.chat_id || null,
+        message_id: this.messageId || this.message_id || null,
+        call_id: this.callId || this.call_id || null,
+        actor_id: this.actor?.id || this.actor || this.actorId || this.actor_id || null,
+        read_at: this.readAt || null,
+        updated_at: new Date()
+      };
 
-function applyNotificationFilters(q, query) {
-  let res = q;
-  for (const [key, value] of Object.entries(query)) {
-    const pgKey = mapNotificationFieldToPg(key);
-
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      for (const [op, val] of Object.entries(value)) {
-        if (op === '$nin') {
-          if (Array.isArray(val) && val.length > 0) {
-            res = res.not(pgKey, 'in', `(${val.map(id => `"${id}"`).join(',')})`);
-          }
-        } else if (op === '$ne') {
-          res = res.neq(pgKey, val);
-        } else if (op === '$lt') {
-          res = res.lt(pgKey, val);
-        } else if (op === '$gte') {
-          res = res.gte(pgKey, val);
-        } else if (op === '$in') {
-          if (Array.isArray(val) && val.length > 0) {
-            res = res.in(pgKey, val);
-          }
-        }
-      }
-    } else if (key === '$or') {
-      const orStrings = value.map(filterObj => {
-        const [orKey, orVal] = Object.entries(filterObj)[0];
-        const pgOrKey = mapNotificationFieldToPg(orKey);
-        if (orVal && typeof orVal === 'object') {
-          if (orVal.$ne) {
-            return `${pgOrKey}.neq.${orVal.$ne}`;
-          }
-        }
-        return `${pgOrKey}.eq.${orVal}`;
-      });
-      res = res.or(orStrings.join(','));
-    } else {
-      res = res.eq(pgKey, value);
+      const { data, error } = await supabaseAdmin
+        .from('notifications')
+        .update(payload)
+        .eq('id', this.id)
+        .select()
+        .single();
+      if (error) throw error;
+      Object.assign(this, mapNotificationFromPostgres(data));
+      return this;
     }
-  }
-  return res;
+  };
 }
 
 const Notification = {
   async findOne(query = {}) {
     let q = supabaseAdmin.from('notifications').select('*');
-    q = applyNotificationFilters(q, query);
+    if (query._id) q = q.eq('id', query._id);
+    if (query.user) q = q.eq('user_id', query.user);
+    if (query.requestId) q = q.eq('request_id', query.requestId);
+    
     const { data, error } = await q.limit(1).maybeSingle();
     if (error) throw error;
     return mapNotificationFromPostgres(data);
@@ -155,13 +73,33 @@ const Notification = {
   },
 
   async create(data) {
-    const inst = new NotificationInstance(data);
-    return inst.save();
+    const payload = {
+      user_id: data.user || data.userId || data.user_id,
+      type: data.type || 'system',
+      title: data.title,
+      body: data.body || '',
+      url: data.url || null,
+      request_id: data.requestId || data.request_id || null,
+      chat_id: data.chatId || data.chat_id || null,
+      message_id: data.messageId || data.message_id || null,
+      call_id: data.callId || data.call_id || null,
+      actor_id: data.actor || data.actorId || data.actor_id || null,
+      read_at: data.readAt || null,
+      updated_at: new Date()
+    };
+    const { data: row, error } = await supabaseAdmin
+      .from('notifications')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapNotificationFromPostgres(row);
   },
 
   async deleteMany(query = {}) {
     let q = supabaseAdmin.from('notifications').delete();
-    q = applyNotificationFilters(q, query);
+    if (query.user) q = q.eq('user_id', query.user);
+    if (query.requestId) q = q.eq('request_id', query.requestId);
     const { error } = await q;
     if (error) throw error;
     return { deletedCount: 1 };
@@ -169,38 +107,31 @@ const Notification = {
 
   find(query = {}) {
     let q = supabaseAdmin.from('notifications').select('*');
-    q = applyNotificationFilters(q, query);
+    if (query.user) q = q.eq('user_id', query.user);
+    if (query.userId) q = q.eq('user_id', query.userId);
+    if (query.readAt === null) q = q.is('read_at', null);
 
     const builder = {
       async then(resolve, reject) {
         try {
           const { data, error } = await q;
           if (error) throw error;
-          const mapped = (data || []).map(mapNotificationFromPostgres);
-          resolve(mapped);
+          resolve((data || []).map(mapNotificationFromPostgres));
         } catch (err) {
           reject(err);
         }
       },
-      select() {
-        return this;
-      },
-      limit(n) {
-        q = q.limit(n);
-        return this;
-      },
+      select() { return this; },
+      limit(n) { q = q.limit(n); return this; },
       sort(sortStr) {
         if (sortStr) {
           const desc = sortStr.startsWith('-');
           const field = desc ? sortStr.slice(1) : sortStr;
-          const pgField = mapNotificationFieldToPg(field);
-          q = q.order(pgField, { ascending: !desc });
+          q = q.order(field === 'createdAt' ? 'created_at' : field, { ascending: !desc });
         }
         return this;
       },
-      lean() {
-        return this;
-      },
+      lean() { return this; },
       populate(field) {
         const originalThen = this.then;
         this.then = async (resolve, reject) => {
@@ -210,7 +141,7 @@ const Notification = {
 
             if (field === 'actor') {
               const actorIds = [...new Set(notifications.map(n => n.actor).filter(Boolean))];
-              if (actorIds.length > 0) {
+              if (ids.length > 0) {
                 const User = (await import('./User.js')).default;
                 const users = await User.find({ _id: { $in: actorIds } });
                 const userMap = new Map(users.map(u => [u.id, u]));
