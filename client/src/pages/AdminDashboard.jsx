@@ -52,7 +52,8 @@ import {
   deleteAdminFile,
   getAdminFileStats,
   revokeAdminUserSessions,
-  getAdminAuditLogs
+  getAdminAuditLogs,
+  clearSession
 } from '../lib/api.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -132,9 +133,8 @@ export default function AdminDashboard() {
 
 
 
-  function handleLogout() {
-    localStorage.removeItem('blippr_token');
-    localStorage.removeItem('blippr_is_guest');
+  async function handleLogout() {
+    await clearSession();
     window.location.href = '/app';
   }
 

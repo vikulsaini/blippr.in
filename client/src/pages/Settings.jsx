@@ -5,7 +5,7 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import ConfirmSheet from '../components/ConfirmSheet.jsx';
 import InstallAppButton from '../components/InstallAppButton.jsx';
 import { showToast } from '../components/Toast.jsx';
-import { api } from '../lib/api.js';
+import { api, clearSession } from '../lib/api.js';
 import { clearBlipprCache } from '../lib/cache.js';
 import { enablePushNotifications } from '../lib/notifications.js';
 import { previewSound } from '../lib/sounds.js';
@@ -125,8 +125,7 @@ export default function SettingsPage() {
   async function logout() {
     await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
     clearBlipprCache();
-    localStorage.removeItem('blippr_token');
-    localStorage.removeItem('blippr_is_guest');
+    await clearSession();
     navigate('/auth', { replace: true });
   }
 

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Heart, MapPin, Shield, UserRound, LogOut, Se
 import { motion } from 'framer-motion';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { showToast } from '../components/Toast.jsx';
-import { api } from '../lib/api.js';
+import { api, clearSession } from '../lib/api.js';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -21,8 +21,7 @@ export default function Profile() {
     } catch (err) {
       console.warn('Logout warning:', err.message);
     }
-    localStorage.removeItem('blippr_token');
-    localStorage.removeItem('blippr_is_guest');
+    await clearSession();
     navigate('/', { replace: true });
     window.location.reload();
   }

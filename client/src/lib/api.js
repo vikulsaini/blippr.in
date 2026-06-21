@@ -1,4 +1,5 @@
 import { API_URL } from './config.js';
+import { supabase } from './supabase.js';
 
 const GUEST_EXPIRED_KEY = 'blippr_guest_expired';
 
@@ -121,4 +122,22 @@ export const getAdminAuditLogs = () => api('/api/admin/audit-logs');
 
 // Supabase Auth
 export const loginWithSupabase = (body) => api('/api/auth/supabase', { method: 'POST', body: JSON.stringify(body) });
+
+export async function clearSession() {
+  localStorage.removeItem('blippr_token');
+  localStorage.removeItem('blippr_is_guest');
+  sessionStorage.clear();
+
+  if (supabase) {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Supabase signout warning:', e.message);
+    }
+    const projectRef = (import.meta.env.VITE_SUPABASE_URL || 'https://ekkpkjgquiarufexfoiy.supabase.co')
+      .replace('https://', '')
+      .split('.')[0];
+    localStorage.removeItem(`sb-${projectRef}-auth-token`);
+  }
+}
 
