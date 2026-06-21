@@ -245,7 +245,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       return;
     }
 
-    console.log(`[Supabase Realtime] Subscribing to messages for chat: ${chatId}`);
+    if (import.meta.env.DEV) {
+      console.log(`[Supabase Realtime] Subscribing to messages for chat: ${chatId}`);
+    }
 
     const channel = supabase
       .channel(`chat-messages:${chatId}`)
@@ -258,7 +260,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
           filter: `chat_id=eq.${chatId}`
         },
         (payload) => {
-          console.log('[Supabase Realtime] Received postgres change event:', payload);
+          if (import.meta.env.DEV) {
+            console.log('[Supabase Realtime] Received postgres change event:', payload);
+          }
           const { eventType, new: newRow, old: oldRow } = payload;
           
           if (eventType === 'INSERT') {
@@ -341,11 +345,15 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
         }
       )
       .subscribe((status) => {
-        console.log(`[Supabase Realtime] Subscription status for chat ${chatId}:`, status);
+        if (import.meta.env.DEV) {
+          console.log(`[Supabase Realtime] Subscription status for chat ${chatId}:`, status);
+        }
       });
 
     return () => {
-      console.log(`[Supabase Realtime] Unsubscribing from messages for chat: ${chatId}`);
+      if (import.meta.env.DEV) {
+        console.log(`[Supabase Realtime] Unsubscribing from messages for chat: ${chatId}`);
+      }
       supabase.removeChannel(channel);
     };
   }, [activeChat?._id, currentUserId, activeChat]);
