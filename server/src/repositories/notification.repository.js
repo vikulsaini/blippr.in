@@ -127,7 +127,7 @@ export const notificationRepository = {
   async find(query = {}, options = {}) {
     let selectFields = '*';
     if (options.populateActor) {
-      selectFields = '*, actor:profiles(*)';
+      selectFields = '*, actor:profiles!actor_id(*)';
     }
 
     let q = db.from('notifications').select(selectFields);

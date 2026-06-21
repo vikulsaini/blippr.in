@@ -192,8 +192,8 @@ export const chatRepository = {
     if (options.populateMembers || options.populateLastMessage || options.populateLastCall) {
       // PostgREST sub-resource joins
       const parts = ['*'];
-      if (options.populateLastMessage) parts.push('last_message:messages(*)');
-      if (options.populateLastCall) parts.push('last_call:calls(*)');
+      if (options.populateLastMessage) parts.push('last_message:messages!last_message_id(*)');
+      if (options.populateLastCall) parts.push('last_call:calls!last_call_id(*)');
       selectFields = parts.join(',');
     }
 

@@ -121,8 +121,8 @@ export const friendRepository = {
   async find(query = {}, options = {}) {
     let selectStr = '*';
     if (options.populateFrom || options.populateTo) {
-      const fromField = options.populateFrom ? 'from_id:profiles(*)' : 'from_id';
-      const toField = options.populateTo ? 'to_id:profiles(*)' : 'to_id';
+      const fromField = options.populateFrom ? 'from_id:profiles!from_id(*)' : 'from_id';
+      const toField = options.populateTo ? 'to_id:profiles!to_id(*)' : 'to_id';
       selectStr = `*, ${fromField}, ${toField}`;
     }
 
