@@ -15,10 +15,26 @@ export function createSocket() {
     timeout: 20000
   });
 
-  socket.on('connect', () => window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connected' } })));
-  socket.io.on('reconnect_attempt', () => window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connecting' } })));
-  socket.io.on('reconnect', () => window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'reconnected' } })));
-  socket.on('disconnect', () => window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connecting' } })));
+  socket.on('connect', () => {
+    console.log('[Socket] Connected successfully with ID:', socket.id);
+    window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connected' } }));
+  });
+  socket.on('connect_error', (error) => {
+    console.error('[Socket] Connection error:', error.message);
+    window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'error', error } }));
+  });
+  socket.io.on('reconnect_attempt', (attempt) => {
+    console.log('[Socket] Attempting to reconnect (attempt ' + attempt + ')...');
+    window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connecting' } }));
+  });
+  socket.io.on('reconnect', (attempt) => {
+    console.log('[Socket] Reconnected successfully after ' + attempt + ' attempts');
+    window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'reconnected' } }));
+  });
+  socket.on('disconnect', (reason) => {
+    console.warn('[Socket] Disconnected. Reason:', reason);
+    window.dispatchEvent(new CustomEvent('blippr:socket-state', { detail: { state: 'connecting' } }));
+  });
 
   return socket;
 }
