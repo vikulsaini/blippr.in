@@ -71,19 +71,13 @@ export async function requireAuth(req, _res, next) {
     }
 
     // Fetch corresponding profile from database directly
-    const { data: userProfile, error: dbError } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', supabaseUser.id)
-      .maybeSingle();
+    const user = await User.findById(supabaseUser.id);
 
-    if (dbError || !userProfile) {
+    if (!user) {
       const error = new Error('Profile not found');
       error.status = 401;
       throw error;
     }
-
-    const user = mapUserFromPostgres(userProfile);
 
     if (user.bannedUntil && user.bannedUntil.getTime() > Date.now()) {
       const error = new Error('Account temporarily restricted for safety violations.');

@@ -39,6 +39,43 @@ export function mapChatFromPostgres(row) {
   return chat;
 }
 
+export function mapChatToPostgres(chat) {
+  if (!chat) return null;
+
+  // Extract IDs for members (which might be populated objects)
+  const memberIds = (chat.members || []).map(m => m && typeof m === 'object' ? (m.id || m._id) : m);
+
+  // Extract IDs for lastMessage/lastCall
+  const lastMessageId = chat.lastMessage && typeof chat.lastMessage === 'object'
+    ? (chat.lastMessage.id || chat.lastMessage._id)
+    : chat.lastMessage;
+
+  const lastCallId = chat.lastCall && typeof chat.lastCall === 'object'
+    ? (chat.lastCall.id || chat.lastCall._id)
+    : chat.lastCall;
+
+  return {
+    type: chat.type,
+    members: memberIds,
+    temporary: chat.temporary ?? false,
+    interests: chat.interests || [],
+    last_message_id: lastMessageId || null,
+    last_call_id: lastCallId || null,
+    unread_counts: chat.unreadCounts instanceof Map ? Object.fromEntries(chat.unreadCounts) : (chat.unreadCounts || {}),
+    nicknames: chat.nicknames instanceof Map ? Object.fromEntries(chat.nicknames) : (chat.nicknames || {}),
+    hidden_for: chat.hiddenFor || [],
+    archived_for: chat.archivedFor || [],
+    pinned_for: chat.pinnedFor || [],
+    starred_for: chat.starredFor || [],
+    muted_for: chat.mutedFor || [],
+    disappearing_messages: chat.disappearingMessages instanceof Map ? Object.fromEntries(chat.disappearingMessages) : (chat.disappearingMessages || {}),
+    wallpapers: chat.wallpapers instanceof Map ? Object.fromEntries(chat.wallpapers) : (chat.wallpapers || {}),
+    expires_at: chat.expiresAt ? new Date(chat.expiresAt).toISOString() : null,
+    updated_at: new Date()
+  };
+}
+
+
 const Chat = {
   async exists(query = {}) {
     return chatRepository.exists(query);

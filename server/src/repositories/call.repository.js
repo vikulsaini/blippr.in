@@ -1,20 +1,16 @@
+import crypto from 'node:crypto';
 import { db } from '../config/database.js';
 import { mapCallFromPostgres } from '../models/Call.js';
 import { mapUserFromPostgres } from '../utils/userMapper.js';
+import { toDbId, fromDbDoc, toDbQuery, toDbSort, toDbUpdate } from '../utils/mongoHelper.js';
 
 export const callRepository = {
   /**
    * Find single call matching query.
    */
   async findOne(query = {}) {
-    let q = db.from('calls').select('*');
-    if (query._id || query.id) q = q.eq('id', query._id || query.id);
-    if (query.status) q = q.eq('status', query.status);
-    if (query.chatId || query.chat) q = q.eq('chat_id', query.chatId || query.chat);
-
-    const { data, error } = await q.limit(1).maybeSingle();
-    if (error) throw error;
-    return mapCallFromPostgres(data);
+    const doc = await db.collection('calls').findOne(toDbQuery(query));
+    return mapCallFromPostgres(fromDbDoc(doc));
   },
 
   /**
@@ -22,14 +18,8 @@ export const callRepository = {
    */
   async findById(id) {
     if (!id) return null;
-    const { data, error } = await db
-      .from('calls')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return mapCallFromPostgres(data);
+    const doc = await db.collection('calls').findOne({ _id: toDbId(id) });
+    return mapCallFromPostgres(fromDbDoc(doc));
   },
 
   /**
@@ -37,25 +27,22 @@ export const callRepository = {
    */
   async create(data) {
     const payload = {
-      caller_id: data.caller || data.callerId || data.caller_id,
-      receiver_id: data.receiver || data.receiverId || data.receiver_id,
-      chat_id: data.chat || data.chatId || data.chat_id || null,
+      caller_id: toDbId(data.caller || data.callerId || data.caller_id),
+      receiver_id: toDbId(data.receiver || data.receiverId || data.receiver_id),
+      chat_id: toDbId(data.chat || data.chatId || data.chat_id || null),
       type: data.type,
       status: data.status || 'ringing',
       started_at: data.startedAt || new Date(),
       answered_at: data.answeredAt || null,
       ended_at: data.endedAt || null,
       duration_seconds: data.durationSeconds || 0,
+      created_at: new Date(),
       updated_at: new Date()
     };
-    const { data: row, error } = await db
-      .from('calls')
-      .insert(payload)
-      .select()
-      .single();
+    payload._id = toDbId(data._id || data.id || crypto.randomUUID());
 
-    if (error) throw error;
-    return mapCallFromPostgres(row);
+    await db.collection('calls').insertOne(payload);
+    return mapCallFromPostgres(fromDbDoc(payload));
   },
 
   /**
@@ -65,109 +52,79 @@ export const callRepository = {
     const payload = {};
     const setObj = updateData.$set || updateData;
     for (const [k, v] of Object.entries(setObj)) {
-      if (!k.startsWith('$')) {
-        let pgKey = k;
-        if (k === 'endedAt') pgKey = 'ended_at';
-        else if (k === 'durationSeconds') pgKey = 'duration_seconds';
-        else if (k === 'answeredAt') pgKey = 'answered_at';
-        else if (k === 'startedAt') pgKey = 'started_at';
-        payload[pgKey] = v;
+      if (!k.startsWith('$') && typeof v !== 'function') {
+        let pgKey = null;
+        if (k === 'endedAt' || k === 'ended_at') pgKey = 'ended_at';
+        else if (k === 'durationSeconds' || k === 'duration_seconds') pgKey = 'duration_seconds';
+        else if (k === 'answeredAt' || k === 'answered_at') pgKey = 'answered_at';
+        else if (k === 'startedAt' || k === 'started_at') pgKey = 'started_at';
+        else if (k === 'status') pgKey = 'status';
+        else if (k === 'type') pgKey = 'type';
+        else if (k === 'chat' || k === 'chatId' || k === 'chat_id') pgKey = 'chat_id';
+        else if (k === 'caller' || k === 'callerId' || k === 'caller_id') pgKey = 'caller_id';
+        else if (k === 'receiver' || k === 'receiverId' || k === 'receiver_id') pgKey = 'receiver_id';
+
+        if (pgKey) {
+          payload[pgKey] = v && typeof v === 'object' && (v.id || v._id) ? toDbId(v.id || v._id) : toDbId(v);
+        }
       }
     }
+    payload.updated_at = new Date();
 
-    const { data, error } = await db
-      .from('calls')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
-
-    if (error) throw error;
-    return mapCallFromPostgres(data);
+    const res = await db.collection('calls').findOneAndUpdate(
+      { _id: toDbId(id) },
+      { $set: payload },
+      { returnDocument: 'after' }
+    );
+    const doc = res && res.value !== undefined ? res.value : res;
+    return mapCallFromPostgres(fromDbDoc(doc));
   },
 
   /**
    * Delete calls.
    */
   async deleteMany(query = {}) {
-    let q = db.from('calls').delete();
-    const chatId = query.chat || query.chatId || query.chat_id;
-    if (chatId) q = q.eq('chat_id', chatId);
-
-    const { error } = await q;
-    if (error) throw error;
-    return { deletedCount: 1 };
+    const { deletedCount } = await db.collection('calls').deleteMany(toDbQuery(query));
+    return { deletedCount };
   },
 
   /**
    * Find calls history logs.
    */
   async find(query = {}, options = {}) {
-    let selectFields = '*';
-    if (options.populateCaller || options.populateReceiver) {
-      const parts = ['*'];
-      if (options.populateCaller) parts.push('caller:profiles!caller_id(*)');
-      if (options.populateReceiver) parts.push('receiver:profiles!receiver_id(*)');
-      selectFields = parts.join(',');
-    }
-
-    let q = db.from('calls').select(selectFields);
-
-    const chatId = query.chat || query.chatId || query.chat_id;
-    if (chatId) q = q.eq('chat_id', chatId);
-
-    if (query.$or) {
-      const orStr = query.$or.map(o => {
-        const parts = [];
-        if (o.caller) parts.push(`caller_id.eq.${o.caller}`);
-        if (o.receiver) parts.push(`receiver_id.eq.${o.receiver}`);
-        return parts.join(',');
-      }).join(',');
-      q = q.or(orStr);
-    } else {
-      if (query.caller) q = q.eq('caller_id', query.caller);
-      if (query.receiver) q = q.eq('receiver_id', query.receiver);
-    }
-
+    let cursor = db.collection('calls').find(toDbQuery(query));
     if (options.sort) {
-      const sortStr = typeof options.sort === 'string' 
-        ? options.sort 
-        : (typeof options.sort === 'object' && options.sort !== null
-            ? (Object.values(options.sort)[0] === -1 || String(Object.values(options.sort)[0]).toLowerCase() === 'desc' 
-                ? `-${Object.keys(options.sort)[0]}` 
-                : Object.keys(options.sort)[0]) 
-            : '');
-      
-      const desc = sortStr.startsWith('-');
-      let field = desc ? sortStr.slice(1) : sortStr;
-      if (field === 'startedAt') field = 'started_at';
-      else if (field === 'createdAt') field = 'created_at';
-      else if (field === 'updatedAt') field = 'updated_at';
-      else if (field === 'answeredAt') field = 'answered_at';
-      else if (field === 'endedAt') field = 'ended_at';
-      else if (field === 'durationSeconds') field = 'duration_seconds';
-      q = q.order(field, { ascending: !desc });
+      cursor = cursor.sort(toDbSort(options.sort));
     }
-
     if (options.limit) {
-      q = q.limit(options.limit);
+      cursor = cursor.limit(options.limit);
+    }
+    const docs = await cursor.toArray();
+    const calls = docs.map(fromDbDoc).map(mapCallFromPostgres);
+
+    // Eagerly populate caller/receiver profiles
+    if (options.populateCaller && calls.length > 0) {
+      const callerIds = [...new Set(calls.map(c => toDbId(c.caller)))].filter(Boolean);
+      if (callerIds.length > 0) {
+        const profiles = await db.collection('users').find({ _id: { $in: callerIds } }).toArray();
+        const profileMap = new Map(profiles.map(fromDbDoc).map(p => [p.id, mapUserFromPostgres(p)]));
+        for (const call of calls) {
+          call.caller = profileMap.get(call.caller) || call.caller;
+        }
+      }
     }
 
-    const { data, error } = await q;
-    if (error) throw error;
-
-    return (data || []).map(row => {
-      const call = mapCallFromPostgres(row);
-      
-      // Eagerly map joined profiles
-      if (row.caller && typeof row.caller === 'object') {
-        call.caller = mapUserFromPostgres(row.caller);
+    if (options.populateReceiver && calls.length > 0) {
+      const receiverIds = [...new Set(calls.map(c => toDbId(c.receiver)))].filter(Boolean);
+      if (receiverIds.length > 0) {
+        const profiles = await db.collection('users').find({ _id: { $in: receiverIds } }).toArray();
+        const profileMap = new Map(profiles.map(fromDbDoc).map(p => [p.id, mapUserFromPostgres(p)]));
+        for (const call of calls) {
+          call.receiver = profileMap.get(call.receiver) || call.receiver;
+        }
       }
-      if (row.receiver && typeof row.receiver === 'object') {
-        call.receiver = mapUserFromPostgres(row.receiver);
-      }
+    }
 
-      return call;
-    });
+    return calls;
   }
 };

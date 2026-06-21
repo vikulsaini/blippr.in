@@ -1,5 +1,5 @@
 import { auditRepository } from '../repositories/audit.repository.js';
-import { supabaseAdmin } from '../config/supabase.js';
+
 
 export function mapSubscriptionFromPostgres(row) {
   if (!row) return null;
@@ -26,13 +26,7 @@ const NotificationSubscription = {
   async findOne(query = {}) {
     const userId = query.user || query.userId;
     if (query.endpoint) {
-      const { data, error } = await supabaseAdmin
-        .from('notification_subscriptions')
-        .select('*')
-        .eq('endpoint', query.endpoint)
-        .maybeSingle();
-      if (error) throw error;
-      return mapSubscriptionFromPostgres(data);
+      return auditRepository.getSubscriptionByEndpoint(query.endpoint);
     }
     if (userId) {
       const subs = await auditRepository.getSubscriptions(userId);
@@ -42,14 +36,7 @@ const NotificationSubscription = {
   },
 
   async findById(id) {
-    if (!id) return null;
-    const { data, error } = await supabaseAdmin
-      .from('notification_subscriptions')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (error) throw error;
-    return mapSubscriptionFromPostgres(data);
+    return auditRepository.getSubscriptionById(id);
   },
 
   async findOneAndUpdate(filter = {}, update = {}, options = {}) {
@@ -83,11 +70,7 @@ const NotificationSubscription = {
     if (endpoint) {
       await auditRepository.deleteSubscription(endpoint, userId);
     } else if (userId) {
-      const { error } = await supabaseAdmin
-        .from('notification_subscriptions')
-        .delete()
-        .eq('user_id', userId);
-      if (error) throw error;
+      await auditRepository.deleteSubscriptionsByUserId(userId);
     }
     return { deletedCount: 1 };
   },

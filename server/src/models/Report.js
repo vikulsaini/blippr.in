@@ -21,15 +21,8 @@ export function mapReportFromPostgres(row) {
     updatedAt: row.updated_at ? new Date(row.updated_at) : null,
 
     async save() {
-      // update status in repository
-      const { data, error } = await supabaseAdmin
-        .from('reports')
-        .update({ status: this.status, notes: this.notes, updated_at: new Date() })
-        .eq('id', this.id)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapReportFromPostgres(data));
+      const updated = await auditRepository.updateReport(this.id, { status: this.status, notes: this.notes });
+      Object.assign(this, mapReportFromPostgres(updated));
       return this;
     }
   };
@@ -42,13 +35,7 @@ const Report = {
   },
 
   async findById(id) {
-    if (!id) return null;
-    const { data, error } = await supabaseAdmin
-      .from('reports')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (error) throw error;
+    const data = await auditRepository.getReportById(id);
     return mapReportFromPostgres(data);
   },
 
@@ -58,12 +45,7 @@ const Report = {
   },
 
   async deleteMany(query = {}) {
-    let q = supabaseAdmin.from('reports').delete();
-    if (query.reporter) q = q.eq('reporter_id', query.reporter);
-    if (query.reported) q = q.eq('reported_id', query.reported);
-    const { error } = await q;
-    if (error) throw error;
-    return { deletedCount: 1 };
+    return auditRepository.deleteReports(query);
   },
 
   find(query = {}) {
@@ -103,5 +85,4 @@ const Report = {
   }
 };
 
-import { supabaseAdmin } from '../config/supabase.js';
 export default Report;

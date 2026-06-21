@@ -48,16 +48,9 @@ export function mapUserFromPostgres(row) {
     updatedAt: row.updated_at ? new Date(row.updated_at) : null,
 
     async save() {
-      const pgPayload = mapUserToPostgres(this);
-      delete pgPayload.id; // Primary key cannot be updated
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .update(pgPayload)
-        .eq('id', this.id)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapUserFromPostgres(data));
+      const { userRepository } = await import('../repositories/user.repository.js');
+      const updated = await userRepository.update(this.id, this);
+      Object.assign(this, updated);
       return this;
     }
   };

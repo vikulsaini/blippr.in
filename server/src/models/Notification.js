@@ -21,28 +21,8 @@ export function mapNotificationFromPostgres(row) {
     updatedAt: row.updated_at ? new Date(row.updated_at) : null,
 
     async save() {
-      const payload = {
-        user_id: this.user || this.userId || this.user_id,
-        type: this.type || 'system',
-        title: this.title,
-        body: this.body || '',
-        url: this.url || null,
-        request_id: this.requestId || this.request_id || null,
-        chat_id: this.chatId || this.chat_id || null,
-        message_id: this.messageId || this.message_id || null,
-        call_id: this.callId || this.call_id || null,
-        actor_id: this.actor?.id || this.actor || this.actorId || this.actor_id || null,
-        read_at: this.readAt || null,
-        updated_at: new Date()
-      };
-      const { data, error } = await supabaseAdmin
-        .from('notifications')
-        .update(payload)
-        .eq('id', this.id)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapNotificationFromPostgres(data));
+      const updated = await notificationRepository.update(this.id, this);
+      Object.assign(this, updated);
       return this;
     }
   };

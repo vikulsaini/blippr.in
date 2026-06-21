@@ -1,19 +1,16 @@
+import crypto from 'node:crypto';
 import { db } from '../config/database.js';
 import { mapMessageFromPostgres } from '../models/Message.js';
 import { mapUserFromPostgres } from '../utils/userMapper.js';
+import { toDbId, fromDbDoc, toDbQuery, toDbSort, toDbUpdate } from '../utils/mongoHelper.js';
 
 export const messageRepository = {
   /**
    * Find a single message.
    */
   async findOne(query = {}) {
-    let q = db.from('messages').select('*');
-    if (query._id || query.id) q = q.eq('id', query._id || query.id);
-    if (query.chatId || query.chat) q = q.eq('chat_id', query.chatId || query.chat);
-
-    const { data, error } = await q.limit(1).maybeSingle();
-    if (error) throw error;
-    return mapMessageFromPostgres(data);
+    const doc = await db.collection('messages').findOne(toDbQuery(query));
+    return mapMessageFromPostgres(fromDbDoc(doc));
   },
 
   /**
@@ -21,79 +18,23 @@ export const messageRepository = {
    */
   async findById(id) {
     if (!id) return null;
-    const { data, error } = await db
-      .from('messages')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return mapMessageFromPostgres(data);
+    const doc = await db.collection('messages').findOne({ _id: toDbId(id) });
+    return mapMessageFromPostgres(fromDbDoc(doc));
   },
 
   /**
    * Find a message and update (reactions, seen status, etc.)
    */
   async findOneAndUpdate(filter = {}, update = {}) {
-    let q = db.from('messages').select('*');
-    if (filter._id || filter.id) q = q.eq('id', filter._id || filter.id);
-    if (filter.chatId || filter.chat) q = q.eq('chat_id', filter.chatId || filter.chat);
-
-    const { data: matched, error: findError } = await q.limit(1).maybeSingle();
-    if (findError || !matched) return null;
-
-    let reactions = matched.reactions || [];
-    let seenBy = matched.seen_by || [];
-    let status = matched.status;
-    let deletedFor = matched.deleted_for || [];
-    let deletedAt = matched.deleted_at;
-
-    if (update.$push) {
-      if (update.$push.reactions) {
-        reactions.push(update.$push.reactions);
-      }
-      if (update.$push.seenBy) {
-        seenBy.push(update.$push.seenBy);
-      }
-    }
-
-    if (update.$addToSet) {
-      if (update.$addToSet.seenBy) {
-        const val = update.$addToSet.seenBy;
-        if (!seenBy.includes(val)) seenBy.push(val);
-      }
-      if (update.$addToSet.deletedFor) {
-        const val = update.$addToSet.deletedFor;
-        if (!deletedFor.includes(val)) deletedFor.push(val);
-      }
-    }
-
-    if (update.$set) {
-      if (update.$set.status) status = update.$set.status;
-      if (update.$set.deletedAt) deletedAt = update.$set.deletedAt;
-    }
-
-    // Direct object assignments fallback
-    if (update.status) status = update.status;
-    if (update.reactions) reactions = update.reactions;
-    if (update.seenBy) seenBy = update.seenBy;
-
-    const { data: updatedRow, error: updateError } = await db
-      .from('messages')
-      .update({
-        reactions,
-        seen_by: seenBy,
-        deleted_for: deletedFor,
-        deleted_at: deletedAt,
-        status,
-        updated_at: new Date()
-      })
-      .eq('id', matched.id)
-      .select()
-      .single();
-
-    if (updateError) throw updateError;
-    return mapMessageFromPostgres(updatedRow);
+    const dbQuery = toDbQuery(filter);
+    const dbUpdate = toDbUpdate(update);
+    const res = await db.collection('messages').findOneAndUpdate(
+      dbQuery,
+      dbUpdate,
+      { returnDocument: 'after' }
+    );
+    const doc = res && res.value !== undefined ? res.value : res;
+    return mapMessageFromPostgres(fromDbDoc(doc));
   },
 
   /**
@@ -101,114 +42,43 @@ export const messageRepository = {
    */
   async create(data) {
     const payload = {
-      chat_id: data.chat || data.chatId || data.chat_id,
-      sender_id: data.sender || data.senderId || data.sender_id,
+      chat_id: toDbId(data.chat || data.chatId || data.chat_id),
+      sender_id: toDbId(data.sender || data.senderId || data.sender_id),
       text: data.text || null,
       media: data.media || null,
       location: data.location || null,
-      reply_to_id: data.replyTo || data.replyToId || data.reply_to_id || null,
+      reply_to_id: toDbId(data.replyTo || data.replyToId || data.reply_to_id || null),
       mentions: data.mentions || [],
       reactions: data.reactions || [],
       status: data.status || 'sent',
-      seen_by: data.seenBy || [],
-      deleted_for: data.deletedFor || [],
+      seen_by: (data.seenBy || []).map(toDbId),
+      deleted_for: (data.deletedFor || []).map(toDbId),
       edited_at: data.editedAt || null,
       deleted_at: data.deletedAt || null,
+      created_at: new Date(),
       updated_at: new Date()
     };
+    payload._id = toDbId(data._id || data.id || crypto.randomUUID());
 
-    const { data: row, error } = await db
-      .from('messages')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return mapMessageFromPostgres(row);
+    await db.collection('messages').insertOne(payload);
+    return mapMessageFromPostgres(fromDbDoc(payload));
   },
 
   /**
    * Delete messages.
    */
   async deleteMany(query = {}) {
-    let q = db.from('messages').delete();
-    if (query.chatId || query.chat) q = q.eq('chat_id', query.chatId || query.chat);
-    if (query.senderId || query.sender) q = q.eq('sender_id', query.senderId || query.sender);
-    
-    const { error } = await q;
-    if (error) throw error;
-    return { deletedCount: 1 };
+    const { deletedCount } = await db.collection('messages').deleteMany(toDbQuery(query));
+    return { deletedCount };
   },
 
   /**
    * Update multiple messages (seen receipts, etc.)
    */
   async updateMany(filter = {}, update = {}) {
-    let q = db.from('messages').select('*');
-    
-    if (filter.chatId || filter.chat) q = q.eq('chat_id', filter.chatId || filter.chat);
-    
-    if (filter.senderId || filter.sender) {
-      const senderVal = filter.senderId || filter.sender;
-      if (senderVal && typeof senderVal === 'object' && senderVal.$ne) {
-        q = q.neq('sender_id', senderVal.$ne);
-      } else {
-        q = q.eq('sender_id', senderVal);
-      }
-    }
-    
-    if (filter.status) q = q.eq('status', filter.status);
-    
-    if (filter.deletedAt) {
-      if (filter.deletedAt.$exists === false) {
-        q = q.is('deleted_at', null);
-      } else if (filter.deletedAt.$exists === true) {
-        q = q.not('deleted_at', 'is', null);
-      }
-    }
-
-    const { data: rows, error: findError } = await q;
-    if (findError) throw findError;
-
-    let modifiedCount = 0;
-    for (const row of rows) {
-      let seenBy = row.seen_by || [];
-      let deletedFor = row.deleted_for || [];
-      let status = row.status;
-      let deletedAt = row.deleted_at;
-
-      if (update.$set) {
-        if (update.$set.status) status = update.$set.status;
-        if (update.$set.deletedAt) deletedAt = update.$set.deletedAt;
-      }
-      if (update.status) status = update.status;
-
-      if (update.$addToSet) {
-        if (update.$addToSet.seenBy) {
-          const val = update.$addToSet.seenBy;
-          if (!seenBy.includes(val)) seenBy.push(val);
-        }
-        if (update.$addToSet.deletedFor) {
-          const val = update.$addToSet.deletedFor;
-          if (!deletedFor.includes(val)) deletedFor.push(val);
-        }
-      }
-
-      const { error: updateError } = await db
-        .from('messages')
-        .update({
-          status,
-          seen_by: seenBy,
-          deleted_for: deletedFor,
-          deleted_at: deletedAt,
-          updated_at: new Date()
-        })
-        .eq('id', row.id);
-
-      if (updateError) throw updateError;
-      modifiedCount++;
-    }
-
+    const dbQuery = toDbQuery(filter);
+    const dbUpdate = toDbUpdate(update);
+    const { modifiedCount } = await db.collection('messages').updateMany(dbQuery, dbUpdate);
     return { modifiedCount };
   },
 
@@ -216,77 +86,46 @@ export const messageRepository = {
    * Count messages.
    */
   async count(query = {}) {
-    let q = db.from('messages').select('id', { count: 'exact', head: true });
-    if (query.chatId || query.chat) q = q.eq('chat_id', query.chatId || query.chat);
-    if (query.senderId || query.sender) q = q.eq('sender_id', query.senderId || query.sender);
-
-    const { count, error } = await q;
-    if (error) throw error;
-    return count || 0;
+    return db.collection('messages').countDocuments(toDbQuery(query));
   },
 
   /**
    * Find multiple messages, supporting relationship joins and cursor pagination.
    */
   async find(query = {}, options = {}) {
-    let selectFields = '*';
-    if (options.populateSender || options.populateReplyTo) {
-      const parts = ['*'];
-      if (options.populateSender) parts.push('sender:profiles(*)');
-      if (options.populateReplyTo) parts.push('reply_to:messages(*)');
-      selectFields = parts.join(',');
-    }
-
-    let q = db.from('messages').select(selectFields);
-
-    if (query.chatId || query.chat) q = q.eq('chat_id', query.chatId || query.chat);
-    
-    if (query._id) {
-      if (query._id.$in) {
-        q = q.in('id', query._id.$in);
-      } else {
-        q = q.eq('id', query._id);
-      }
-    }
-
-    if (query.createdAt && query.createdAt.$lt) {
-      q = q.lt('created_at', new Date(query.createdAt.$lt).toISOString());
-    }
-
+    let cursor = db.collection('messages').find(toDbQuery(query));
     if (options.sort) {
-      const sortStr = typeof options.sort === 'string' 
-        ? options.sort 
-        : (typeof options.sort === 'object' && options.sort !== null
-            ? (Object.values(options.sort)[0] === -1 || String(Object.values(options.sort)[0]).toLowerCase() === 'desc' 
-                ? `-${Object.keys(options.sort)[0]}` 
-                : Object.keys(options.sort)[0]) 
-            : '');
-      
-      const desc = sortStr.startsWith('-');
-      const field = desc ? sortStr.slice(1) : sortStr;
-      q = q.order(field === 'createdAt' ? 'created_at' : field, { ascending: !desc });
+      cursor = cursor.sort(toDbSort(options.sort));
     }
-
     if (options.limit) {
-      q = q.limit(options.limit);
+      cursor = cursor.limit(options.limit);
+    }
+    const docs = await cursor.toArray();
+    const messages = docs.map(fromDbDoc).map(mapMessageFromPostgres);
+
+    // Eagerly populate sender profile details
+    if (options.populateSender && messages.length > 0) {
+      const senderIds = [...new Set(messages.map(m => toDbId(m.sender)))].filter(Boolean);
+      if (senderIds.length > 0) {
+        const profiles = await db.collection('users').find({ _id: { $in: senderIds } }).toArray();
+        const profileMap = new Map(profiles.map(fromDbDoc).map(p => [p.id, mapUserFromPostgres(p)]));
+        for (const msg of messages) {
+          msg.sender = profileMap.get(msg.sender) || msg.sender;
+        }
+      }
     }
 
-    const { data, error } = await q;
-    if (error) throw error;
-
-    const messages = (data || []).map(row => {
-      const msg = mapMessageFromPostgres(row);
-      
-      // Map relations if they were returned in the single query
-      if (row.sender && typeof row.sender === 'object') {
-        msg.sender = mapUserFromPostgres(row.sender);
+    // Eagerly populate replyTo details
+    if (options.populateReplyTo && messages.length > 0) {
+      const replyIds = [...new Set(messages.map(m => toDbId(m.replyTo)))].filter(Boolean);
+      if (replyIds.length > 0) {
+        const replies = await db.collection('messages').find({ _id: { $in: replyIds } }).toArray();
+        const replyMap = new Map(replies.map(fromDbDoc).map(m => [m.id, mapMessageFromPostgres(m)]));
+        for (const msg of messages) {
+          msg.replyTo = replyMap.get(msg.replyTo) || msg.replyTo;
+        }
       }
-      if (row.reply_to && typeof row.reply_to === 'object') {
-        msg.replyTo = mapMessageFromPostgres(row.reply_to);
-      }
-
-      return msg;
-    });
+    }
 
     return messages;
   }

@@ -1,20 +1,16 @@
+import crypto from 'node:crypto';
 import { db } from '../config/database.js';
 import { mapNotificationFromPostgres } from '../models/Notification.js';
 import { mapUserFromPostgres } from '../utils/userMapper.js';
+import { toDbId, fromDbDoc, toDbQuery, toDbSort, toDbUpdate } from '../utils/mongoHelper.js';
 
 export const notificationRepository = {
   /**
    * Find a single notification.
    */
   async findOne(query = {}) {
-    let q = db.from('notifications').select('*');
-    if (query._id || query.id) q = q.eq('id', query._id || query.id);
-    if (query.user) q = q.eq('user_id', query.user);
-    if (query.requestId) q = q.eq('request_id', query.requestId);
-
-    const { data, error } = await q.limit(1).maybeSingle();
-    if (error) throw error;
-    return mapNotificationFromPostgres(data);
+    const doc = await db.collection('notifications').findOne(toDbQuery(query));
+    return mapNotificationFromPostgres(fromDbDoc(doc));
   },
 
   /**
@@ -22,14 +18,8 @@ export const notificationRepository = {
    */
   async findById(id) {
     if (!id) return null;
-    const { data, error } = await db
-      .from('notifications')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return mapNotificationFromPostgres(data);
+    const doc = await db.collection('notifications').findOne({ _id: toDbId(id) });
+    return mapNotificationFromPostgres(fromDbDoc(doc));
   },
 
   /**
@@ -37,145 +27,107 @@ export const notificationRepository = {
    */
   async create(data) {
     const payload = {
-      user_id: data.user || data.userId || data.user_id,
+      user_id: toDbId(data.user || data.userId || data.user_id),
       type: data.type || 'system',
       title: data.title,
       body: data.body || '',
       url: data.url || null,
-      request_id: data.requestId || data.request_id || null,
-      chat_id: data.chatId || data.chat_id || null,
-      message_id: data.messageId || data.message_id || null,
-      call_id: data.callId || data.call_id || null,
-      actor_id: data.actor || data.actorId || data.actor_id || null,
+      request_id: toDbId(data.requestId || data.request_id || null),
+      chat_id: toDbId(data.chatId || data.chat_id || null),
+      message_id: toDbId(data.messageId || data.message_id || null),
+      call_id: toDbId(data.callId || data.call_id || null),
+      actor_id: toDbId(data.actor || data.actorId || data.actor_id || null),
       read_at: data.readAt || null,
+      created_at: new Date(),
       updated_at: new Date()
     };
-    const { data: row, error } = await db
-      .from('notifications')
-      .insert(payload)
-      .select()
-      .single();
+    payload._id = toDbId(data._id || data.id || crypto.randomUUID());
 
-    if (error) throw error;
-    return mapNotificationFromPostgres(row);
+    await db.collection('notifications').insertOne(payload);
+    return mapNotificationFromPostgres(fromDbDoc(payload));
+  },
+
+  /**
+   * Update a notification's status (read status, etc.)
+   */
+  async update(id, updateData) {
+    const setObj = updateData.$set || updateData;
+    const payload = {};
+    if (setObj.readAt !== undefined) payload.read_at = setObj.readAt;
+    if (setObj.read_at !== undefined) payload.read_at = setObj.read_at;
+    payload.updated_at = new Date();
+
+    const res = await db.collection('notifications').findOneAndUpdate(
+      { _id: toDbId(id) },
+      { $set: payload },
+      { returnDocument: 'after' }
+    );
+    const doc = res && res.value !== undefined ? res.value : res;
+    return mapNotificationFromPostgres(fromDbDoc(doc));
   },
 
   /**
    * Count documents matching filter.
    */
   async count(query = {}) {
-    let q = db.from('notifications').select('id', { count: 'exact', head: true });
-    if (query.user || query.userId) q = q.eq('user_id', query.user || query.userId);
-    if (query.readAt === null) q = q.is('read_at', null);
-    if (query.type) {
-      if (query.type.$in) {
-        q = q.in('type', query.type.$in);
-      } else {
-        q = q.eq('type', query.type);
-      }
-    }
-    const { count, error } = await q;
-    if (error) throw error;
-    return count || 0;
+    return db.collection('notifications').countDocuments(toDbQuery(query));
   },
 
   /**
    * Update multiple notifications.
    */
   async updateMany(filter = {}, update = {}) {
-    const payload = {};
-    const setObj = update.$set || update;
-    for (const [k, v] of Object.entries(setObj)) {
-      if (k === 'readAt') {
-        payload.read_at = v;
-      } else if (!k.startsWith('$')) {
-        payload[k] = v;
+    const dbQuery = toDbQuery(filter);
+    const dbUpdate = toDbUpdate(update);
+
+    if (dbUpdate.$set) {
+      const newSet = {};
+      for (const [k, v] of Object.entries(dbUpdate.$set)) {
+        let pgKey = k;
+        if (k === 'readAt') pgKey = 'read_at';
+        newSet[pgKey] = v;
       }
+      dbUpdate.$set = newSet;
     }
 
-    let q = db.from('notifications').update(payload);
-    if (filter.user || filter.userId) q = q.eq('user_id', filter.user || filter.userId);
-    if (filter.readAt === null) q = q.is('read_at', null);
-    if (filter.type) {
-      if (filter.type.$in) {
-        q = q.in('type', filter.type.$in);
-      } else {
-        q = q.eq('type', filter.type);
-      }
-    }
-
-    const { error, data } = await q;
-    if (error) throw error;
-    return { modifiedCount: data?.length || 1 };
+    const { modifiedCount } = await db.collection('notifications').updateMany(dbQuery, dbUpdate);
+    return { modifiedCount };
   },
 
   /**
    * Delete notifications.
    */
   async deleteMany(query = {}) {
-    let q = db.from('notifications').delete();
-    if (query.user) q = q.eq('user_id', query.user);
-    if (query.requestId) q = q.eq('request_id', query.requestId);
-    const { error } = await q;
-    if (error) throw error;
-    return { deletedCount: 1 };
+    const { deletedCount } = await db.collection('notifications').deleteMany(toDbQuery(query));
+    return { deletedCount };
   },
 
   /**
    * Find notifications.
    */
   async find(query = {}, options = {}) {
-    let selectFields = '*';
-    if (options.populateActor) {
-      selectFields = '*, actor:profiles!actor_id(*)';
-    }
-
-    let q = db.from('notifications').select(selectFields);
-    if (query.user || query.userId) q = q.eq('user_id', query.user || query.userId);
-    if (query.readAt === null) q = q.is('read_at', null);
-    
-    if (query.type) {
-      if (query.type.$in) {
-        q = q.in('type', query.type.$in);
-      } else {
-        q = q.eq('type', query.type);
-      }
-    }
-    if (query.createdAt) {
-      if (query.createdAt.$lt) {
-        q = q.lt('created_at', query.createdAt.$lt instanceof Date ? query.createdAt.$lt.toISOString() : query.createdAt.$lt);
-      } else if (query.createdAt.$gt) {
-        q = q.gt('created_at', query.createdAt.$gt instanceof Date ? query.createdAt.$gt.toISOString() : query.createdAt.$gt);
-      }
-    }
-
+    let cursor = db.collection('notifications').find(toDbQuery(query));
     if (options.sort) {
-      const sortStr = typeof options.sort === 'string' 
-        ? options.sort 
-        : (typeof options.sort === 'object' && options.sort !== null
-            ? (Object.values(options.sort)[0] === -1 || String(Object.values(options.sort)[0]).toLowerCase() === 'desc' 
-                ? `-${Object.keys(options.sort)[0]}` 
-                : Object.keys(options.sort)[0]) 
-            : '');
-      
-      const desc = sortStr.startsWith('-');
-      const field = desc ? sortStr.slice(1) : sortStr;
-      q = q.order(field === 'createdAt' ? 'created_at' : field, { ascending: !desc });
+      cursor = cursor.sort(toDbSort(options.sort));
     }
-
     if (options.limit) {
-      q = q.limit(options.limit);
+      cursor = cursor.limit(options.limit);
+    }
+    const docs = await cursor.toArray();
+    const notifications = docs.map(fromDbDoc).map(mapNotificationFromPostgres);
+
+    // Eagerly populate actor details
+    if (options.populateActor && notifications.length > 0) {
+      const actorIds = [...new Set(notifications.map(n => toDbId(n.actor)))].filter(Boolean);
+      if (actorIds.length > 0) {
+        const profiles = await db.collection('users').find({ _id: { $in: actorIds } }).toArray();
+        const profileMap = new Map(profiles.map(fromDbDoc).map(p => [p.id, mapUserFromPostgres(p)]));
+        for (const notif of notifications) {
+          notif.actor = profileMap.get(notif.actor) || notif.actor;
+        }
+      }
     }
 
-    const { data, error } = await q;
-    if (error) throw error;
-
-    return (data || []).map(row => {
-      const notif = mapNotificationFromPostgres(row);
-      if (row.actor && typeof row.actor === 'object') {
-        notif.actor = mapUserFromPostgres(row.actor);
-      }
-      return notif;
-    });
+    return notifications;
   }
 };

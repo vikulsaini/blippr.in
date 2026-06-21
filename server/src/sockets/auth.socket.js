@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { supabase, supabaseAdmin } from '../config/supabase.js';
+import { supabase } from '../config/supabase.js';
 import User from '../models/User.js';
-import { mapUserFromPostgres } from '../utils/userMapper.js';
 import { trackUserActivity } from '../services/activity.service.js';
 
 export async function socketAuth(socket, next) {
@@ -32,15 +31,8 @@ export async function socketAuth(socket, next) {
     const supabaseUser = data?.user;
     if (authError || !supabaseUser) throw new Error('Session expired or invalid token');
 
-    const { data: userProfile, error: dbError } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', supabaseUser.id)
-      .maybeSingle();
-
-    if (dbError || !userProfile) throw new Error('Invalid user');
-    
-    const user = mapUserFromPostgres(userProfile);
+    const user = await User.findById(supabaseUser.id);
+    if (!user) throw new Error('Invalid user');
     if (user.bannedUntil && user.bannedUntil.getTime() > Date.now()) throw new Error('Account temporarily restricted');
 
     socket.user = user;

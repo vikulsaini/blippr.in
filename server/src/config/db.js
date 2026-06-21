@@ -1,6 +1,5 @@
-import { testConnection } from './database.js';
+import { connectMongo as connectNativeMongo } from './database.js';
 
 export async function connectMongo() {
-  await testConnection();
+  await connectNativeMongo();
 }
-
