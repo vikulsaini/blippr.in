@@ -176,7 +176,7 @@ export default function SettingsPage() {
   if (!user && !message) return <ProfileSkeleton />;
 
   return (
-    <div className="mx-auto w-full max-w-lg md:max-w-2xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+    <div className="chat-dark-theme mx-auto w-full max-w-lg md:max-w-2xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
       
       {/* Settings Header */}
       <header className="flex items-center gap-3.5 mb-8">
@@ -213,7 +213,7 @@ export default function SettingsPage() {
             <div className="space-y-6">
               
               {/* Account & Preferences */}
-              <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-2 space-y-1 shadow-card">
+              <div className="glass-panel rounded-3xl p-2 space-y-1 shadow-card">
                 <p className="text-[10px] font-black uppercase tracking-wider text-primary px-3.5 py-2">Account &amp; Preferences</p>
                 <MenuRow icon={UserRound} iconColor="bg-primary/10 text-primary" title="Profile Settings" subtitle="Photo, name, username, age, gender and bio" onClick={() => setActiveSection('profile')} />
                 <MenuRow icon={Bell} iconColor="bg-success/10 text-success" title="Notifications &amp; Sound" subtitle="Push, ringtone, chat tone and quiet mode" onClick={() => setActiveSection('notifications')} />
@@ -236,7 +236,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Safety & Security */}
-              <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-2 space-y-1 shadow-card">
+              <div className="glass-panel rounded-3xl p-2 space-y-1 shadow-card">
                 <p className="text-[10px] font-black uppercase tracking-wider text-primary px-3.5 py-2">Safety &amp; Security</p>
                 <MenuRow icon={Shield} iconColor="bg-success/10 text-success" title="Privacy Settings" subtitle="Last seen, read receipts and blocked users" onClick={() => setActiveSection('privacy')} />
                 <MenuRow icon={Ban} iconColor="bg-danger/10 text-danger" title="Safety Filter" subtitle="Blocked words and chat protection" onClick={() => setActiveSection('safety')} />
@@ -244,7 +244,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Data & Legal */}
-              <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-2 space-y-1 shadow-card">
+              <div className="glass-panel rounded-3xl p-2 space-y-1 shadow-card">
                 <p className="text-[10px] font-black uppercase tracking-wider text-primary px-3.5 py-2">Data &amp; Legal</p>
                 <MenuRow icon={Database} iconColor="bg-primary/10 text-primary" title="Data Controls" subtitle="Export data, privacy policy, and account removal" onClick={() => setActiveSection('data')} />
               </div>
@@ -560,7 +560,7 @@ function ProfileSkeleton() {
 
 function SettingsSection({ icon: Icon, iconBg, title, children }) {
   return (
-    <section className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-5 shadow-card space-y-4">
+    <section className="glass-panel rounded-3xl p-5 shadow-card space-y-4">
       <div className="flex items-center gap-2.5 px-1 pb-1">
         <span className={`grid h-8 w-8 place-items-center rounded-xl ${iconBg}`}><Icon size={16} /></span>
         <h3 className="text-xs font-black uppercase tracking-widest text-white">{title}</h3>
@@ -591,7 +591,7 @@ function GenderControl({ value, onChange }) {
   return (
     <div>
       <span className="text-xs text-text-muted font-bold ml-1">Gender</span>
-      <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-white/60 p-1 text-xs">
+      <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-surface-glass/40 p-1 text-xs backdrop-blur-md">
         {['female', 'male'].map((item) => (
           <button 
             key={item} 
@@ -715,7 +715,7 @@ function SoundPicker({ title, value, onSelect, onUpload, onPreview }) {
         <button 
           type="button" 
           onClick={onPreview} 
-          className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-zinc-50 text-text-primary active:scale-95 transition" 
+          className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 text-text-primary active:scale-95 transition" 
           aria-label={`Preview ${title}`}
         >
           <Volume2 size={17} />
@@ -728,13 +728,13 @@ function SoundPicker({ title, value, onSelect, onUpload, onPreview }) {
             key={sound.id}
             type="button"
             onClick={() => onSelect(packSound(sound.id))}
-            className={`rounded-xl px-3 py-2.5 text-xs font-bold cursor-pointer transition duration-200 active:scale-95 ${value?.type === 'pack' && value.id === sound.id ? 'bg-accent text-white shadow-md' : 'bg-zinc-50 border border-border text-text-muted hover:bg-zinc-100 hover:text-text-primary'}`}
+            className={`rounded-xl px-3 py-2.5 text-xs font-bold cursor-pointer transition duration-200 active:scale-95 ${value?.type === 'pack' && value.id === sound.id ? 'bg-accent text-white shadow-md' : 'bg-white/5 border border-white/10 text-text-muted hover:bg-white/10 hover:text-text-primary'}`}
           >
             {sound.name}
           </button>
         ))}
       </div>
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-50 border border-border hover:bg-zinc-100 py-2.5 text-xs font-bold text-text-primary transition active:scale-95 shadow-sm">
+      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 py-2.5 text-xs font-bold text-text-primary transition active:scale-95 shadow-sm">
         Upload from media
         <input type="file" accept="audio/*" className="hidden" onChange={(event) => onUpload(event.target.files?.[0])} />
       </label>

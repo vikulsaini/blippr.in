@@ -249,7 +249,7 @@ export default function Discover() {
           </div>
         ) : (
           // Tinder-Style Swiping Card Stack
-          <div className="relative w-full aspect-[3/4] max-w-[340px]">
+          <div className="card-stack relative w-full aspect-[3/4] max-w-[340px]">
             <AnimatePresence>
               {activeUser ? (
                 filteredSuggested.slice(cardIndex, cardIndex + 3).reverse().map((user, idx, arr) => {
@@ -282,26 +282,25 @@ export default function Discover() {
         )}
       </div>
 
-      {/* Swipe Control Buttons (Only in Suggested swipe mode) */}
       {!query.trim() && activeUser && (
         <div className="flex items-center justify-center gap-6 mt-2 z-20">
           <button
             onClick={() => handleSwipe('left')}
-            className="w-16 h-16 rounded-full flex items-center justify-center bg-white border border-border shadow-sm text-text-secondary hover:text-red-500 hover:bg-red-500/5 active:scale-90 duration-200"
+            className="w-16 h-16 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-text-secondary hover:text-[#ef4444] hover:bg-[#ef4444]/10 active:scale-90 hover:scale-110 transition-all duration-200"
             title="Pass"
           >
             <XIcon size={28} />
           </button>
           <button
             onClick={() => handleSwipe('right')}
-            className="w-12 h-12 rounded-full flex items-center justify-center bg-white border border-border shadow-sm text-amber-500 hover:scale-110 active:scale-90 hover:bg-amber-500/5 duration-200"
+            className="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-amber-500 hover:scale-110 hover:bg-white/10 active:scale-90 transition-all duration-200"
             title="Super Blipp"
           >
             <Star size={20} className="fill-amber-500" />
           </button>
           <button
             onClick={() => handleSwipe('right')}
-            className="w-16 h-16 rounded-full flex items-center justify-center bg-accent text-white hover:scale-110 active:scale-90 shadow-lg hover:bg-accent-hover duration-200"
+            className="w-16 h-16 rounded-full flex items-center justify-center bg-accent text-white blipp-shadow hover:scale-110 active:scale-90 shadow-lg hover:bg-accent-hover transition-all duration-200"
             title="Blipp"
           >
             <Heart size={28} className="fill-white" />
@@ -383,7 +382,7 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
       onDragEnd={handleDragEnd}
       whileDrag={{ cursor: 'grabbing', scale: scale * 1.02 }}
       transition={isTop ? undefined : { type: 'spring', stiffness: 300, damping: 24 }}
-      className="absolute inset-0 rounded-[32px] overflow-hidden glass-card shadow-2xl flex flex-col justify-between"
+      className="card-item absolute inset-0 rounded-[32px] overflow-hidden glass-card shadow-2xl flex flex-col justify-between"
     >
       <div className="w-full h-full relative group">
         {user.avatar ? (

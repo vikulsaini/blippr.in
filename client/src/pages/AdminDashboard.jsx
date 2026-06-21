@@ -138,6 +138,11 @@ export default function AdminDashboard() {
     window.location.href = '/app';
   }
 
+  const [theme, setTheme] = useState('dark');
+  const toggleTheme = () => {
+    setTheme(t => t === 'light' ? 'dark' : 'light');
+  };
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -670,7 +675,7 @@ export default function AdminDashboard() {
     return (
       <div className="grid min-h-screen place-items-center bg-bg px-4 py-12">
         <div className="w-full max-w-md">
-          <div className="surface-card bg-surface rounded-[16px] p-8 border border-border shadow-elevated text-center relative overflow-hidden">
+          <div className="surface-card bg-surface glass-panel glass-panel rounded-[16px] p-8 border border-border shadow-elevated text-center relative overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-1 bg-accent animate-pulse" />
             <ShieldAlert className="mx-auto h-14 w-14 text-danger mb-4 shrink-0" />
             <h2 className="text-2xl font-bold text-text-primary mb-2">Access Restrained</h2>
@@ -727,7 +732,7 @@ export default function AdminDashboard() {
   const areaPath = points.length > 0 ? `M 0,100 L ${points.join(' L ')} L 100,100 Z` : '';
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col md:flex-row font-sans antialiased text-text-primary">
+    <div className={`min-h-screen flex flex-col md:flex-row font-sans antialiased text-text-primary ${theme === 'dark' ? 'chat-dark-theme bg-[#0b1326]' : 'bg-bg'}`}>
       {/* Toast Alert */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-elevated border flex items-center gap-3 animate-fadeSlideUp ${
@@ -748,7 +753,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Left Sidebar Menu */}
-      <aside className={`bg-surface border-r border-border flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-50
+      <aside className={`bg-surface/90 backdrop-blur-lg border-r border-border/10 flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-50 shadow-2xl shadow-black/50
         fixed inset-y-0 left-0 w-64 md:static md:translate-x-0
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         ${sidebarCollapsed ? 'md:w-20' : 'md:w-64'}
@@ -852,7 +857,7 @@ export default function AdminDashboard() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Navbar */}
-        <header className="h-16 bg-surface border-b border-border px-4 sm:px-6 flex items-center justify-between shrink-0 animate-fadeIn">
+        <header className="h-16 bg-surface/70 backdrop-blur-xl border-b border-border/10 px-4 sm:px-6 flex items-center justify-between shrink-0 animate-fadeIn">
           {/* Hamburger Menu Button on Mobile */}
           <button 
             onClick={() => setMobileMenuOpen(true)}
@@ -1091,7 +1096,7 @@ export default function AdminDashboard() {
               {/* Donut, Bar Chart & Sidebar Grid */}
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* Audience Reached Donut Chart */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Audience Reached</h3>
                     <MoreHorizontal className="w-4 h-4 text-text-faint" />
@@ -1100,7 +1105,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Profile Visits Stacked Column Bar Chart */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-2 lg:col-span-2 shadow-sm flex flex-col justify-between text-left">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border md:col-span-2 lg:col-span-2 shadow-sm flex flex-col justify-between text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Profile Visits & Aggregates</h3>
                     <div className="flex gap-2">
@@ -1127,7 +1132,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Growth Drive Widget */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left flex flex-col justify-between h-full">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left flex flex-col justify-between h-full">
                   <div>
                     <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
                       <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Growth Drive</h3>
@@ -1177,7 +1182,7 @@ export default function AdminDashboard() {
               {/* Lower Section: Traffic Sources + Table + Suggestions */}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Left Traffic Progress Bars */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Traffic Endpoints</h3>
                     <MoreHorizontal className="w-4 h-4 text-text-faint" />
@@ -1193,7 +1198,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Center Registrations Table */}
-                <div className="surface-card bg-surface rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm flex flex-col h-[340px]">
+                <div className="surface-card bg-surface glass-panel rounded-[12px] border border-border md:col-span-1 lg:col-span-1 shadow-sm flex flex-col h-[340px]">
                   <div className="p-5 border-b border-border flex items-center justify-between bg-surface/50">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Registrations Feed</h3>
                     <button onClick={() => setActiveTab('users')} className="text-[10px] text-accent font-bold hover:underline">
@@ -1244,7 +1249,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Right Suggestions widget (Flagged Accounts Audit) */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border md:col-span-2 lg:col-span-1 shadow-sm flex flex-col justify-between h-[340px] text-left">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border md:col-span-2 lg:col-span-1 shadow-sm flex flex-col justify-between h-[340px] text-left">
                   <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Suggestions for You</h3>
                     <span className="text-[9px] text-accent font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('users')}>See All</span>
@@ -1331,7 +1336,7 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-3 gap-6 text-left">
               {/* User management list */}
               <div className="md:col-span-2 space-y-4">
-                <div className="surface-card bg-surface rounded-[12px] border border-border shadow-sm overflow-hidden flex flex-col h-[500px] md:h-[600px]">
+                <div className="surface-card bg-surface glass-panel rounded-[12px] border border-border shadow-sm overflow-hidden flex flex-col h-[500px] md:h-[600px]">
                   <div className="p-5 border-b border-border flex items-center gap-4 justify-between bg-surface/50">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Account Registry</h3>
                     <div className="relative w-56 flex items-center">
@@ -1426,7 +1431,7 @@ export default function AdminDashboard() {
 
               {/* Side feeds */}
               <div className="space-y-6 md:col-span-1">
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[500px] md:h-[600px] flex flex-col">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border shadow-sm h-[500px] md:h-[600px] flex flex-col">
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
                     <Activity className="w-4 h-4 text-accent" />
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Registration Log Feed</h3>
@@ -1468,7 +1473,7 @@ export default function AdminDashboard() {
             <div className="space-y-6 text-left">
               <div className="grid md:grid-cols-3 gap-6">
                 {/* Collection stats summary */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm md:col-span-1 h-[500px] md:h-[600px] overflow-y-auto">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border shadow-sm md:col-span-1 h-[500px] md:h-[600px] overflow-y-auto">
                   <div className="pb-3 border-b border-border mb-4">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Collections Stats</h3>
                   </div>
@@ -1504,7 +1509,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* JSON query builder */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm md:col-span-2 flex flex-col h-[500px] md:h-[600px]">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border shadow-sm md:col-span-2 flex flex-col h-[500px] md:h-[600px]">
                   <div className="pb-3 border-b border-border flex items-center justify-between mb-4">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">JSON Query Dispatcher</h3>
                   </div>
@@ -1607,7 +1612,7 @@ export default function AdminDashboard() {
               {/* Query output and Profiler */}
               <div className="grid md:grid-cols-2 gap-6">
                 {queryResult || queryError ? (
-                  <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[350px] md:h-[400px] flex flex-col">
+                  <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border shadow-sm h-[350px] md:h-[400px] flex flex-col">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider pb-3 border-b border-border mb-3">QueryResult Output</h3>
                     <div className="flex-1 overflow-auto bg-bg/60 p-4 rounded-xl border border-border font-mono text-xs text-text-secondary whitespace-pre-wrap">
                       {queryError && <p className="text-danger font-bold flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> {queryError}</p>}
@@ -1615,13 +1620,13 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ) : (
-                  <div className="surface-card bg-surface p-5 rounded-[12px] border border-border border-dashed h-[350px] md:h-[400px] flex flex-col justify-center items-center text-text-muted text-xs shadow-sm">
+                  <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border border-dashed h-[350px] md:h-[400px] flex flex-col justify-center items-center text-text-muted text-xs shadow-sm">
                     Awaiting query execution...
                   </div>
                 )}
 
                 {/* Slow running queries & bottlenecks */}
-                <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm h-[350px] md:h-[400px] flex flex-col">
+                <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border shadow-sm h-[350px] md:h-[400px] flex flex-col">
                   <div className="pb-3 border-b border-border mb-3 flex items-center justify-between">
                     <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Profiling & Slow Queries</h3>
                     <span className="text-[9px] bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">slowms &gt; 100ms</span>
@@ -1676,7 +1681,7 @@ export default function AdminDashboard() {
               )}
 
               {/* Uploaded assets explorer */}
-              <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm">
+              <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border shadow-sm">
                 <div className="flex items-center justify-between border-b border-border pb-4 mb-4 gap-4 flex-wrap">
                   <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Uploaded Assets</h3>
                   <div className="flex items-center gap-2">
@@ -1752,7 +1757,7 @@ export default function AdminDashboard() {
 
           {/* MODULE 5: AUDIT LOGS */}
           {activeTab === 'audit' && (
-            <div className="surface-card bg-surface p-5 rounded-[12px] border border-border shadow-sm flex flex-col h-[500px] md:h-[600px] text-left">
+            <div className="surface-card bg-surface glass-panel p-5 rounded-[12px] border border-border shadow-sm flex flex-col h-[500px] md:h-[600px] text-left">
               <div className="border-b border-border pb-4 mb-4 flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Operations Audit Trail</h3>
@@ -1809,7 +1814,7 @@ export default function AdminDashboard() {
           {/* MODULE 6: SYSTEM BROADCAST */}
           {activeTab === 'broadcast' && (
             <div className="max-w-xl mx-auto py-12 text-left">
-              <div className="surface-card bg-surface p-6 rounded-[12px] border border-border shadow-sm relative overflow-hidden">
+              <div className="surface-card bg-surface glass-panel p-6 rounded-[12px] border border-border shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 inset-x-0 h-1.5 animated-gradient" />
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-accent-tint border border-accent-ring flex items-center justify-center">
@@ -1891,7 +1896,7 @@ function NilovaMiniCard({ label, value, icon, percent, growth, isAccent }) {
       variants={fadeUpCascade}
       whileHover={{ y: -4, scale: 1.01, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="surface-card bg-surface p-4 sm:p-5 rounded-[12px] border border-border flex flex-col justify-between text-left shadow-sm relative overflow-hidden group cursor-pointer will-change-motion"
+      className="surface-card bg-surface glass-panel p-4 sm:p-5 rounded-[12px] border border-border flex flex-col justify-between text-left shadow-sm relative overflow-hidden group cursor-pointer will-change-motion"
     >
       {isAccent && (
         <div className="absolute top-0 inset-x-0 h-[3.5px] bg-accent" />

@@ -242,7 +242,7 @@ const MessageBubble = memo(function MessageBubble({ message, mine, onLongPress, 
           onPointerUp={stopPress}
           onPointerCancel={stopPress}
           onPointerLeave={stopPress}
-          className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-accent-hover text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} transition-colors duration-200`}
+          className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-[#7c3aed] text-[#ede0ff] shadow-[0_4px_12px_rgba(124,58,237,0.2)]' : 'rounded-bl-none border border-white/5 bg-surface text-text-primary shadow-card'} transition-colors duration-200`}
           style={{
             opacity: (message.status === 'sending' || message.status === 'queued') ? 0.7 : 1,
             transition: 'background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, opacity 200ms ease'
@@ -256,11 +256,11 @@ const MessageBubble = memo(function MessageBubble({ message, mine, onLongPress, 
           {message.media && <MediaPreview media={message.media} />}
           {message.location && <LocationPreview location={message.location} mine={mine} />}
           {message.text && (
-            <p className={`whitespace-pre-wrap leading-relaxed ${mine ? 'text-white' : 'text-text-primary font-medium'}`}>
+            <p className={`whitespace-pre-wrap leading-relaxed ${mine ? 'text-[#ede0ff]' : 'text-text-primary font-medium'}`}>
               {message.text}
             </p>
           )}
-          <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-white/80' : 'text-text-muted'}`}>
+          <div className={`mt-1 flex items-center justify-end gap-2 text-[10px] font-medium ${mine ? 'text-[#ede0ff]/80' : 'text-text-muted'}`}>
             {message.editedAt && <span>edited</span>}
             <span>{formatTime(message.createdAt)}</span>
             {mine && <StatusIcon status={message.status} onRetry={onRetry} />}

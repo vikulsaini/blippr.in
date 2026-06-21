@@ -507,7 +507,7 @@ export default function Stranger() {
           onPointerMove={revealVideoChrome}
           onPointerDown={revealVideoChrome}
           onTouchStart={revealVideoChrome}
-          className={`${focused ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[14px] bg-bg shadow-card sm:rounded-[16px]' : 'flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5 bg-surface shadow-card'}`}
+          className={`${focused ? 'fixed inset-0 z-[90] h-[100dvh] w-screen overflow-hidden bg-[#0b1326]/60 backdrop-blur-md shadow-card sm:rounded-[16px]' : 'flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5 bg-surface/40 backdrop-blur-md border border-white/5 shadow-card'}`}
         >
           <div className="relative min-h-0 flex-1">
             <MainVideoStage
@@ -542,7 +542,7 @@ export default function Stranger() {
       )}
 
       {showChat && (
-        <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px] bg-surface shadow-card">
+        <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px] bg-surface/40 backdrop-blur-md border border-white/5 shadow-card">
           <div className="space-y-2 p-2 lg:p-3">
             <div className="flex items-center justify-between gap-3">
               {peer ? (
@@ -572,7 +572,7 @@ export default function Stranger() {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-2.5 sm:p-3 bg-bg">
+          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-2.5 sm:p-3 bg-transparent">
             {!session && (
               <EmptyRandom finding={finding} queueText={queueText} onStart={() => requestFindStranger(false)} activeUsers={activeUsers} />
             )}
@@ -601,7 +601,7 @@ export default function Stranger() {
           </div>
 
           {session ? (
-            <div className="grid grid-cols-2 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-surface">
+            <div className="grid grid-cols-2 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-surface/20 border-t border-white/5 backdrop-blur-md">
               <button
                 type="button"
                 onClick={handleRandomAction}
@@ -622,7 +622,7 @@ export default function Stranger() {
               </button>
             </div>
           ) : (
-            <div className="p-2 lg:p-3 bg-surface">
+            <div className="p-2 lg:p-3 bg-surface/20 border-t border-white/5 backdrop-blur-md">
               <button
                 type="button"
                 onClick={handleRandomAction}
@@ -650,11 +650,11 @@ export default function Stranger() {
           )}
 
           {session && (
-            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-surface">
+            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-surface/40 backdrop-blur-md border-t border-white/5">
               <input
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                className="min-w-0 flex-1 rounded-[15px] bg-bg px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 text-text-primary placeholder:text-text-faint font-medium"
+                className="min-w-0 flex-1 rounded-[15px] bg-[#0b1326]/60 border border-white/10 focus:border-accent/40 px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 text-text-primary placeholder:text-text-faint font-medium"
                 placeholder="Say something..."
               />
               <button disabled={!text.trim()} className="btn-primary grid h-11 w-11 place-items-center rounded-[15px] disabled:opacity-40 sm:h-12 sm:w-12 sm:rounded-2xl" aria-label="Send">

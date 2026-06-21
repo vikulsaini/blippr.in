@@ -30,7 +30,7 @@ export default function Profile() {
   if (!user) return <ProfileSkeleton />;
 
   return (
-    <div className="mx-auto w-full max-w-lg md:max-w-4xl min-h-[calc(100vh-6rem)] overflow-y-auto bg-bg text-text-primary px-4 pb-24 md:pb-6 scrollbar-none">
+    <div className="chat-dark-theme mx-auto w-full max-w-lg md:max-w-4xl min-h-[calc(100vh-6rem)] overflow-y-auto bg-bg text-text-primary px-4 pb-24 md:pb-6 scrollbar-none">
       
       {/* Top Navigation Bar */}
       <header className="flex items-center justify-between w-full py-4 mb-4">
@@ -58,14 +58,14 @@ export default function Profile() {
         <div className="space-y-4 md:space-y-6">
           
           {/* Profile Header Card */}
-          <section className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-6 flex flex-col items-center shadow-card relative overflow-hidden">
+          <section className="glass-panel rounded-3xl p-6 flex flex-col items-center shadow-card relative overflow-hidden">
             {/* Ambient inner glow */}
             <div className="absolute -right-10 -top-10 w-32 h-32 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
             
             <div className="relative mb-4">
               {/* Gradient avatar ring */}
               <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-primary via-success to-amber-500 shadow-lg">
-                <div className="w-full h-full rounded-full border-4 border-white bg-zinc-100 overflow-hidden flex items-center justify-center">
+                <div className="w-full h-full rounded-full border-4 border-surface bg-[#0b1326] overflow-hidden flex items-center justify-center">
                   {user?.avatar ? (
                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                   ) : (
@@ -74,7 +74,7 @@ export default function Profile() {
                 </div>
               </div>
               {/* Online Status Glow Indicator */}
-              <div className="absolute bottom-2 right-2 w-6 h-6 bg-success rounded-full border-4 border-white shadow-[0_0_12px_#10B981]" />
+              <div className="absolute bottom-2 right-2 w-6 h-6 bg-success rounded-full border-4 border-surface shadow-[0_0_12px_var(--success)]" />
             </div>
 
             <div className="text-center">
@@ -119,10 +119,10 @@ export default function Profile() {
 
           {/* Premium Promo Card */}
           {showPromo && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-surface-glass backdrop-blur-md rounded-3xl p-5 border border-white/10 shadow-card relative overflow-hidden hidden md:block"
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-panel border border-white/10 rounded-3xl p-5 shadow-card relative overflow-hidden hidden md:block"
             >
               {/* Decorative radial gradient */}
               <div className="absolute -right-20 -bottom-20 w-44 h-44 bg-gradient-to-tr from-primary/20 to-transparent blur-2xl rounded-full" />
@@ -168,7 +168,7 @@ export default function Profile() {
           
           {/* Mobile Promo Card */}
           {showPromo && (
-            <div className="bg-surface-glass backdrop-blur-md rounded-3xl p-5 border border-white/10 shadow-card relative overflow-hidden md:hidden">
+            <div className="glass-panel rounded-3xl p-5 shadow-card relative overflow-hidden md:hidden">
               <div className="absolute -right-20 -bottom-20 w-44 h-44 bg-gradient-to-tr from-primary/20 to-transparent blur-2xl rounded-full" />
               <div className="flex gap-3 relative z-10">
                 <span className="text-2xl shrink-0">👑</span>
@@ -207,7 +207,7 @@ export default function Profile() {
           )}
 
           {/* Bio & Tags Container */}
-          <section className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-5 shadow-card">
+          <section className="glass-panel rounded-3xl p-5 shadow-card">
             <h3 className="text-[10px] font-black text-accent uppercase tracking-widest mb-3">Bio</h3>
             <p className="text-sm text-text-secondary leading-relaxed mb-4 italic">
               {user?.bio ? `"${user.bio}"` : '"Building the future of social real-time interactions. Let\'s Blipp! ⚡️"'}
@@ -236,7 +236,7 @@ export default function Profile() {
           <div>
             <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-2.5 ml-1">Content Settings</h3>
             
-            <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden shadow-card divide-y divide-white/5">
+            <div className="glass-panel rounded-3xl overflow-hidden shadow-card divide-y divide-white/5">
               <SettingsRow 
                 icon={UserRound} 
                 iconBg="bg-primary/10 text-primary"
@@ -271,7 +271,7 @@ export default function Profile() {
           {/* System Settings List */}
           <div>
             <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-2.5 ml-1">System</h3>
-            <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden shadow-card divide-y divide-white/5">
+            <div className="glass-panel rounded-3xl overflow-hidden shadow-card divide-y divide-white/5">
               <SettingsRow 
                 icon={ExternalLink} 
                 iconBg="bg-accent/15 text-accent"

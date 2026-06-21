@@ -39,7 +39,7 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+    <div className="chat-dark-theme mx-auto w-full max-w-lg py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
       
       {/* Header */}
       <header className="flex items-center gap-3.5 mb-8">
@@ -66,7 +66,7 @@ export default function EditProfile() {
           >
             {/* Gradient edit avatar ring */}
              <div className="w-32 h-32 rounded-full border-2 border-border p-1 bg-gradient-to-tr from-primary via-success to-amber-500 shadow-lg group-hover:scale-105 transition-all">
-              <div className="w-full h-full rounded-full overflow-hidden border-4 border-white bg-zinc-100 flex items-center justify-center">
+              <div className="w-full h-full rounded-full overflow-hidden border-4 border-surface bg-[#0b1326] flex items-center justify-center">
                 {form.avatar ? (
                   <img src={form.avatar} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -75,7 +75,7 @@ export default function EditProfile() {
               </div>
             </div>
             {/* Photo Edit Button Badge */}
-            <div className="absolute bottom-0 right-0 bg-accent text-white p-2.5 rounded-full shadow-[0_4px_12px_rgba(124,58,237,0.3)] border-2 border-white flex items-center justify-center hover:scale-110 transition-transform">
+            <div className="absolute bottom-0 right-0 bg-accent text-white p-2.5 rounded-full shadow-[0_4px_12px_rgba(124,58,237,0.3)] border-2 border-surface flex items-center justify-center hover:scale-110 transition-transform">
               <Camera size={16} />
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function EditProfile() {
             {/* Gender */}
             <div className="flex flex-col gap-2">
               <span className="font-bold text-xs text-secondary ml-1 uppercase tracking-wider">Gender</span>
-              <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border bg-white/60 p-1 text-xs">
+              <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border bg-surface-glass/40 p-1 text-xs backdrop-blur-md">
                 {['female', 'male'].map((value) => (
                   <button
                     key={value}

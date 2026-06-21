@@ -257,7 +257,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                     dragConstraints={{ left: -300, right: 0, top: 0, bottom: 500 }}
                     dragElastic={0.15}
                     dragMomentum={false}
-                    className="absolute right-2 top-16 z-10 h-20 w-16 overflow-hidden rounded-[14px] border border-white/12 bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:right-4 sm:top-20 sm:h-28 sm:w-24 cursor-grab active:cursor-grabbing"
+                    className="absolute right-2 top-16 z-10 h-20 w-16 overflow-hidden rounded-2xl border border-white/20 bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:right-4 sm:top-20 sm:h-28 sm:w-24 cursor-grab active:cursor-grabbing"
                   >
                     {call.cameraOff ? (
                       <div className="grid h-full place-items-center text-white/45"><VideoOff size={22} /></div>
@@ -275,8 +275,8 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                   </motion.div>
                 )}
 
-                <div className={`absolute inset-x-0 bottom-0 z-20 grid place-items-center bg-gradient-to-t from-black/82 via-black/25 to-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.65rem)] pt-12 transition duration-300 sm:px-3 ${chromeClass}`}>
-                  <div className="flex w-full max-w-sm justify-center rounded-[24px] border border-white/10 bg-black/40 p-1.5 backdrop-blur-md sm:max-w-3xl sm:rounded-full sm:p-2">
+                <div className={`absolute inset-x-0 bottom-0 z-20 grid place-items-center bg-gradient-to-t from-black/60 via-transparent to-black/40 px-2 pb-[calc(env(safe-area-inset-bottom)+0.65rem)] pt-12 transition duration-300 sm:px-3 ${chromeClass}`}>
+                  <div className="glass-panel flex w-full max-w-sm justify-center rounded-[24px] border border-white/10 bg-[#171f33]/70 p-1.5 backdrop-blur-md sm:max-w-3xl sm:rounded-full sm:p-2">
                     {controls}
                   </div>
                 </div>
@@ -319,9 +319,9 @@ async function setAudioOutput(audioElement, speakerOn, callType) {
 
 function CallButton({ label, icon: Icon, onClick, tone = 'neutral', disabled = false, active = false }) {
   const tones = {
-    neutral: active ? 'btn-primary' : 'btn-secondary',
+    neutral: active ? 'bg-accent text-white shadow-glow border border-accent/20' : 'bg-white/10 border border-white/5 hover:bg-white/15 text-white',
     danger: 'bg-danger text-white hover:bg-red-600',
-    mint: 'btn-primary'
+    mint: 'bg-success text-white hover:bg-emerald-600 shadow-glow'
   };
 
   const isIncomingAccept = tone === 'mint';

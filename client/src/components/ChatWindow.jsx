@@ -308,8 +308,12 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
   }
 
   return (
-    <div data-no-tab-swipe className="flex h-full min-h-0 flex-col overflow-hidden bg-bg relative" style={viewportHeight ? { height: `${viewportHeight}px` } : undefined}>
-      <header className="shrink-0 border-b border-border-default bg-surface px-3 py-2.5 shadow-card z-10">
+    <div data-no-tab-swipe className="flex h-full min-h-0 flex-col overflow-hidden bg-bg relative z-10" style={viewportHeight ? { height: `${viewportHeight}px` } : undefined}>
+      {/* Background Atmosphere Glows */}
+      <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] rounded-full bg-accent/10 blur-[120px] pointer-events-none z-0" />
+      <div className="absolute bottom-[-100px] right-[-100px] w-[300px] h-[300px] rounded-full bg-[#4edea3]/10 blur-[100px] pointer-events-none z-0" />
+
+      <header className="shrink-0 border-b border-white/10 bg-surface/70 backdrop-blur-xl px-3 py-2.5 shadow-card z-10 relative">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
             <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
@@ -419,7 +423,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           await onSend(event);
           inputRef.current?.focus();
         }}
-        className="shrink-0 border-t border-border-default bg-surface px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-card z-10"
+        className="shrink-0 border-t border-border-default bg-surface/70 backdrop-blur-xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-card z-10 relative"
       >
         {replyTo && (
           <div className="mb-2 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent-tint px-3 py-2 text-sm">
@@ -481,7 +485,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="flex items-center gap-2 rounded-full border border-border-default bg-surface-glass backdrop-blur-md shadow-sm p-1.5">
+        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-surface-glass backdrop-blur-md shadow-sm p-1.5 ring-1 ring-white/5">
           <input
             ref={fileInputRef}
             type="file"
