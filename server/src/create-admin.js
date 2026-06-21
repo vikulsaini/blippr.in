@@ -9,19 +9,6 @@ async function run() {
   await connectMongo();
 
   const email = 'vikul93065@gmail.com';
-  let user = await User.findOne({ email: email.toLowerCase() });
-
-  if (user) {
-    console.log(`User found in MongoDB: @${user.username} (ID: ${user._id})`);
-    user.role = 'admin';
-    user.isVerified = true;
-    await user.save();
-    console.log(`Successfully updated user @${user.username} to ADMIN.`);
-    mongoose.disconnect();
-    return;
-  }
-
-  console.log(`User ${email} not found in MongoDB. Checking Supabase Auth...`);
   if (!supabaseAdmin) {
     throw new Error('Supabase admin client is not configured.');
   }
@@ -32,7 +19,23 @@ async function run() {
     throw new Error(`Failed to list Supabase users: ${listError.message}`);
   }
 
-  let supabaseUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+  const supabaseUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+  let user = null;
+  if (supabaseUser) {
+    user = await User.findOne({ supabaseId: supabaseUser.id });
+  }
+
+  if (user) {
+    console.log(`User found in database: @${user.username} (ID: ${user._id})`);
+    user.role = 'admin';
+    user.isVerified = true;
+    await user.save();
+    console.log(`Successfully updated user @${user.username} to ADMIN.`);
+    mongoose.disconnect();
+    return;
+  }
+
+  console.log(`User ${email} not found in database. Checking Supabase Auth...`);
   let supabaseId;
   const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'VikulAdmin123!';
 

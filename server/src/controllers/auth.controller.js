@@ -238,7 +238,7 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
 });
 
 export const loginWithEmail = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email }).select('+passwordHash +lastIp +ipHistory');
+  const user = await User.findOne({ email: req.body.email });
   const passwordMatches = user ? await bcrypt.compare(req.body.password, user.passwordHash || '') : false;
 
   if (!passwordMatches) {
@@ -284,7 +284,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  const user = await User.findOne({ email: req.body.email }).select('+lastIp +ipHistory');
+  const user = await User.findOne({ email: req.body.email });
   if (!user) {
     const error = new Error('Account not found');
     error.status = 404;
@@ -319,7 +319,7 @@ export const continueAsGuest = asyncHandler(async (req, res) => {
       isGuest: true,
       lastIp: ip,
       updatedAt: { $gte: reuseSince }
-    }).select('+lastIp +ipHistory');
+    });
 
     if (existingGuest) {
       existingGuest.lastIp = ip;
@@ -532,25 +532,8 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
   const phone = supabaseUser.phone || null;
 
   // Find user by supabaseId first
-  let user = await User.findOne({ supabaseId }).select('+lastIp +ipHistory');
+  let user = await User.findOne({ supabaseId });
 
-  // If not found, try by email or phone to link legacy/different-auth accounts
-  if (!user) {
-    if (email) {
-      user = await User.findOne({ email }).select('+lastIp +ipHistory');
-    }
-    if (!user && phone) {
-      user = await User.findOne({ contact: phone }).select('+lastIp +ipHistory');
-    }
-
-    // Link the supabaseId if the user was found via email/phone fallback
-    if (user) {
-      user.supabaseId = supabaseId;
-      if (email && !user.email) user.email = email;
-      if (phone && !user.contact) user.contact = phone;
-      await user.save();
-    }
-  }
 
   const isGoogleAuth = supabaseUser.app_metadata?.provider === 'google';
   let isNewUser = false;

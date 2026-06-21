@@ -22,18 +22,6 @@ async function seedAdminUser() {
     const User = (await import('./models/User.js')).default;
     const { supabaseAdmin } = await import('./config/supabase.js');
 
-    let user = await User.findOne({ email: email.toLowerCase() });
-    if (user) {
-      if (user.role !== 'admin') {
-        user.role = 'admin';
-        user.isVerified = true;
-        await user.save();
-        console.log(`[Seed] Updated user @${user.username} to ADMIN.`);
-      }
-      return;
-    }
-
-    console.log(`[Seed] User ${email} not found in MongoDB. Checking Supabase Auth...`);
     if (!supabaseAdmin) {
       console.warn('[Seed] Supabase admin client not initialized. Cannot seed admin.');
       return;
@@ -45,7 +33,25 @@ async function seedAdminUser() {
       return;
     }
 
-    let supabaseUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    const supabaseUserMatch = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let user = null;
+    if (supabaseUserMatch) {
+      user = await User.findOne({ supabaseId: supabaseUserMatch.id });
+    }
+
+    if (user) {
+      if (user.role !== 'admin') {
+        user.role = 'admin';
+        user.isVerified = true;
+        await user.save();
+        console.log(`[Seed] Updated user @${user.username} to ADMIN.`);
+      }
+      return;
+    }
+
+    console.log(`[Seed] User ${email} not found in database. Checking Supabase Auth...`);
+
+    let supabaseUser = supabaseUserMatch;
     let supabaseId;
     const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'VikulAdmin123!';
 
