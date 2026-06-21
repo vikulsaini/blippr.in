@@ -108,8 +108,9 @@ async function boot() {
   app.locals.dbStatus = { mongo: 'disconnected', postgres: 'disconnected', redis: 'disconnected', error: null };
 
   // Start HTTP server immediately to satisfy Railway healthcheck at /health
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`Blippr API listening on production port ${port}`);
+  const listenHost = process.env.NODE_ENV === 'production' ? '::' : '0.0.0.0';
+  server.listen(port, listenHost, () => {
+    console.log(`Blippr API listening on production port ${port} (bound to ${listenHost})`);
   });
 
   // Connect to databases and initialize services in the background
