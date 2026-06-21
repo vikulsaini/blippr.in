@@ -1,9 +1,10 @@
+import { getToken } from './api.js';
 import { createSocket } from './socket.js';
 
 let socket;
 
 export function getRealtimeSocket() {
-  const currentToken = localStorage.getItem('blippr_token');
+  const currentToken = getToken();
   if (socket && socket.auth?.token !== currentToken) {
     console.log('[Realtime] Token changed or expired. Disconnecting old socket connection.');
     socket.disconnect();
@@ -14,9 +15,18 @@ export function getRealtimeSocket() {
     socket = createSocket();
   }
   socket.auth = { token: currentToken };
-  if (!socket.connected) {
-    console.log('[Realtime] Socket is not connected. Connecting now...');
-    socket.connect();
+  
+  if (currentToken) {
+    if (!socket.connected) {
+      console.log('[Realtime] Socket is not connected. Connecting now...');
+      socket.connect();
+    }
+  } else {
+    console.log('[Realtime] Skipping socket connection: No active token found.');
+    if (socket.connected) {
+      socket.disconnect();
+    }
   }
   return socket;
 }
+
