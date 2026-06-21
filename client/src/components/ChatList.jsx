@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { dropdownSlide } from '../lib/motion.js';
 import { Archive, Bell, BellOff, MessageCircle, Pin, Search, Shuffle, Star, Trash2, X, Users, LockKeyhole, Hash, ChevronDown, ChevronRight, Mail } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
 import { haptics } from '../lib/haptics.js';
@@ -62,6 +63,7 @@ export default function ChatList({
   loadingMore = false,
   onLoadMore
 }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('chats');
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -142,53 +144,65 @@ export default function ChatList({
           />
         ) : (
           <div className="flex shrink-0 items-center justify-between px-4 py-2 relative">
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-1.5 focus:outline-none hover:opacity-80 transition cursor-pointer"
+            <div className="flex items-center gap-3">
+              <div 
+                onClick={() => navigate('/app/profile')} 
+                className="w-8 h-8 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center cursor-pointer hover:opacity-90 active:scale-95 transition shrink-0"
               >
-                <h2 className="text-lg font-bold tracking-tight text-text-primary">
-                  {tab === 'archived' ? 'Archived Chats' : 'Blippr Chat'}
-                </h2>
-                <ChevronDown size={15} className="text-text-muted mt-0.5" />
-              </button>
-              <AnimatePresence>
-                {menuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                    <motion.div
-                      variants={dropdownSlide}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                      className="absolute left-0 mt-2 w-48 rounded-2xl border border-border-default bg-surface p-1 shadow-elevated z-50 origin-top-left"
-                    >
-                      <button
-                        onClick={() => {
-                          setTab('chats');
-                          setMenuOpen(false);
-                        }}
-                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'chats' ? 'bg-accent/10 text-accent' : 'text-text-primary hover:bg-surface-hover'}`}
-                      >
-                        Active Chats
-                      </button>
-                      <button
-                        onClick={() => {
-                          setTab('archived');
-                          setMenuOpen(false);
-                        }}
-                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'archived' ? 'bg-accent/10 text-accent' : 'text-text-primary hover:bg-surface-hover'}`}
-                      >
-                        Archived Chats
-                      </button>
-                    </motion.div>
-                  </>
+                {me?.avatar ? (
+                  <img className="w-full h-full object-cover" src={me.avatar} alt="" />
+                ) : (
+                  <div className="text-[10px] font-black text-white">ME</div>
                 )}
-              </AnimatePresence>
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="flex items-center gap-1.5 focus:outline-none hover:opacity-80 transition cursor-pointer"
+                >
+                  <h2 className="font-display-lg text-lg font-black text-primary tracking-tighter">
+                    {tab === 'archived' ? 'Archived' : 'Blippr'}
+                  </h2>
+                  <ChevronDown size={14} className="text-primary mt-0.5" />
+                </button>
+                <AnimatePresence>
+                  {menuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                      <motion.div
+                        variants={dropdownSlide}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className="absolute left-0 mt-2 w-48 rounded-2xl border border-white/10 bg-surface-container p-1 shadow-elevated z-50 origin-top-left"
+                      >
+                        <button
+                          onClick={() => {
+                            setTab('chats');
+                            setMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'chats' ? 'bg-primary/10 text-primary' : 'text-text-primary hover:bg-white/5'}`}
+                        >
+                          Active Chats
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTab('archived');
+                            setMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${tab === 'archived' ? 'bg-primary/10 text-primary' : 'text-text-primary hover:bg-white/5'}`}
+                        >
+                          Archived Chats
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="grid h-9 w-9 place-items-center rounded-full bg-bg hover:bg-surface-hover text-text-secondary transition active:scale-95 cursor-pointer"
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/5 hover:bg-white/10 text-primary transition active:scale-95 cursor-pointer"
               aria-label="Toggle Search"
             >
               <Search size={18} />
@@ -205,20 +219,24 @@ export default function ChatList({
               </div>
             )}
             {(searchOpen || query) && (
-              <label className="search-container mt-2">
-                <Search size={18} className="text-accent shrink-0" />
+              <div className="relative mt-2 px-1">
+                <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted/40 shrink-0" />
                 <input
                   type="text"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search channels, friends or messages"
+                  placeholder="Search conversations..."
+                  className="w-full bg-[#171f33]/40 border border-white/5 rounded-full py-3 pl-12 pr-10 text-white placeholder-text-muted/40 focus:ring-2 focus:ring-primary/50 outline-none transition-all text-sm font-semibold"
                 />
                 {query && (
-                  <button onClick={() => setQuery('')} className="p-1 rounded-full text-text-muted hover:bg-surface-hover">
+                  <button 
+                    onClick={() => setQuery('')} 
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-text-muted hover:bg-white/5 transition"
+                  >
                     <X size={14} />
                   </button>
                 )}
-              </label>
+              </div>
             )}
           </div>
         )}
@@ -227,7 +245,7 @@ export default function ChatList({
       <div data-chat-feed onScroll={handleScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin px-4 space-y-4">
         {tab === 'chats' && activeFriends.length > 0 && (
           <section className="mb-2 shrink-0">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-3">Active Now</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-text-muted/60 mb-4">Active Now</h3>
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none scroll-smooth">
               {activeFriends.map((friend) => {
                 const displayName = getNickname(friend.chat, currentUserId, friend);
@@ -237,7 +255,7 @@ export default function ChatList({
                     onClick={() => onOpenChat(friend.chat)}
                     className="flex flex-col items-center gap-2 flex-shrink-0 active:scale-95 transition-transform cursor-pointer"
                   >
-                    <div className="relative w-16 h-16 rounded-full p-0.5 border-2 border-primary shadow-[0_0_15px_rgba(210,187,255,0.3)] bg-surface">
+                    <div className="relative w-16 h-16 rounded-full p-0.5 border-2 border-primary shadow-[0_0_15px_rgba(210,187,255,0.3)] bg-[#0b1326]">
                       {friend.avatar ? (
                         <img className="w-full h-full rounded-full object-cover" src={friend.avatar} alt={displayName} />
                       ) : (
@@ -245,7 +263,7 @@ export default function ChatList({
                           {displayName ? displayName.charAt(0).toUpperCase() : 'F'}
                         </div>
                       )}
-                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-success rounded-full border-2 border-surface presence-glow"></div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-secondary rounded-full border-2 border-surface presence-glow"></div>
                     </div>
                     <span className="text-[11px] font-semibold text-text-secondary max-w-[64px] truncate">{displayName.split(' ')[0]}</span>
                   </div>
@@ -260,9 +278,9 @@ export default function ChatList({
         ) : (
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1 mb-2">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Messages</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-text-muted/60">Messages</h3>
               {personalUnread > 0 && (
-                <span className="text-success text-xs font-bold">{personalUnread} Unread</span>
+                <span className="text-secondary text-xs font-bold">{personalUnread} Unread</span>
               )}
             </div>
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1.5">
@@ -639,21 +657,21 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           event.stopPropagation();
           onSelect();
         }}
-        className={`relative flex w-full items-center gap-4 rounded-xl p-4 text-left cursor-pointer transition-[background-color,border-color] duration-200 active:scale-[0.98] ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : (chat.unreadCount ? 'glass-card' : 'bg-surface/40 hover:bg-surface-hover/40 border border-border-default/40')} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
+        className={`relative flex w-full items-center gap-4 rounded-xl p-4 text-left cursor-pointer transition-[background-color,border-color] duration-200 active:scale-[0.98] ${chat.unreadCount ? 'ring-1 ring-primary/20 shadow-glow' : ''} ${selected ? 'border-primary/25 bg-primary/10 shadow-glow' : (chat.unreadCount ? 'glass-card border border-white/10' : 'bg-[#131b2e]/60 hover:bg-[#171f33]/80 border border-white/5')} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
       >
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center gap-4 w-full">
             {/* Avatar Container with online status dot */}
-            <div className="relative h-14 w-14 shrink-0 rounded-full bg-surface-hover flex items-center justify-center">
+            <div className={`relative h-14 w-14 shrink-0 rounded-full flex items-center justify-center ${chat.unreadCount ? 'p-0.5 border-2 border-primary shadow-[0_0_12px_rgba(210,187,255,0.4)]' : 'p-0.5 border border-white/10'}`}>
               {other?.avatar ? (
                 <img src={other.avatar} alt="" className="h-full w-full rounded-full object-cover" />
               ) : (
-                <div className="h-full w-full rounded-full bg-gradient-to-tr from-accent to-accent-light flex items-center justify-center text-white font-bold text-sm">
+                <div className="h-full w-full rounded-full bg-gradient-to-tr from-primary to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm">
                   {displayName ? displayName.charAt(0).toUpperCase() : 'F'}
                 </div>
               )}
               {other?.isOnline && (
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-surface presence-glow" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-secondary rounded-full border-2 border-surface presence-glow" />
               )}
             </div>
 
@@ -663,28 +681,28 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
                 <div className="flex items-center gap-2 min-w-0">
                   <p className="truncate font-semibold text-text-primary text-base">{displayName || 'Friend'}</p>
                   {(chat.isStranger || other?.isStranger) && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-success/15 text-success text-[10px] font-semibold shrink-0">Stranger</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-secondary/15 text-secondary text-[10px] font-semibold shrink-0">Stranger</span>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="flex items-center gap-1">
                     {chat.archived && <Archive size={11} className="text-text-faint" />}
-                    {chat.pinned && <Pin size={11} className="text-accent" />}
+                    {chat.pinned && <Pin size={11} className="text-primary" />}
                     {chat.starred && <Star size={11} className="fill-gold text-gold" />}
                     {chat.muted && <BellOff size={11} className="text-text-faint" />}
                   </span>
-                  <span className={`text-[11px] font-semibold ${chat.unreadCount ? 'text-success' : 'text-text-muted'}`}>
+                  <span className={`text-[11px] font-semibold ${chat.unreadCount ? 'text-secondary font-bold' : 'text-text-muted'}`}>
                     {chat.lastMessage ? formatMessageTime(chat.lastMessage.createdAt) : ''}
                   </span>
                 </div>
               </div>
-              <p className={`mt-1 truncate text-xs ${typing ? 'font-semibold text-accent' : chat.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
+              <p className={`mt-1 truncate text-xs ${typing ? 'font-semibold text-primary' : chat.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
                 {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
               </p>
             </div>
 
             {chat.unreadCount > 0 && (
-              <div className="w-2.5 h-2.5 bg-accent rounded-full shadow-[0_0_10px_rgba(210,187,255,0.6)] shrink-0 self-center ml-2 badge-pulse" />
+              <div className="w-2.5 h-2.5 bg-primary rounded-full shadow-[0_0_10px_rgba(210,187,255,0.6)] shrink-0 self-center ml-2 badge-pulse" />
             )}
           </div>
         </ChatRowButton>

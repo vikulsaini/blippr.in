@@ -507,7 +507,7 @@ export default function Stranger() {
           onPointerMove={revealVideoChrome}
           onPointerDown={revealVideoChrome}
           onTouchStart={revealVideoChrome}
-          className={`${focused ? 'fixed inset-0 z-[90] h-[100dvh] w-screen overflow-hidden bg-[#0b1326]/60 backdrop-blur-md shadow-card sm:rounded-[16px]' : 'flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5 bg-surface/40 backdrop-blur-md border border-white/5 shadow-card'}`}
+          className={`${focused ? 'fixed inset-0 z-[90] h-[100dvh] w-screen overflow-hidden bg-[#0b1326]/60 backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.6)] sm:rounded-[16px]' : 'flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] p-0.5 sm:p-1 lg:rounded-[22px] lg:p-1.5 bg-[#171f33]/70 backdrop-blur-md border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.4)]'}`}
         >
           <div className="relative min-h-0 flex-1">
             <MainVideoStage
@@ -542,26 +542,26 @@ export default function Stranger() {
       )}
 
       {showChat && (
-        <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px] bg-surface/40 backdrop-blur-md border border-white/5 shadow-card">
+        <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] lg:rounded-[22px] bg-[#171f33]/70 backdrop-blur-md border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
           <div className="space-y-2 p-2 lg:p-3">
             <div className="flex items-center justify-between gap-3">
               {peer ? (
                 <div className="flex min-w-0 items-center gap-3">
                   <button onClick={() => setProfileUser(peer)} className="relative shrink-0">
-                    <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl" />
-                    <span className="absolute bottom-0 right-0 status-dot online" />
+                    <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl border border-white/10" />
+                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#4edea3] border-2 border-[#171f33] shadow-[0_0_8px_#4edea3]" />
                   </button>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-text-primary">{peer.name}</p>
-                    <p className="truncate text-xs text-text-muted">{peer.gender} · {peer.age}</p>
+                    <p className="truncate font-semibold text-white">{peer.name}</p>
+                    <p className="truncate text-xs text-[#ccc3d8]/80">{peer.gender} · {peer.age}</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="tone-ring grid h-10 w-10 shrink-0 place-items-center rounded-[15px] bg-accent-light text-accent sm:h-11 sm:w-11 sm:rounded-2xl"><MessageCircle size={19} /></span>
+                  <span className="mx-auto grid h-10 w-10 shrink-0 place-items-center rounded-[15px] bg-[#7c3aed]/25 text-[#d2bbff] border border-[#7c3aed]/30 shadow-[0_0_12px_rgba(124,58,237,0.2)] sm:h-11 sm:w-11 sm:rounded-2xl"><MessageCircle size={19} /></span>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-text-primary">Random chat</p>
-                    <p className="truncate text-xs text-text-muted">{status}</p>
+                    <p className="truncate font-semibold text-white">Random chat</p>
+                    <p className="truncate text-xs text-[#ccc3d8]/70">{status}</p>
                   </div>
                 </div>
               )}
@@ -588,8 +588,8 @@ export default function Stranger() {
                     transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                     className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-accent to-[#0EA5E9] text-white shadow-card' : 'rounded-bl-none border border-border-default bg-surface text-text-primary shadow-card'} ${message.pending ? 'opacity-70' : ''}`}>
-                      <p className={mine ? 'text-white' : 'text-text-primary font-medium'}>
+                    <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-[#7c3aed] to-[#5b21b6] border border-[#d2bbff]/20 text-white shadow-[0_4px_14px_rgba(124,58,237,0.35)]' : 'rounded-bl-none border border-white/10 bg-[#171f33]/75 backdrop-blur-md text-[#dbe2fd] shadow-md'} ${message.pending ? 'opacity-70' : ''}`}>
+                      <p className={mine ? 'text-white' : 'text-[#dbe2fd] font-medium'}>
                         {message.text}
                       </p>
                     </div>
@@ -601,11 +601,11 @@ export default function Stranger() {
           </div>
 
           {session ? (
-            <div className="grid grid-cols-2 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-surface/20 border-t border-white/5 backdrop-blur-md">
+            <div className="grid grid-cols-2 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-[#131b2e]/60 border-t border-white/10 backdrop-blur-md">
               <button
                 type="button"
                 onClick={handleRandomAction}
-                className="btn-secondary flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold sm:min-h-11 sm:rounded-2xl sm:text-sm"
+                className="border border-white/10 bg-[#131b2e]/60 hover:bg-[#171f33] text-[#dbe2fd] hover:border-[#d2bbff]/30 flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold sm:min-h-11 sm:rounded-2xl sm:text-sm transition-all duration-200"
               >
                 {finding ? <Loader2 className="animate-spin" size={17} /> : <Shuffle size={17} />}
                 {randomActionLabel}
@@ -614,7 +614,7 @@ export default function Stranger() {
                 type="button"
                 onClick={toggleFriendRequest}
                 disabled={!peer || (!friendSent && !friendUnlocked && !isGuest)}
-                className={`flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm btn-primary`}
+                className={`bg-gradient-to-r from-[#7c3aed] to-[#5b21b6] text-white flex min-h-10 items-center justify-center gap-1.5 rounded-[15px] px-2.5 py-2 text-xs font-semibold disabled:opacity-45 sm:min-h-11 sm:rounded-2xl sm:text-sm transition-all duration-200 shadow-[0_0_12px_rgba(124,58,237,0.3)]`}
                 title={isGuest ? 'Upgrade to send friend requests' : friendSent ? 'Cancel friend request' : (friendUnlocked ? 'Send friend request' : 'Talk for at least 3 minutes before sending a request')}
               >
                 {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
@@ -622,11 +622,11 @@ export default function Stranger() {
               </button>
             </div>
           ) : (
-            <div className="p-2 lg:p-3 bg-surface/20 border-t border-white/5 backdrop-blur-md">
+            <div className="p-2 lg:p-3 bg-[#131b2e]/60 border-t border-white/10 backdrop-blur-md">
               <button
                 type="button"
                 onClick={handleRandomAction}
-                className="btn-primary flex w-full min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-accent-sm"
+                className="bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white shadow-[0_0_15px_rgba(124,58,237,0.45)] hover:scale-[1.01] active:scale-95 transition-all flex w-full min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold border border-[#d2bbff]/20"
               >
                 {finding ? (
                   <>
@@ -644,20 +644,20 @@ export default function Stranger() {
           )}
 
           {peer && (
-            <button type="button" onClick={reportPeer} className="mx-2 mb-2 rounded-2xl bg-danger/10 py-2 text-xs font-semibold text-danger">
+            <button type="button" onClick={reportPeer} className="mx-2 mb-2 rounded-2xl bg-red-500/10 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/15 transition-colors border border-red-500/15">
               Report unsafe behavior
             </button>
           )}
 
           {session && (
-            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-surface/40 backdrop-blur-md border-t border-white/5">
+            <form onSubmit={sendMessage} className="flex shrink-0 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-[#131b2e]/60 backdrop-blur-md border-t border-white/10">
               <input
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                className="min-w-0 flex-1 rounded-[15px] bg-[#0b1326]/60 border border-white/10 focus:border-accent/40 px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 text-text-primary placeholder:text-text-faint font-medium"
+                className="min-w-0 flex-1 rounded-[15px] bg-[#0b1326]/80 border border-white/10 focus:border-[#d2bbff]/40 px-3 py-2.5 text-sm outline-none sm:rounded-2xl sm:px-4 sm:py-3 text-[#dbe2fd] placeholder:text-[#ccc3d8]/30 font-medium"
                 placeholder="Say something..."
               />
-              <button disabled={!text.trim()} className="btn-primary grid h-11 w-11 place-items-center rounded-[15px] disabled:opacity-40 sm:h-12 sm:w-12 sm:rounded-2xl" aria-label="Send">
+              <button disabled={!text.trim()} className="bg-gradient-to-r from-[#7c3aed] to-[#5b21b6] text-white shadow-[0_0_10px_rgba(124,58,237,0.3)] grid h-11 w-11 place-items-center rounded-[15px] disabled:opacity-40 sm:h-12 sm:w-12 sm:rounded-2xl border border-[#d2bbff]/15 hover:scale-105 active:scale-95 transition-all" aria-label="Send">
                 <Send size={18} />
               </button>
             </form>
@@ -726,12 +726,12 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
           </div>
         </div>
       )}
-      <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/70 via-black/20 to-transparent p-2 transition duration-300 sm:p-3 ${chromeVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/80 via-black/20 to-transparent p-2 transition duration-300 sm:p-3 ${chromeVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-start gap-2">
-            <div className="pointer-events-auto min-w-0 rounded-[15px] bg-black/38 px-2.5 py-1.5 text-left backdrop-blur-md sm:rounded-2xl sm:px-3 sm:py-2">
+            <div className="pointer-events-auto min-w-0 rounded-[15px] bg-black/50 border border-white/10 px-2.5 py-1.5 text-left backdrop-blur-md sm:rounded-2xl sm:px-3 sm:py-2">
               <p className="truncate text-xs font-semibold text-white sm:text-base">{peer?.name || (finding ? 'Searching...' : 'Random live')}</p>
-              <p className="mt-0.5 text-[11px] font-semibold capitalize text-white/52">{status || 'idle'}</p>
+              <p className="mt-0.5 text-[11px] font-semibold capitalize text-[#d2bbff]">{status || 'idle'}</p>
             </div>
             <div className="pointer-events-auto hidden sm:block">
               {modeTabs}
@@ -744,7 +744,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
             <button
               type="button"
               onClick={onToggleFocus}
-              className="pointer-events-auto grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black/42 text-white/82 backdrop-blur-md transition hover:bg-white/12 sm:h-10 sm:w-10"
+              className="pointer-events-auto grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black/50 text-[#ccc3d8] hover:text-white border border-white/10 backdrop-blur-md transition hover:bg-white/10 sm:h-10 sm:w-10"
               aria-label={focused ? 'Exit full screen random chat' : 'Open full screen random chat'}
             >
               {focused ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
@@ -752,8 +752,8 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
           </div>
         </div>
       </div>
-      <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/78 via-black/22 to-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-10 transition duration-300 sm:px-3 ${chromeVisible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}>
-        <div className="pointer-events-auto mx-auto grid w-full max-w-md grid-cols-3 gap-2 rounded-[24px] bg-[#171f33]/65 border border-white/5 p-2 backdrop-blur-md sm:max-w-3xl sm:grid-cols-6 sm:gap-3 sm:rounded-full sm:p-2.5">
+      <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/20 to-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-10 transition duration-300 sm:px-3 ${chromeVisible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}>
+        <div className="pointer-events-auto mx-auto grid w-full max-w-md grid-cols-3 gap-2 rounded-[24px] bg-[#171f33]/80 border border-white/10 p-2 backdrop-blur-md sm:max-w-3xl sm:grid-cols-6 sm:gap-3 sm:rounded-full sm:p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           {actions}
         </div>
       </div>
@@ -768,7 +768,7 @@ function ModeTabs({ value, onChange }) {
   ];
 
   return (
-    <div data-no-tab-swipe className="glass-panel p-1 rounded-full flex gap-1 relative shadow-inner">
+    <div data-no-tab-swipe className="border border-white/10 bg-[#0b1326]/60 backdrop-blur-md p-1 rounded-full flex gap-1 relative shadow-inner">
       {modes.map((mode) => {
         const Icon = mode.icon;
         const active = value === mode.value;
@@ -778,7 +778,7 @@ function ModeTabs({ value, onChange }) {
             type="button"
             onClick={() => onChange(mode.value)}
             className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${
-              active ? 'bg-accent text-white shadow-md' : 'text-text-muted hover:text-text-primary'
+              active ? 'bg-[#7c3aed] text-white border border-[#d2bbff]/20 shadow-[0_0_10px_rgba(124,58,237,0.4)]' : 'text-[#ccc3d8] hover:text-white'
             }`}
           >
             <Icon size={14} />
@@ -803,15 +803,15 @@ function LocalPreview({ stream, videoRef, cameraOff, chromeVisible }) {
   }, [stream, videoRef, cameraOff]);
 
   return (
-    <div className={`absolute right-2 top-14 z-10 h-20 w-16 overflow-hidden rounded-[14px] bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] transition duration-300 sm:right-4 sm:top-20 sm:h-28 sm:w-24 lg:h-28 lg:w-24 ${chromeVisible ? 'opacity-100' : 'opacity-45'}`}>
+    <div className={`absolute right-2 top-14 z-10 h-20 w-16 overflow-hidden rounded-[14px] bg-black/90 border border-white/10 shadow-2xl transition duration-300 sm:right-4 sm:top-20 sm:h-28 sm:w-24 lg:h-28 lg:w-24 ${chromeVisible ? 'opacity-100' : 'opacity-45'}`}>
       {stream && !cameraOff ? (
         <video ref={videoRef} autoPlay playsInline muted className="h-full w-full scale-x-[-1] object-cover" />
       ) : (
-        <div className="grid h-full w-full place-items-center bg-white/7 text-white/45">
+        <div className="grid h-full w-full place-items-center bg-white/5 text-[#ccc3d8]/40">
           <VideoOff size={22} />
         </div>
       )}
-      <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">You</span>
+      <span className="absolute bottom-2 left-2 rounded-full bg-black/60 border border-white/5 px-2 py-0.5 text-[10px] font-semibold backdrop-blur text-white">You</span>
     </div>
   );
 }
@@ -822,7 +822,7 @@ function CircleControl({ icon: Icon, label, onClick, disabled, primary, danger }
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[10px] font-semibold capitalize disabled:opacity-35 sm:h-12 sm:px-3.5 sm:text-xs ${primary ? 'btn-primary' : danger ? 'bg-rose/12 text-rose hover:bg-rose/18' : 'bg-white/10 text-white/82 hover:bg-white/16'} ${label.includes('3:00') ? 'ring-1 ring-mint/45' : ''}`}
+      className={`flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[10px] font-semibold capitalize disabled:opacity-35 sm:h-12 sm:px-3.5 sm:text-xs transition-all duration-150 ${primary ? 'bg-gradient-to-r from-[#7c3aed] to-[#5b21b6] border border-[#d2bbff]/20 text-white shadow-[0_0_10px_rgba(124,58,237,0.3)] hover:brightness-110' : danger ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/15' : 'bg-white/5 text-[#ccc3d8] border border-white/10 hover:bg-white/10 hover:text-white'} ${label.includes('Wait') ? 'ring-1 ring-[#4edea3]/40' : ''}`}
     >
       <Icon size={17} />
       <span className="truncate">{label}</span>
@@ -834,11 +834,11 @@ function ConnectionQualityIndicator({ state }) {
   if (state !== 'connected' && state !== 'connecting') return null;
   const bars = state === 'connected' ? 3 : 1;
   return (
-    <div className="flex items-center gap-1 py-0.5 px-2 bg-surface-hover rounded-xl" title="WebRTC Connection Quality">
+    <div className="flex items-center gap-1 py-0.5 px-2 bg-white/5 border border-white/5 rounded-xl" title="WebRTC Connection Quality">
       <div className="flex items-end gap-0.5 h-3">
-        <div className={`w-0.5 rounded-t-sm h-1.5 ${bars >= 1 ? 'bg-success' : 'bg-border-default'}`} />
-        <div className={`w-0.5 rounded-t-sm h-2.5 ${bars >= 2 ? 'bg-success' : 'bg-border-default'}`} />
-        <div className={`w-0.5 rounded-t-sm h-3.5 ${bars >= 3 ? 'bg-success' : 'bg-border-default'}`} />
+        <div className={`w-0.5 rounded-t-sm h-1.5 ${bars >= 1 ? 'bg-[#4edea3]' : 'bg-white/10'}`} />
+        <div className={`w-0.5 rounded-t-sm h-2.5 ${bars >= 2 ? 'bg-[#4edea3]' : 'bg-white/10'}`} />
+        <div className={`w-0.5 rounded-t-sm h-3.5 ${bars >= 3 ? 'bg-[#4edea3]' : 'bg-white/10'}`} />
       </div>
     </div>
   );
@@ -860,24 +860,24 @@ function EmptyRandom({ finding, queueText, activeUsers }) {
           </>
         )}
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-24 h-24 rounded-full bg-accent flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.3)] animate-bounce duration-[2000ms]">
+          <div className="w-24 h-24 rounded-full bg-[#7c3aed] flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.45)] border border-[#d2bbff]/20 animate-bounce duration-[2000ms]">
             <Shuffle className="text-white text-5xl" size={40} />
           </div>
           <div className="mt-8 text-center">
-            <h2 className="text-xl font-semibold text-accent animate-pulse">
+            <h2 className="text-xl font-semibold text-[#d2bbff] animate-pulse">
               {finding ? 'Searching...' : 'Ready to Match'}
             </h2>
-            <p className="text-xs text-text-muted mt-2">
+            <p className="text-xs text-[#ccc3d8]/85 mt-2">
               {finding ? queueText : 'Connecting you with someone electric'}
             </p>
           </div>
         </div>
       </div>
       {activeUsers > 0 && !finding && (
-        <p className="mt-4 text-[11px] font-semibold text-accent bg-accent-light px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+        <p className="mt-4 text-[11px] font-semibold text-[#d2bbff] bg-[#7c3aed]/20 border border-[#7c3aed]/30 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md">
           <span className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4edea3] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#4edea3]"></span>
           </span>
           {activeUsers} {activeUsers === 1 ? 'user' : 'users'} active now
         </p>
@@ -890,18 +890,18 @@ function SafetyModal({ open, onClose, onAgree }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[120] grid place-items-center bg-black/60 p-4 backdrop-blur">
-      <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full max-w-sm bg-surface p-5 shadow-elevated">
-        <span className="tone-ring grid h-12 w-12 place-items-center rounded-2xl bg-accent-light text-accent">
+      <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full max-w-sm border border-white/10 bg-[#171f33]/95 backdrop-blur-xl p-6 rounded-[28px] shadow-[0_12px_40px_rgba(0,0,0,0.5)] text-[#dbe2fd]">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#7c3aed]/25 text-[#d2bbff] border border-[#7c3aed]/30 shadow-[0_0_15px_rgba(124,58,237,0.2)]">
           <ShieldCheck size={23} />
         </span>
-        <h3 className="mt-4 text-lg font-semibold text-text-primary">Before you start</h3>
-        <div className="mt-3 space-y-2 text-sm leading-6 text-text-secondary">
+        <h3 className="mt-4 text-lg font-semibold text-white">Before you start</h3>
+        <div className="mt-3 space-y-2 text-sm leading-6 text-[#ccc3d8]/80">
           <p>Keep random chat respectful. Adult, abusive, hateful, exploitative, or unsafe content is not allowed.</p>
           <p>Messages can be blocked by safety filters. Reports may restrict or ban accounts.</p>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <button type="button" onClick={onClose} className="btn-secondary rounded-2xl py-3 text-sm font-semibold">Cancel</button>
-          <button type="button" onClick={onAgree} className="btn-primary rounded-2xl py-3 text-sm font-semibold">I agree</button>
+          <button type="button" onClick={onClose} className="border border-white/10 bg-[#131b2e]/60 hover:bg-[#171f33] text-[#dbe2fd] rounded-2xl py-3 text-sm font-semibold transition-colors">Cancel</button>
+          <button type="button" onClick={onAgree} className="bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white rounded-2xl py-3 text-sm font-semibold shadow-[0_0_12px_rgba(124,58,237,0.4)]">I agree</button>
         </div>
       </motion.div>
     </div>
@@ -951,7 +951,7 @@ function ElectricCanvas() {
       draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(124, 58, 237, ${this.opacity})`;
+        ctx.fillStyle = Math.random() > 0.5 ? `rgba(210, 187, 255, ${this.opacity})` : `rgba(78, 222, 163, ${this.opacity})`;
         ctx.fill();
 
         sparks.forEach(other => {
@@ -962,7 +962,7 @@ function ElectricCanvas() {
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
             ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = `rgba(124, 58, 237, ${0.08 * (1 - dist / 80)})`;
+            ctx.strokeStyle = `rgba(210, 187, 255, ${0.06 * (1 - dist / 80)})`;
             ctx.stroke();
           }
         });

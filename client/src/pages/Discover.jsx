@@ -190,16 +190,20 @@ export default function Discover() {
   return (
     <div className="mx-auto w-full max-w-mobile min-h-[calc(100vh-6rem)] flex flex-col justify-between px-4 pb-20 relative overflow-hidden">
       
+      {/* Decorative Glow Elements */}
+      <div className="absolute -top-12 -left-12 w-48 h-48 bg-[#7c3aed]/10 rounded-full blur-[64px] pointer-events-none" />
+      <div className="absolute -right-16 top-1/3 w-64 h-64 bg-[#4edea3]/5 rounded-full blur-[80px] pointer-events-none" />
+
       {/* Search and Filters Header */}
       <div className="space-y-4 pt-4 z-20">
-        <section className="glass-card rounded-full p-1.5 shadow-md">
+        <section className="border border-white/10 bg-[#171f33]/70 backdrop-blur-md rounded-full p-1.5 shadow-md">
           <label className="flex items-center gap-2 px-3">
-            <Search size={18} className="text-accent shrink-0" />
+            <Search size={18} className="text-[#d2bbff] shrink-0" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-transparent border-none text-text-primary placeholder:text-text-muted focus:ring-0 text-sm py-1.5"
+              className="w-full bg-transparent border-none text-[#dbe2fd] placeholder-[#ccc3d8]/40 focus:ring-0 text-sm py-1.5"
               placeholder="Search conversations or users..."
             />
           </label>
@@ -214,7 +218,11 @@ export default function Discover() {
                   setSelectedFilter(f);
                   setCardIndex(0);
                 }}
-                className={`flex-shrink-0 px-4 py-1.5 rounded-full font-semibold text-xs transition duration-200 border border-border ${selectedFilter === f ? 'bg-accent text-white shadow-glow' : 'bg-white/65 text-text-secondary hover:text-text-primary'}`}
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full font-semibold text-xs transition duration-200 border ${
+                  selectedFilter === f
+                    ? 'bg-[#7c3aed] text-white border-[#d2bbff]/30 shadow-[0_0_12px_rgba(124,58,237,0.4)]'
+                    : 'bg-[#171f33]/60 backdrop-blur-sm text-[#ccc3d8] hover:text-[#dbe2fd] border-white/5'
+                }`}
               >
                 {f}
               </button>
@@ -226,8 +234,8 @@ export default function Discover() {
       {/* Main Content Area */}
       <div className="flex-grow flex items-center justify-center py-4 relative min-h-[360px] z-10">
         {searching ? (
-          <div className="w-full aspect-[3/4] rounded-3xl glass-card flex flex-col items-center justify-center text-text-secondary">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-accent border-t-transparent mb-3" />
+          <div className="w-full aspect-[3/4] rounded-[32px] border border-white/10 bg-[#171f33]/70 backdrop-blur-md flex flex-col items-center justify-center text-[#ccc3d8]">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#d2bbff] border-t-transparent mb-3" />
             <p className="text-sm font-semibold">Searching users...</p>
           </div>
         ) : query.trim() ? (
@@ -238,12 +246,12 @@ export default function Discover() {
                 <UserRow key={user._id} user={user} status={getUserStatus(user._id)} onProfile={setProfileUser} onAction={toggleRequest} />
               ))
             ) : (
-              <div className="col-span-full glass-card p-8 rounded-[24px] text-center shadow-card">
-                <span className="tone-ring mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent/10 text-accent">
+              <div className="col-span-full border border-white/10 bg-[#171f33]/70 backdrop-blur-md p-8 rounded-[24px] text-center shadow-md">
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#7c3aed]/25 text-[#d2bbff] border border-[#7c3aed]/30 shadow-[0_0_15px_rgba(124,58,237,0.2)]">
                   <Search size={21} />
                 </span>
-                <p className="mt-3 font-semibold text-text-primary">No users found</p>
-                <p className="mt-1 text-xs text-text-muted">Try another username or name.</p>
+                <p className="mt-3 font-semibold text-white">No users found</p>
+                <p className="mt-1 text-xs text-[#ccc3d8]/80">Try another username or name.</p>
               </div>
             )}
           </div>
@@ -267,12 +275,12 @@ export default function Discover() {
                   );
                 })
               ) : (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 glass-card rounded-3xl">
-                  <span className="tone-ring grid h-16 w-16 place-items-center rounded-full bg-accent/10 text-accent mb-4 animate-pulse">
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 border border-white/10 bg-[#171f33]/70 backdrop-blur-md rounded-[32px] shadow-2xl">
+                  <span className="grid h-16 w-16 place-items-center rounded-full bg-[#7c3aed]/25 text-[#d2bbff] border border-[#7c3aed]/30 shadow-[0_0_15px_rgba(124,58,237,0.2)] mb-4 animate-pulse">
                     <MapPin size={28} />
                   </span>
-                  <p className="text-lg font-bold text-text-primary">Find your crew</p>
-                  <p className="text-xs text-text-muted mt-2 max-w-[220px]">
+                  <p className="text-lg font-bold text-white">Find your crew</p>
+                  <p className="text-xs text-[#ccc3d8]/80 mt-2 max-w-[220px]">
                     No more Suggested users in this category. Change filter chip or try searching above!
                   </p>
                 </motion.div>
@@ -286,21 +294,21 @@ export default function Discover() {
         <div className="flex items-center justify-center gap-6 mt-2 z-20">
           <button
             onClick={() => handleSwipe('left')}
-            className="w-16 h-16 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-text-secondary hover:text-[#ef4444] hover:bg-[#ef4444]/10 active:scale-90 hover:scale-110 transition-all duration-200"
+            className="w-16 h-16 rounded-full flex items-center justify-center bg-[#171f33]/70 border border-white/10 text-[#ccc3d8] hover:text-[#ff4f68] hover:bg-[#ff4f68]/15 hover:border-[#ff4f68]/40 active:scale-95 hover:scale-110 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all duration-200"
             title="Pass"
           >
             <XIcon size={28} />
           </button>
           <button
             onClick={() => handleSwipe('right')}
-            className="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-amber-500 hover:scale-110 hover:bg-white/10 active:scale-90 transition-all duration-200"
+            className="w-12 h-12 rounded-full flex items-center justify-center bg-[#171f33]/70 border border-white/10 text-amber-400 hover:scale-110 hover:bg-amber-400/15 hover:border-amber-400/40 active:scale-95 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all duration-200"
             title="Super Blipp"
           >
-            <Star size={20} className="fill-amber-500" />
+            <Star size={20} className="fill-amber-400" />
           </button>
           <button
             onClick={() => handleSwipe('right')}
-            className="w-16 h-16 rounded-full flex items-center justify-center bg-accent text-white blipp-shadow hover:scale-110 active:scale-90 shadow-lg hover:bg-accent-hover transition-all duration-200"
+            className="w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-[#7c3aed] to-[#5b21b6] border border-[#d2bbff]/30 text-white hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all duration-200"
             title="Blipp"
           >
             <Heart size={28} className="fill-white" />
@@ -382,36 +390,36 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
       onDragEnd={handleDragEnd}
       whileDrag={{ cursor: 'grabbing', scale: scale * 1.02 }}
       transition={isTop ? undefined : { type: 'spring', stiffness: 300, damping: 24 }}
-      className="card-item absolute inset-0 rounded-[32px] overflow-hidden glass-card shadow-2xl flex flex-col justify-between"
+      className="card-item absolute inset-0 rounded-[32px] overflow-hidden border border-white/15 bg-[#171f33] shadow-[0_12px_40px_rgba(0,0,0,0.6)] flex flex-col justify-between"
     >
       <div className="w-full h-full relative group">
         {user.avatar ? (
           <img src={user.avatar} className="w-full h-full object-cover select-none pointer-events-none" alt={user.name} />
         ) : (
-          <div className="w-full h-full bg-gradient-to-tr from-[#171f33] to-[#0b1326] flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-tr from-[#131b2e] to-[#171f33] flex items-center justify-center">
             <div className="text-center">
-              <span className="text-4xl font-extrabold text-primary select-none">{user.name.charAt(0)}</span>
+              <span className="text-4xl font-extrabold text-[#d2bbff] select-none">{user.name.charAt(0)}</span>
             </div>
           </div>
         )}
         
         {/* Presence Indicator */}
         {user.isOnline && (
-          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+            <div className="w-2 h-2 rounded-full bg-[#4edea3] shadow-[0_0_8px_#4edea3] animate-pulse" />
             <span className="text-[10px] font-bold text-white">Active</span>
           </div>
         )}
 
         {/* Info Overlay */}
-        <div className="absolute inset-0 glass-overlay flex flex-col justify-end p-6 select-none">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 select-none">
           <div className="flex items-baseline gap-2 mb-1">
             <h2 className="text-2xl font-black text-white tracking-tight">{user.name}</h2>
             <span className="text-zinc-300 text-lg font-semibold">{user.age}</span>
           </div>
           
           <div className="flex items-center gap-1 text-zinc-300 text-xs font-semibold mb-3">
-            <MapPin size={14} className="text-accent" />
+            <MapPin size={14} className="text-[#d2bbff]" />
             <span>{presenceText(user)}</span>
           </div>
 
@@ -424,7 +432,7 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
           {/* Interests tags */}
           <div className="flex flex-wrap gap-1.5 max-h-[64px] overflow-hidden">
             {(user.hobbies ? user.hobbies.split(',') : (user.interests || [])).slice(0, 3).map((tag, i) => (
-              <span key={i} className="px-3 py-1 rounded-full bg-[#4edea3]/15 border border-[#4edea3]/20 text-[10px] font-bold text-[#4edea3] uppercase tracking-wide">
+              <span key={i} className="px-3 py-1 rounded-full bg-[#d2bbff]/10 border border-[#d2bbff]/20 text-[10px] font-bold text-[#d2bbff] uppercase tracking-wide">
                 {tag.trim()}
               </span>
             ))}
@@ -433,7 +441,7 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
           <button 
             type="button" 
             onClick={() => onProfile(user)}
-            className="absolute bottom-6 right-6 h-8 px-3 rounded-full bg-white/10 border border-white/10 text-white font-bold text-[10px] hover:bg-white/20 transition-all"
+            className="absolute bottom-6 right-6 h-8 px-3.5 rounded-full bg-white/10 border border-white/15 text-white font-bold text-[10px] hover:bg-white/20 transition-all duration-200 hover:border-white/30 hover:scale-105 active:scale-95"
           >
             Profile
           </button>
@@ -450,17 +458,17 @@ function UserRow({ user, status, onProfile, onAction }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="interactive-card flex items-center justify-between gap-3 rounded-[18px] bg-surface-glass border border-white/5 p-3 hover:bg-surface-hover/50 hover:border-white/10 transition-all duration-200"
+      className="flex items-center justify-between gap-3 rounded-[18px] border border-white/10 bg-[#171f33]/60 backdrop-blur-md p-3 hover:bg-[#171f33]/90 hover:border-white/15 hover:shadow-[0_4px_16px_rgba(0,0,0,0.2)] transition-all duration-200"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <button onClick={() => onProfile(user)} className="relative shrink-0 overflow-hidden rounded-full border border-white/10" aria-label={`View ${user.name} profile`}>
+        <button onClick={() => onProfile(user)} className="relative shrink-0 overflow-hidden rounded-full border border-[#d2bbff]/20" aria-label={`View ${user.name} profile`}>
           <img src={user.avatar} alt="" className="h-12 w-12 rounded-full bg-bg object-cover transition-transform duration-300 hover:scale-105" />
-          {user.isOnline && <span className="absolute bottom-0 right-0 status-dot online" />}
+          {user.isOnline && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#4edea3] border-2 border-[#171f33] shadow-[0_0_8px_#4edea3]" />}
         </button>
         <div className="min-w-0">
           <p className="truncate font-semibold text-white leading-tight">{user.name}</p>
-          <p className="truncate text-[11px] text-text-muted mt-0.5">@{user.username} · {user.gender} · {user.age}</p>
-          {user.bio && <p className="truncate text-[10px] text-text-muted italic max-w-[170px] mt-0.5">"{user.bio}"</p>}
+          <p className="truncate text-[11px] text-[#ccc3d8]/80 mt-0.5">@{user.username} · {user.gender} · {user.age}</p>
+          {user.bio && <p className="truncate text-[10px] text-[#ccc3d8]/70 italic max-w-[170px] mt-0.5">"{user.bio}"</p>}
         </div>
       </div>
       <RequestButton status={status} onClick={() => onAction(user._id, status)} label={user.name} />
@@ -473,7 +481,7 @@ function RequestButton({ status, onClick, label }) {
     return (
       <button
         onClick={onClick}
-        className="shrink-0 rounded-full p-2.5 transition min-h-[40px] min-w-[40px] flex items-center justify-center bg-success/10 text-success hover:bg-rose-500/10 hover:text-rose-500 border border-success/20 hover:border-rose-500/20"
+        className="shrink-0 rounded-full p-2.5 transition min-h-[40px] min-w-[40px] flex items-center justify-center bg-[#4edea3]/10 text-[#4edea3] hover:bg-red-500/10 hover:text-red-400 border border-[#4edea3]/20 hover:border-red-500/25"
         title={`Unfriend ${label}`}
       >
         <Check size={18} />
@@ -485,7 +493,7 @@ function RequestButton({ status, onClick, label }) {
     return (
       <button
         onClick={onClick}
-        className="shrink-0 rounded-full p-2.5 transition min-h-[40px] min-w-[40px] flex items-center justify-center bg-primary/15 text-primary hover:bg-rose-500/15 hover:text-rose-500 border border-primary/20 hover:border-rose-500/20"
+        className="shrink-0 rounded-full p-2.5 transition min-h-[40px] min-w-[40px] flex items-center justify-center bg-[#7c3aed]/15 text-[#d2bbff] hover:bg-red-500/15 hover:text-red-400 border border-[#7c3aed]/20 hover:border-red-500/25"
         title={`Cancel request to ${label}`}
       >
         <Mail size={18} />
@@ -497,7 +505,7 @@ function RequestButton({ status, onClick, label }) {
     return (
       <button
         onClick={onClick}
-        className="shrink-0 rounded-full p-2.5 transition min-h-[40px] min-w-[40px] flex items-center justify-center bg-amber-500/15 text-amber-500 hover:bg-amber-500 hover:text-white border border-amber-500/20"
+        className="shrink-0 rounded-full p-2.5 transition min-h-[40px] min-w-[40px] flex items-center justify-center bg-amber-500/15 text-amber-400 hover:bg-amber-500 hover:text-white border border-amber-500/20"
         title={`Accept request from ${label}`}
       >
         <UserPlus size={18} />
@@ -508,7 +516,7 @@ function RequestButton({ status, onClick, label }) {
   return (
     <button
       onClick={onClick}
-      className="shrink-0 rounded-full p-2.5 transition min-h-[40px] min-w-[40px] flex items-center justify-center bg-primary text-white shadow-glow hover:brightness-110"
+      className="shrink-0 rounded-full p-2.5 transition min-h-[40px] min-w-[40px] flex items-center justify-center bg-[#7c3aed] text-white hover:bg-[#6d28d9] shadow-[0_0_12px_rgba(124,58,237,0.4)] hover:scale-105 active:scale-95 duration-200"
       title={`Add ${label}`}
     >
       <UserPlus size={18} />

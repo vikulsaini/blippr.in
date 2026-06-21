@@ -313,18 +313,18 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
       <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] rounded-full bg-accent/10 blur-[120px] pointer-events-none z-0" />
       <div className="absolute bottom-[-100px] right-[-100px] w-[300px] h-[300px] rounded-full bg-[#4edea3]/10 blur-[100px] pointer-events-none z-0" />
 
-      <header className="shrink-0 border-b border-white/10 bg-surface/70 backdrop-blur-xl px-3 py-2.5 shadow-card z-10 relative">
+      <header className="shrink-0 border-b border-white/5 bg-[#171f33]/60 backdrop-blur-md px-3 py-2.5 shadow-card z-10 relative">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
-            <button onClick={onBack} className="btn-icon h-10 w-10" aria-label="Back to chats"><ArrowLeft size={18} /></button>
+            <button onClick={onBack} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 hover:bg-white/10 text-primary transition active:scale-95 cursor-pointer border border-white/5 shrink-0" aria-label="Back to chats"><ArrowLeft size={18} /></button>
             <button onClick={() => (chat?.isMock ? onProfile?.() : (otherMember && onProfile?.(otherMember)))} className="min-w-0 text-left">
-              <p className="truncate font-semibold text-text-primary flex items-center gap-1.5">
+              <p className="truncate font-semibold text-text-primary flex items-center gap-1.5 text-base">
                 {chat?.isMock ? chat.name : (displayName || 'Select a chat')}
                 {!chat?.isMock && otherMember && (
-                  <span className={`h-2 w-2 rounded-full ${otherMember.isOnline ? 'bg-success animate-pulse' : 'bg-zinc-600'}`} />
+                  <span className={`h-2 w-2 rounded-full ${otherMember.isOnline ? 'bg-secondary shadow-[0_0_8px_#10B981]' : 'bg-zinc-600'}`} />
                 )}
               </p>
-              <p className={`truncate text-xs font-medium ${isTyping || (chat?.isMock ? isTyping : otherMember?.isOnline) ? 'text-accent' : 'text-text-muted'}`}>
+              <p className={`truncate text-xs font-medium ${isTyping || (chat?.isMock ? isTyping : otherMember?.isOnline) ? 'text-primary' : 'text-text-muted'}`}>
                 {isTyping ? 'typing...' : chat?.isMock ? '3 members • 2 online' : otherMember ? presenceText(otherMember) : 'No active conversation'}
               </p>
             </button>
@@ -345,25 +345,26 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           </div>
         </div>
         {searchOpen && (
-          <label className="search-container mt-2">
-            <Search size={16} className="text-text-muted shrink-0" />
+          <div className="relative mt-2">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/40 shrink-0" />
             <input
               type="text"
               value={messageSearch}
               onChange={(event) => setMessageSearch(event.target.value)}
-              placeholder="Search in conversation"
+              placeholder="Search in conversation..."
+              className="w-full bg-[#171f33]/40 border border-white/5 rounded-full py-2.5 pl-11 pr-10 text-white placeholder-text-muted/40 focus:ring-2 focus:ring-primary/50 outline-none transition-all text-xs font-semibold"
             />
             {messageSearch && (
               <button 
                 onClick={() => setMessageSearch('')} 
                 type="button" 
-                className="rounded-full bg-border-default p-1.5 text-text-muted hover:text-text-primary transition active:scale-90 flex items-center justify-center shrink-0" 
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-text-muted hover:bg-white/5 transition flex items-center justify-center shrink-0" 
                 aria-label="Clear search"
               >
                 <X size={13} />
               </button>
             )}
-          </label>
+          </div>
         )}
       </header>
 
@@ -423,19 +424,19 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           await onSend(event);
           inputRef.current?.focus();
         }}
-        className="shrink-0 border-t border-border-default bg-surface/70 backdrop-blur-xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-card z-10 relative"
+        className="shrink-0 border-t border-white/5 bg-[#171f33]/60 backdrop-blur-md px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-elevated z-10 relative"
       >
         {replyTo && (
-          <div className="mb-2 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent-tint px-3 py-2 text-sm">
-            <Reply size={15} className="text-accent" />
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-sm">
+            <Reply size={15} className="text-primary" />
             <p className="min-w-0 flex-1 truncate text-text-secondary">{replyTo.text || 'Replying to message'}</p>
-            <button type="button" onClick={onCancelReply} className="rounded-full bg-border-default p-1 text-text-muted hover:text-text-primary" aria-label="Cancel reply"><X size={14} /></button>
+            <button type="button" onClick={onCancelReply} className="rounded-full bg-white/5 p-1 text-text-muted hover:text-white" aria-label="Cancel reply"><X size={14} /></button>
           </div>
         )}
         {uploadError && (
           <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-danger/25 bg-danger/10 px-3 py-2 text-xs text-danger">
             <span>{uploadError}</span>
-            <button type="button" onClick={() => setUploadError('')} className="rounded-full bg-border-default p-1 text-text-muted hover:text-text-primary" aria-label="Dismiss media error"><X size={13} /></button>
+            <button type="button" onClick={() => setUploadError('')} className="rounded-full bg-white/5 p-1 text-text-muted hover:text-white" aria-label="Dismiss media error"><X size={13} /></button>
           </div>
         )}
         <AnimatePresence>
@@ -445,7 +446,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-border-default bg-surface p-2 shadow-float"
+              className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-white/10 bg-surface-container p-2 shadow-elevated"
             >
               {composerEmojis.map((emoji, index) => (
                 <motion.button
@@ -456,7 +457,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
                   transition={{ delay: index * 0.015 }}
                   whileTap={{ scale: 0.82 }}
                   onClick={() => setText(`${text}${emoji}`)}
-                  className="grid h-9 place-items-center rounded-xl text-xl hover:bg-surface-hover"
+                  className="grid h-9 place-items-center rounded-xl text-xl hover:bg-white/5"
                 >
                   {emoji}
                 </motion.button>
@@ -469,23 +470,27 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="mb-2 rounded-[22px] border border-border-default bg-surface p-3 shadow-float"
+              className="mb-2 rounded-[22px] border border-white/10 bg-surface-container p-3 shadow-elevated"
             >
-              <p className="mb-2 px-1 text-xs font-semibold text-text-faint">Share with this friend</p>
+              <p className="mb-2 px-1 text-xs font-semibold text-text-muted">Share with this friend</p>
               <div className="grid grid-cols-4 gap-2">
                 <AttachButton icon={Image} label="Gallery" onClick={() => openPicker({ accept: 'image/*,video/*', title: 'Open gallery?', message: 'We need access to your photos and videos so you can share media in this chat.' })} />
                 <AttachButton icon={FileText} label="Document" onClick={() => openPicker({ accept: 'application/pdf,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx,.zip', title: 'Choose document?', message: 'We need access to your files so you can choose a document to share.' })} />
                 <AttachButton icon={Camera} label="Camera" onClick={() => openPicker({ accept: 'image/*,video/*', capture: 'environment', title: 'Open camera?', message: 'We need camera access so you can take a photo or video to share.' })} />
                 <AttachButton icon={MapPin} label="Location" onClick={shareCurrentLocation} />
               </div>
-              <button type="button" onClick={shareLiveLocation} className="btn-secondary mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-2 text-xs font-semibold">
+              <button 
+                type="button" 
+                onClick={shareLiveLocation} 
+                className="w-full py-3 bg-white/5 hover:bg-white/10 text-primary border border-white/10 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 mt-2"
+              >
                 <Navigation size={14} />
                 Share live location
               </button>
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-surface-glass backdrop-blur-md shadow-sm p-1.5 ring-1 ring-white/5">
+        <div className="flex items-center gap-2 rounded-[24px] border border-white/10 bg-[#0b1326]/50 backdrop-blur-md shadow-inner p-1.5 w-full">
           <input
             ref={fileInputRef}
             type="file"
@@ -499,7 +504,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             whileHover={{ scale: 1.05 }}
             type="button"
             onClick={openAttachmentSheet}
-            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${attachmentOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${attachmentOpen ? 'bg-primary text-white shadow-glow' : 'bg-transparent text-text-secondary hover:bg-white/5 hover:text-white'}`}
             aria-label="Share photos, media, files or location"
           >
             <Plus size={18} />
@@ -509,7 +514,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             whileHover={{ scale: 1.05 }}
             type="button"
             onClick={() => setEmojiOpen((open) => !open)}
-            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${emojiOpen ? 'bg-accent text-white' : 'bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${emojiOpen ? 'bg-primary text-white shadow-glow' : 'bg-transparent text-text-secondary hover:bg-white/5 hover:text-white'}`}
             aria-label="Emoji"
           >
             <Smile size={18} />
@@ -535,7 +540,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
               whileTap={{ scale: 0.92 }}
               whileHover={{ scale: 1.05 }}
               disabled={!chat}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-accent-hover transition disabled:opacity-40"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white hover:bg-accent-hover transition disabled:opacity-40 shadow-glow"
               aria-label="Send"
             >
               <Send size={16} />
@@ -558,7 +563,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
               type="button"
               onClick={startRecording}
               disabled={!chat}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-bg text-text-secondary hover:bg-surface-hover hover:text-text-primary transition disabled:opacity-40"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-transparent text-text-secondary hover:bg-white/5 hover:text-white transition disabled:opacity-40"
               aria-label="Voice message"
             >
               <Mic size={16} />
