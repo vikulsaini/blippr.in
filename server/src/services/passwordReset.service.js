@@ -9,7 +9,7 @@ const attemptsKeyFor = (email) => `password_reset_attempts:${email}`;
 const memoryStore = new Map();
 
 function redisConfigured() {
-  return Boolean(process.env.REDIS_URL);
+  return Boolean(process.env.REDIS_URL) && redis && redis.status === 'ready';
 }
 
 function memoryGet(key) {
