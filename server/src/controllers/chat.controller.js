@@ -9,13 +9,13 @@ import { notifyUser } from '../services/notification.service.js';
 import { applyBlockedWords, recordSafetyViolation } from '../services/safety.service.js';
 
 export const createDirectChatSchema = Joi.object({
-  userId: Joi.string().hex().length(24).required()
+  userId: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).required()
 });
 
 export const messageSchema = Joi.object({
   text: Joi.string().max(4000).allow('').optional(),
-  replyTo: Joi.string().hex().length(24).optional(),
-  mentions: Joi.array().items(Joi.string().hex().length(24)).max(10).optional(),
+  replyTo: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).optional(),
+  mentions: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/)).max(10).optional(),
   media: Joi.object({
     url: Joi.string().uri().required(),
     type: Joi.string().valid('image', 'video', 'audio', 'file').required(),
@@ -49,7 +49,7 @@ export const editMessageSchema = Joi.object({
 });
 
 export const nicknameSchema = Joi.object({
-  userId: Joi.string().hex().length(24).required(),
+  userId: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).required(),
   nickname: Joi.string().trim().max(40).allow('').required()
 });
 

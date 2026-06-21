@@ -141,7 +141,7 @@ const Notification = {
 
             if (field === 'actor') {
               const actorIds = [...new Set(notifications.map(n => n.actor).filter(Boolean))];
-              if (ids.length > 0) {
+              if (actorIds.length > 0) {
                 const User = (await import('./User.js')).default;
                 const users = await User.find({ _id: { $in: actorIds } });
                 const userMap = new Map(users.map(u => [u.id, u]));

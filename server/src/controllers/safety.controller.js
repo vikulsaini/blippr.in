@@ -3,17 +3,17 @@ import Report from '../models/Report.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const reportSchema = Joi.object({
-  userId: Joi.string().hex().length(24).required(),
+  userId: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).required(),
   reason: Joi.string().min(3).max(120).required(),
   notes: Joi.string().max(1000).allow('').optional(),
   category: Joi.string().valid('spam', 'harassment', 'nudity', 'hate', 'scam', 'violence', 'underage', 'other').optional(),
-  messageId: Joi.string().hex().length(24).optional(),
-  chatId: Joi.string().hex().length(24).optional(),
+  messageId: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).optional(),
+  chatId: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).optional(),
   screenshots: Joi.array().items(Joi.string().uri()).max(4).optional()
 });
 
 export const blockSchema = Joi.object({
-  userId: Joi.string().hex().length(24).required()
+  userId: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).required()
 });
 
 export const blockUser = asyncHandler(async (req, res) => {

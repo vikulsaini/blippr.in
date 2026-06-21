@@ -6,8 +6,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { notifyUser } from '../services/notification.service.js';
 
 export const friendRequestSchema = Joi.object({
-  userId: Joi.string().hex().length(24).required(),
-  sourceChatId: Joi.string().hex().length(24).optional()
+  userId: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).required(),
+  sourceChatId: Joi.string().pattern(/^[0-9a-fA-F-]{24,36}$/).optional()
 });
 
 const RANDOM_FRIEND_REQUEST_MIN_MS = 3 * 60 * 1000;
