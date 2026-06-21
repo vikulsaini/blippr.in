@@ -1,7 +1,6 @@
 import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
-import mongoose from 'mongoose';
 import { cloudinary } from '../config/cloudinary.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 
@@ -36,9 +35,12 @@ async function uploadToSupabase(file) {
 }
 
 export function uploadBuffer(file, baseUrl = '') {
-  const urlBase = (process.env.PUBLIC_API_URL || process.env.API_URL || baseUrl).replace(/\/$/, '');
   if (supabase) return uploadToSupabase(file);
-  if (!cloudinaryReady()) return uploadToGridFs(file, urlBase);
+  
+  if (!cloudinaryReady()) {
+    throw new Error('No media storage provider configured. Please set SUPABASE_URL or CLOUDINARY credentials.');
+  }
+
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       { folder: 'blippr', resource_type: 'auto' },
@@ -49,53 +51,6 @@ export function uploadBuffer(file, baseUrl = '') {
     );
     Readable.from(file.buffer).pipe(stream);
   });
-}
-
-function bucket() {
-  if (!mongoose.connection.db) {
-    const error = new Error('Media database is not connected');
-    error.status = 503;
-    error.code = 'MEDIA_STORAGE_MISSING';
-    throw error;
-  }
-  return new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'blippr_media' });
-}
-
-function uploadToGridFs(file, baseUrl) {
-  const ext = path.extname(file.originalname || '');
-  const secureFilename = `${randomUUID()}${ext}`;
-  return new Promise((resolve, reject) => {
-    const stream = bucket().openUploadStream(secureFilename, {
-      contentType: file.mimetype,
-      metadata: {
-        originalName: file.originalname,
-        size: file.size,
-        uploadedAt: new Date()
-      }
-    });
-
-    stream.on('error', reject);
-    stream.on('finish', () => {
-      const id = stream.id.toString();
-      resolve({
-        secure_url: `${baseUrl}/api/media/files/${id}`,
-        public_id: id,
-        resource_type: resourceTypeFor(file.mimetype),
-        storage: 'gridfs'
-      });
-    });
-    Readable.from(file.buffer).pipe(stream);
-  });
-}
-
-export async function findMediaFile(id) {
-  if (!mongoose.Types.ObjectId.isValid(id)) return null;
-  const files = await bucket().find({ _id: new mongoose.Types.ObjectId(id) }).limit(1).toArray();
-  return files[0] || null;
-}
-
-export function openMediaDownloadStream(id) {
-  return bucket().openDownloadStream(new mongoose.Types.ObjectId(id));
 }
 
 function resourceTypeFor(mimeType = '') {
@@ -118,12 +73,6 @@ export async function deleteMediaByUrl(url) {
         if (supabaseAdmin) {
           await supabaseAdmin.storage.from(bucketName).remove([filename]);
         }
-      }
-    } else if (url.includes('/api/media/files/')) {
-      const parts = url.split('/api/media/files/');
-      const id = parts[parts.length - 1];
-      if (mongoose.Types.ObjectId.isValid(id)) {
-        await bucket().delete(new mongoose.Types.ObjectId(id));
       }
     } else if (cloudinaryReady() && url.includes('cloudinary.com')) {
       const publicId = extractCloudinaryPublicId(url);

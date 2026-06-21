@@ -1,7 +1,6 @@
 import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
-import mongoSanitize from 'express-mongo-sanitize';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { corsOptions } from './config/cors.js';
@@ -39,7 +38,6 @@ app.use(compression());
 app.use(cors(corsOptions));
 app.use(requestContext);
 app.use(express.json({ limit: '1mb' }));
-app.use(mongoSanitize());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use('/api', apiLimiter);
 

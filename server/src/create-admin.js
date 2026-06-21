@@ -1,11 +1,10 @@
 import './config/env.js';
-import mongoose from 'mongoose';
 import { connectMongo } from './config/db.js';
 import User from './models/User.js';
 import { supabaseAdmin } from './config/supabase.js';
 
 async function run() {
-  console.log('Connecting to MongoDB...');
+  console.log('Connecting to Postgres...');
   await connectMongo();
 
   const email = 'vikul93065@gmail.com';
@@ -31,7 +30,6 @@ async function run() {
     user.isVerified = true;
     await user.save();
     console.log(`Successfully updated user @${user.username} to ADMIN.`);
-    mongoose.disconnect();
     return;
   }
 
@@ -56,10 +54,10 @@ async function run() {
     console.log(`Successfully created Supabase user. ID: ${supabaseId}`);
   }
 
-  // Now create the MongoDB User record
+  // Now create the User record
   const username = 'vikul_admin';
-  console.log(`Creating MongoDB User record for @${username}...`);
-  const newMongoUser = new User({
+  console.log(`Creating User record for @${username}...`);
+  await User.create({
     email,
     supabaseId,
     username,
@@ -72,15 +70,11 @@ async function run() {
     isOnline: false
   });
 
-  await newMongoUser.save();
-  console.log(`Successfully created MongoDB ADMIN user.`);
+  console.log(`Successfully created ADMIN user.`);
   console.log(`Email: ${email}`);
   console.log(`Password: ${supabaseUser ? '[Existing Password]' : adminPassword}`);
-
-  mongoose.disconnect();
 }
 
 run().catch(err => {
   console.error('Error running script:', err);
-  mongoose.disconnect();
 });

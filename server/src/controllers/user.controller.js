@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import mongoose from 'mongoose';
+
 import Chat from '../models/Chat.js';
 import FriendRequest from '../models/FriendRequest.js';
 import Message from '../models/Message.js';
@@ -84,8 +84,9 @@ async function getExcludedMatchUserIds(user) {
   ];
 }
 
-function toObjectIds(ids) {
-  return ids.filter((id) => mongoose.Types.ObjectId.isValid(id)).map((id) => new mongoose.Types.ObjectId(id));
+function filterValidUuids(ids) {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return ids.filter((id) => typeof id === 'string' && uuidRegex.test(id));
 }
 
 export const me = asyncHandler(async (req, res) => res.json({ user: req.user }));
@@ -314,7 +315,7 @@ export const randomAvailableUsers = asyncHandler(async (req, res) => {
   const users = await User.aggregate([
     {
       $match: {
-        _id: { $nin: toObjectIds(excludedIds) },
+        _id: { $nin: filterValidUuids(excludedIds) },
         blockedUsers: { $ne: req.user._id },
         isOnline: true,
         age: { $gte: 18 }

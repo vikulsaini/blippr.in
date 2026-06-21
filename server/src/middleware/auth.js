@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
+import { redis } from '../config/redis.js';
 import User from '../models/User.js';
 import { mapUserFromPostgres } from '../utils/userMapper.js';
 import { trackUserActivity } from '../services/activity.service.js';
@@ -13,6 +14,18 @@ export async function requireAuth(req, _res, next) {
       const error = new Error('Authentication required');
       error.status = 401;
       throw error;
+    }
+
+    // Check Redis blacklist
+    try {
+      const isBlacklisted = await redis.get(`jwt_blacklist:${token}`);
+      if (isBlacklisted) {
+        const error = new Error('Session expired or invalid token');
+        error.status = 401;
+        throw error;
+      }
+    } catch (redisErr) {
+      console.warn('Redis blacklist check error:', redisErr.message);
     }
 
     // 1. Try local JWT verification first (for guest and email users)

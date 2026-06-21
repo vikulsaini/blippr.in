@@ -93,7 +93,7 @@ async function seedAdminUser() {
       dob: new Date('1996-01-01'),
       gender: 'male'
     });
-    console.log(`[Seed] Created MongoDB ADMIN user for ${email}`);
+    console.log(`[Seed] Created ADMIN user for ${email}`);
   } catch (err) {
     console.error('[Seed] Admin seeding failed:', err.message);
   }
@@ -101,11 +101,11 @@ async function seedAdminUser() {
 
 async function boot() {
   console.log('Starting Blippr API');
-  const mongoUri = process.env.MONGO_URI || process.env.MONGO_URL || process.env.MONGODB_URI || process.env.MONGODB_URL;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const redisUrl = process.env.REDIS_URL || process.env.REDIS_URI || process.env.REDIS_URL_PRIVATE;
-  console.log(`Environment check: MongoDB=${mongoUri ? 'set' : 'missing'}, REDIS=${redisUrl ? 'set' : 'missing'}`);
+  console.log(`Environment check: Supabase=${supabaseUrl ? 'set' : 'missing'}, REDIS=${redisUrl ? 'set' : 'missing'}`);
 
-  app.locals.dbStatus = { mongo: 'disconnected', redis: 'disconnected', error: null };
+  app.locals.dbStatus = { mongo: 'disconnected', postgres: 'disconnected', redis: 'disconnected', error: null };
 
   // Start HTTP server immediately to satisfy Railway healthcheck at /health
   server.listen(port, '0.0.0.0', () => {
@@ -114,13 +114,16 @@ async function boot() {
 
   // Connect to databases and initialize services in the background
   try {
+    app.locals.dbStatus.postgres = 'connecting';
     app.locals.dbStatus.mongo = 'connecting';
     await connectMongo();
+    app.locals.dbStatus.postgres = 'connected';
     app.locals.dbStatus.mongo = 'connected';
   } catch (err) {
+    app.locals.dbStatus.postgres = 'failed';
     app.locals.dbStatus.mongo = 'failed';
-    app.locals.dbStatus.error = `Mongo: ${err.message}`;
-    console.error('MongoDB connection failed during boot:', err.message);
+    app.locals.dbStatus.error = `Postgres: ${err.message}`;
+    console.error('PostgreSQL connection failed during boot:', err.message);
   }
 
   try {
@@ -133,7 +136,7 @@ async function boot() {
     console.error('Redis connection failed during boot:', err.message);
   }
 
-  if (app.locals.dbStatus.mongo === 'connected') {
+  if (app.locals.dbStatus.postgres === 'connected') {
     try {
       await seedAdminUser();
     } catch (err) {

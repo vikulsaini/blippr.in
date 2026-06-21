@@ -1,3 +1,4 @@
+import { auditRepository } from '../repositories/audit.repository.js';
 import { supabaseAdmin } from '../config/supabase.js';
 
 export function mapBucketFromPostgres(row) {
@@ -59,24 +60,7 @@ const AnalyticsBucket = {
   },
 
   async create(data) {
-    const payload = {
-      timestamp: data.timestamp || new Date(),
-      interval: data.interval || 'hour',
-      request_count: data.requestCount || 0,
-      error_count: data.errorCount || 0,
-      response_time_sum: data.responseTimeSum || 0,
-      status_2xx: data.status2xx || 0,
-      status_3xx: data.status3xx || 0,
-      status_4xx: data.status4xx || 0,
-      status_5xx: data.status5xx || 0,
-      endpoints: data.endpoints || {}
-    };
-    const { data: row, error } = await supabaseAdmin
-      .from('analytics_buckets')
-      .insert(payload)
-      .select()
-      .single();
-    if (error) throw error;
+    const row = await auditRepository.createAnalyticsBucket(data);
     return mapBucketFromPostgres(row);
   },
 
@@ -88,39 +72,29 @@ const AnalyticsBucket = {
       if (query.timestamp.$lt) q = q.lt('timestamp', query.timestamp.$lt.toISOString ? query.timestamp.$lt.toISOString() : query.timestamp.$lt);
     }
 
+    let limitVal = null;
+    let sortVal = null;
+
     const builder = {
+      limit(n) { limitVal = n; return this; },
+      sort(s) { sortVal = s; return this; },
+      select() { return this; },
+      lean() { return this; },
       async then(resolve, reject) {
         try {
+          if (limitVal) q = q.limit(limitVal);
+          if (sortVal) {
+            const desc = sortVal.startsWith('-');
+            const field = desc ? sortVal.slice(1) : sortVal;
+            q = q.order(field, { ascending: !desc });
+          }
           const { data, error } = await q;
           if (error) throw error;
           resolve((data || []).map(mapBucketFromPostgres));
         } catch (err) {
           reject(err);
         }
-      },
-      select() { return this; },
-      limit(n) { q = q.limit(n); return this; },
-      sort(sortArg) {
-        if (sortArg) {
-          let field = 'timestamp';
-          let ascending = false;
-          if (typeof sortArg === 'string') {
-            const desc = sortArg.startsWith('-');
-            field = desc ? sortArg.slice(1) : sortArg;
-            ascending = !desc;
-          } else if (typeof sortArg === 'object') {
-            const keys = Object.keys(sortArg);
-            if (keys.length > 0) {
-              field = keys[0];
-              ascending = sortArg[field] === 1 || sortArg[field] === 'asc';
-            }
-          }
-          const pgField = field === 'timestamp' ? 'timestamp' : field;
-          q = q.order(pgField, { ascending });
-        }
-        return this;
-      },
-      lean() { return this; }
+      }
     };
     return builder;
   }

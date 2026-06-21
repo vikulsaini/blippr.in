@@ -1,3 +1,4 @@
+import { auditRepository } from '../repositories/audit.repository.js';
 import { supabaseAdmin } from '../config/supabase.js';
 
 export function mapSubscriptionFromPostgres(row) {
@@ -14,22 +15,8 @@ export function mapSubscriptionFromPostgres(row) {
     updatedAt: row.updated_at ? new Date(row.updated_at) : null,
 
     async save() {
-      const payload = {
-        user_id: this.user || this.userId || this.user_id,
-        endpoint: this.endpoint,
-        keys: this.keys,
-        user_agent: this.userAgent || this.user_agent || null,
-        updated_at: new Date()
-      };
-
-      const { data, error } = await supabaseAdmin
-        .from('notification_subscriptions')
-        .update(payload)
-        .eq('id', this.id)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapSubscriptionFromPostgres(data));
+      const updated = await auditRepository.saveSubscription(this);
+      Object.assign(this, updated);
       return this;
     }
   };
@@ -37,15 +24,21 @@ export function mapSubscriptionFromPostgres(row) {
 
 const NotificationSubscription = {
   async findOne(query = {}) {
-    let q = supabaseAdmin.from('notification_subscriptions').select('*');
-    if (query._id) q = q.eq('id', query._id);
-    if (query.endpoint) q = q.eq('endpoint', query.endpoint);
-    if (query.user) q = q.eq('user_id', query.user);
-    if (query.userId) q = q.eq('user_id', query.userId);
-    
-    const { data, error } = await q.limit(1).maybeSingle();
-    if (error) throw error;
-    return mapSubscriptionFromPostgres(data);
+    const userId = query.user || query.userId;
+    if (query.endpoint) {
+      const { data, error } = await supabaseAdmin
+        .from('notification_subscriptions')
+        .select('*')
+        .eq('endpoint', query.endpoint)
+        .maybeSingle();
+      if (error) throw error;
+      return mapSubscriptionFromPostgres(data);
+    }
+    if (userId) {
+      const subs = await auditRepository.getSubscriptions(userId);
+      return subs[0] || null;
+    }
+    return null;
   },
 
   async findById(id) {
@@ -60,106 +53,64 @@ const NotificationSubscription = {
   },
 
   async findOneAndUpdate(filter = {}, update = {}, options = {}) {
-    let q = supabaseAdmin.from('notification_subscriptions').select('*');
-    if (filter.endpoint) q = q.eq('endpoint', filter.endpoint);
-    if (filter.user) q = q.eq('user_id', filter.user);
-    if (filter.userId) q = q.eq('user_id', filter.userId);
+    const userId = filter.user || filter.userId;
+    const endpoint = filter.endpoint;
     
-    const { data: matched, error: findError } = await q.limit(1).maybeSingle();
-    if (findError) throw findError;
-
-    const payload = {};
+    // Retrieve subscription first
+    let sub = await this.findOne(filter);
+    
     const setObj = update.$set || update;
-    for (const [k, v] of Object.entries(setObj)) {
-      if (!k.startsWith('$')) {
-        const pgKey = k === 'userAgent' ? 'user_agent' : k === 'userId' || k === 'user' ? 'user_id' : k;
-        payload[pgKey] = v;
-      }
-    }
+    const payload = {
+      user: userId || sub?.user,
+      endpoint: endpoint || sub?.endpoint || setObj.endpoint,
+      keys: setObj.keys || sub?.keys,
+      userAgent: setObj.userAgent || sub?.userAgent || setObj.user_agent
+    };
 
-    if (matched) {
-      const { data: updatedRow, error: updateError } = await supabaseAdmin
-        .from('notification_subscriptions')
-        .update(payload)
-        .eq('id', matched.id)
-        .select()
-        .single();
-      if (updateError) throw updateError;
-      return mapSubscriptionFromPostgres(updatedRow);
-    } else {
-      if (options.upsert) {
-        const insertPayload = { ...filter, ...payload };
-        const pgInsertPayload = {};
-        for (const [k, v] of Object.entries(insertPayload)) {
-          const pgKey = k === 'userAgent' ? 'user_agent' : k === 'userId' || k === 'user' ? 'user_id' : k;
-          pgInsertPayload[pgKey] = v;
-        }
-
-        const { data: insertedRow, error: insertError } = await supabaseAdmin
-          .from('notification_subscriptions')
-          .insert(pgInsertPayload)
-          .select()
-          .single();
-        if (insertError) throw insertError;
-        return mapSubscriptionFromPostgres(insertedRow);
-      }
-      return null;
+    if (sub || options.upsert) {
+      return auditRepository.saveSubscription(payload);
     }
+    return null;
   },
 
   async create(data) {
-    const payload = {
-      user_id: data.user || data.userId || data.user_id,
-      endpoint: data.endpoint,
-      keys: data.keys,
-      user_agent: data.userAgent || data.user_agent || null,
-      updated_at: new Date()
-    };
-    const { data: row, error } = await supabaseAdmin
-      .from('notification_subscriptions')
-      .insert(payload)
-      .select()
-      .single();
-    if (error) throw error;
-    return mapSubscriptionFromPostgres(row);
+    return auditRepository.saveSubscription(data);
   },
 
   async deleteMany(query = {}) {
-    let q = supabaseAdmin.from('notification_subscriptions').delete();
-    if (query.user) q = q.eq('user_id', query.user);
-    if (query.userId) q = q.eq('user_id', query.userId);
-    if (query.endpoint) q = q.eq('endpoint', query.endpoint);
-    const { error } = await q;
-    if (error) throw error;
+    const userId = query.user || query.userId;
+    const endpoint = query.endpoint;
+    if (endpoint) {
+      await auditRepository.deleteSubscription(endpoint, userId);
+    } else if (userId) {
+      const { error } = await supabaseAdmin
+        .from('notification_subscriptions')
+        .delete()
+        .eq('user_id', userId);
+      if (error) throw error;
+    }
     return { deletedCount: 1 };
   },
 
   find(query = {}) {
-    let q = supabaseAdmin.from('notification_subscriptions').select('*');
-    if (query.user) q = q.eq('user_id', query.user);
-    if (query.userId) q = q.eq('user_id', query.userId);
+    const userId = query.user || query.userId;
+    let limitVal = null;
+    let sortVal = null;
 
     const builder = {
+      limit(n) { limitVal = n; return this; },
+      sort(s) { sortVal = s; return this; },
+      select() { return this; },
+      lean() { return this; },
       async then(resolve, reject) {
         try {
-          const { data, error } = await q;
-          if (error) throw error;
-          resolve((data || []).map(mapSubscriptionFromPostgres));
+          if (!userId) return resolve([]);
+          const res = await auditRepository.getSubscriptions(userId);
+          resolve(res);
         } catch (err) {
           reject(err);
         }
-      },
-      select() { return this; },
-      limit(n) { q = q.limit(n); return this; },
-      sort(sortStr) {
-        if (sortStr) {
-          const desc = sortStr.startsWith('-');
-          const field = desc ? sortStr.slice(1) : sortStr;
-          q = q.order(field === 'createdAt' ? 'created_at' : field, { ascending: !desc });
-        }
-        return this;
-      },
-      lean() { return this; }
+      }
     };
     return builder;
   }

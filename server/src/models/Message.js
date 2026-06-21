@@ -1,4 +1,5 @@
-import { supabaseAdmin } from '../config/supabase.js';
+import { messageRepository } from '../repositories/message.repository.js';
+import { mapUserFromPostgres } from '../utils/userMapper.js';
 
 export function mapMessageFromPostgres(row) {
   if (!row) return null;
@@ -25,31 +26,8 @@ export function mapMessageFromPostgres(row) {
     updatedAt: row.updated_at ? new Date(row.updated_at) : null,
 
     async save() {
-      const payload = {
-        chat_id: this.chat || this.chatId || this.chat_id,
-        sender_id: this.sender?.id || this.sender || this.senderId || this.sender_id,
-        text: this.text || null,
-        media: this.media || null,
-        location: this.location || null,
-        reply_to_id: this.replyTo?.id || this.replyTo || this.replyToId || this.reply_to_id || null,
-        mentions: this.mentions || [],
-        reactions: this.reactions || [],
-        status: this.status || 'sent',
-        seen_by: this.seenBy || [],
-        deleted_for: this.deletedFor || [],
-        edited_at: this.editedAt || null,
-        deleted_at: this.deletedAt || null,
-        updated_at: new Date()
-      };
-
-      const { data, error } = await supabaseAdmin
-        .from('messages')
-        .update(payload)
-        .eq('id', this.id)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapMessageFromPostgres(data));
+      const updated = await messageRepository.findOneAndUpdate({ id: this.id }, this);
+      Object.assign(this, updated);
       return this;
     }
   };
@@ -57,237 +35,110 @@ export function mapMessageFromPostgres(row) {
 
 const Message = {
   async findOne(query = {}) {
-    let q = supabaseAdmin.from('messages').select('*');
-    if (query._id) q = q.eq('id', query._id);
-    if (query.chatId) q = q.eq('chat_id', query.chatId);
-    
-    const { data, error } = await q.limit(1).maybeSingle();
-    if (error) throw error;
-    return mapMessageFromPostgres(data);
+    return messageRepository.findOne(query);
   },
 
   findById(id) {
-    let q = supabaseAdmin.from('messages').select('*');
-    if (id) {
-      q = q.eq('id', id);
-    }
+    let populateFields = [];
     const builder = {
-      async then(resolve, reject) {
-        try {
-          if (!id) return resolve(null);
-          const { data, error } = await q.maybeSingle();
-          if (error) throw error;
-          resolve(mapMessageFromPostgres(data));
-        } catch (err) {
-          reject(err);
-        }
+      populate(field) {
+        populateFields.push(field);
+        return this;
       },
       select() { return this; },
       lean() { return this; },
-      populate(field) {
-        const originalThen = this.then;
-        this.then = async (resolve, reject) => {
-          try {
-            const message = await new Promise((res, rej) => originalThen(res, rej));
-            if (!message) return resolve(null);
-            
-            if (field === 'sender') {
-              if (message.sender) {
-                const User = (await import('./User.js')).default;
-                const user = await User.findById(message.sender);
-                message.sender = user || message.sender;
-              }
-            } else if (field === 'replyTo') {
-              if (message.replyTo) {
-                const MessageModel = (await import('./Message.js')).default;
-                const reply = await MessageModel.findById(message.replyTo).populate('sender');
-                message.replyTo = reply || message.replyTo;
-              }
+      async then(resolve, reject) {
+        try {
+          if (!id) return resolve(null);
+          const options = {
+            populateSender: populateFields.includes('sender'),
+            populateReplyTo: populateFields.includes('replyTo'),
+            limit: 1
+          };
+          const messages = await messageRepository.find({ _id: id }, options);
+          
+          // Eagerly resolve replyTo's sender details if requested in populate chain
+          const message = messages[0] || null;
+          if (message && options.populateReplyTo && message.replyTo) {
+            const User = (await import('./User.js')).default;
+            const senderId = message.replyTo.sender;
+            if (senderId && typeof senderId === 'string') {
+              const u = await User.findById(senderId);
+              message.replyTo.sender = u || senderId;
             }
-            resolve(message);
-          } catch (err) {
-            reject(err);
           }
-        };
-        return this;
+          
+          resolve(message);
+        } catch (err) {
+          reject(err);
+        }
       }
     };
     return builder;
   },
 
   async findOneAndUpdate(filter = {}, update = {}, options = {}) {
-    let q = supabaseAdmin.from('messages').select('*');
-    if (filter._id) q = q.eq('id', filter._id);
-    if (filter.chatId) q = q.eq('chat_id', filter.chatId);
-    
-    const { data: matched, error: findError } = await q.limit(1).maybeSingle();
-    if (findError || !matched) return null;
-
-    let reactions = matched.reactions || [];
-    let seenBy = matched.seen_by || [];
-    let status = matched.status;
-
-    if (update.$push && update.$push.reactions) {
-      reactions.push(update.$push.reactions);
-    } else if (update.$push && update.$push.seenBy) {
-      seenBy.push(update.$push.seenBy);
-    }
-
-    if (update.$set) {
-      if (update.$set.status) status = update.$set.status;
-    }
-
-    const { data: updatedRow, error: updateError } = await supabaseAdmin
-      .from('messages')
-      .update({
-        reactions,
-        seen_by: seenBy,
-        status,
-        updated_at: new Date()
-      })
-      .eq('id', matched.id)
-      .select()
-      .single();
-
-    if (updateError) throw updateError;
-    return mapMessageFromPostgres(updatedRow);
+    return messageRepository.findOneAndUpdate(filter, update);
   },
 
   async create(data) {
-    const payload = {
-      chat_id: data.chat || data.chatId || data.chat_id,
-      sender_id: data.sender || data.senderId || data.sender_id,
-      text: data.text || null,
-      media: data.media || null,
-      location: data.location || null,
-      reply_to_id: data.replyTo || data.replyToId || data.reply_to_id || null,
-      mentions: data.mentions || [],
-      reactions: data.reactions || [],
-      status: data.status || 'sent',
-      seen_by: data.seenBy || [],
-      deleted_for: data.deletedFor || [],
-      edited_at: data.editedAt || null,
-      deleted_at: data.deletedAt || null,
-      updated_at: new Date()
-    };
-    const { data: row, error } = await supabaseAdmin
-      .from('messages')
-      .insert(payload)
-      .select()
-      .single();
-    if (error) throw error;
-    return mapMessageFromPostgres(row);
+    return messageRepository.create(data);
   },
 
   async deleteMany(query = {}) {
-    let q = supabaseAdmin.from('messages').delete();
-    if (query.chatId) q = q.eq('chat_id', query.chatId);
-    if (query.chat) q = q.eq('chat_id', query.chat);
-    const { error } = await q;
-    if (error) throw error;
-    return { deletedCount: 1 };
+    return messageRepository.deleteMany(query);
   },
 
   async updateMany(filter = {}, update = {}) {
-    const payload = {};
-    const setObj = update.$set || update;
-    for (const [k, v] of Object.entries(setObj)) {
-      if (!k.startsWith('$')) {
-        payload[k === 'status' ? 'status' : k] = v;
-      }
-    }
-    
-    // map field names if needed
-    const pgPayload = {};
-    if (payload.status) pgPayload.status = payload.status;
-    if (payload.seenBy) pgPayload.seen_by = payload.seenBy;
-    if (payload.deletedFor) pgPayload.deleted_for = payload.deletedFor;
-    
-    let q = supabaseAdmin.from('messages').update(pgPayload);
-    if (filter.chatId) q = q.eq('chat_id', filter.chatId);
-    if (filter.chat) q = q.eq('chat_id', filter.chat);
-    const { error } = await q;
-    if (error) throw error;
-    return { modifiedCount: 1 };
+    return messageRepository.updateMany(filter, update);
   },
 
   async countDocuments(query = {}) {
-    let q = supabaseAdmin.from('messages').select('id', { count: 'exact', head: true });
-    if (query.chatId) q = q.eq('chat_id', query.chatId);
-    if (query.chat) q = q.eq('chat_id', query.chat);
-    if (query.senderId) q = q.eq('sender_id', query.senderId);
-    const { count, error } = await q;
-    if (error) throw error;
-    return count || 0;
+    return messageRepository.count(query);
   },
 
   find(query = {}) {
-    let q = supabaseAdmin.from('messages').select('*');
-    if (query.chatId) q = q.eq('chat_id', query.chatId);
-    if (query.chat) q = q.eq('chat_id', query.chat);
-    if (query._id) {
-      if (query._id.$in) {
-        q = q.in('id', query._id.$in);
-      } else {
-        q = q.eq('id', query._id);
-      }
-    }
+    let limitVal = null;
+    let sortVal = null;
+    let populateFields = [];
 
     const builder = {
+      limit(n) { limitVal = n; return this; },
+      sort(s) { sortVal = s; return this; },
+      select() { return this; },
+      lean() { return this; },
+      populate(field) {
+        populateFields.push(field);
+        return this;
+      },
       async then(resolve, reject) {
         try {
-          const { data, error } = await q;
-          if (error) throw error;
-          resolve((data || []).map(mapMessageFromPostgres));
+          const options = {
+            limit: limitVal,
+            sort: sortVal,
+            populateSender: populateFields.includes('sender'),
+            populateReplyTo: populateFields.includes('replyTo')
+          };
+          const messages = await messageRepository.find(query, options);
+          
+          // Populate replyTo's sender if requested in populate chain
+          if (options.populateReplyTo) {
+            const replyToMessages = messages.filter(m => m.replyTo && typeof m.replyTo === 'object');
+            const senderIds = [...new Set(replyToMessages.map(m => m.replyTo.sender).filter(s => typeof s === 'string'))];
+            if (senderIds.length > 0) {
+              const User = (await import('./User.js')).default;
+              const users = await User.find({ _id: { $in: senderIds } });
+              const userMap = new Map(users.map(u => [u.id, u]));
+              for (const m of replyToMessages) {
+                m.replyTo.sender = userMap.get(m.replyTo.sender) || m.replyTo.sender;
+              }
+            }
+          }
+          
+          resolve(messages);
         } catch (err) {
           reject(err);
         }
-      },
-      select() { return this; },
-      limit(n) { q = q.limit(n); return this; },
-      sort(sortStr) {
-        if (sortStr) {
-          const desc = sortStr.startsWith('-');
-          const field = desc ? sortStr.slice(1) : sortStr;
-          q = q.order(field === 'createdAt' ? 'created_at' : field, { ascending: !desc });
-        }
-        return this;
-      },
-      lean() { return this; },
-      populate(field) {
-        const originalThen = this.then;
-        this.then = async (resolve, reject) => {
-          try {
-            const messages = await new Promise((res, rej) => originalThen(res, rej));
-            if (messages.length === 0) return resolve(messages);
-
-            if (field === 'sender') {
-              const senderIds = [...new Set(messages.map(m => m.sender).filter(Boolean))];
-              if (senderIds.length > 0) {
-                const User = (await import('./User.js')).default;
-                const users = await User.find({ _id: { $in: senderIds } });
-                const userMap = new Map(users.map(u => [u.id, u]));
-                for (const message of messages) {
-                  message.sender = userMap.get(message.sender) || message.sender;
-                }
-              }
-            } else if (field === 'replyTo') {
-              const replyToIds = [...new Set(messages.map(m => m.replyTo).filter(Boolean))];
-              if (replyToIds.length > 0) {
-                const MessageModel = (await import('./Message.js')).default;
-                const replies = await MessageModel.find({ _id: { $in: replyToIds } }).populate('sender');
-                const replyMap = new Map(replies.map(r => [r.id, r]));
-                for (const message of messages) {
-                  message.replyTo = replyMap.get(message.replyTo) || message.replyTo;
-                }
-              }
-            }
-            resolve(messages);
-          } catch (err) {
-            reject(err);
-          }
-        };
-        return this;
       }
     };
     return builder;

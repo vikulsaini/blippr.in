@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../config/supabase.js';
+import { callRepository } from '../repositories/call.repository.js';
 
 export function mapCallFromPostgres(row) {
   if (!row) return null;
@@ -21,27 +21,8 @@ export function mapCallFromPostgres(row) {
     updatedAt: row.updated_at ? new Date(row.updated_at) : null,
 
     async save() {
-      const payload = {
-        caller_id: this.caller || this.callerId || this.caller_id,
-        receiver_id: this.receiver || this.receiverId || this.receiver_id,
-        chat_id: this.chat || this.chatId || this.chat_id || null,
-        type: this.type,
-        status: this.status || 'ringing',
-        started_at: this.startedAt || new Date(),
-        answered_at: this.answeredAt || null,
-        ended_at: this.endedAt || null,
-        duration_seconds: this.durationSeconds || 0,
-        updated_at: new Date()
-      };
-
-      const { data, error } = await supabaseAdmin
-        .from('calls')
-        .update(payload)
-        .eq('id', this.id)
-        .select()
-        .single();
-      if (error) throw error;
-      Object.assign(this, mapCallFromPostgres(data));
+      const updated = await callRepository.update(this.id, this);
+      Object.assign(this, updated);
       return this;
     }
   };
@@ -49,175 +30,77 @@ export function mapCallFromPostgres(row) {
 
 const Call = {
   async findOne(query = {}) {
-    let q = supabaseAdmin.from('calls').select('*');
-    if (query._id) q = q.eq('id', query._id);
-    if (query.status) q = q.eq('status', query.status);
-    
-    const { data, error } = await q.limit(1).maybeSingle();
-    if (error) throw error;
-    return mapCallFromPostgres(data);
+    return callRepository.findOne(query);
   },
 
   findById(id) {
-    let q = supabaseAdmin.from('calls').select('*');
-    if (id) {
-      q = q.eq('id', id);
-    }
+    let populateFields = [];
     const builder = {
-      async then(resolve, reject) {
-        try {
-          if (!id) return resolve(null);
-          const { data, error } = await q.maybeSingle();
-          if (error) throw error;
-          resolve(mapCallFromPostgres(data));
-        } catch (err) {
-          reject(err);
-        }
+      populate(field) {
+        populateFields.push(field);
+        return this;
       },
       select() { return this; },
       lean() { return this; },
-      populate(field) {
-        const originalThen = this.then;
-        this.then = async (resolve, reject) => {
-          try {
-            const call = await new Promise((res, rej) => originalThen(res, rej));
-            if (!call) return resolve(null);
-            
-            const fields = field.split(' ');
-            for (const f of fields) {
-              if (f === 'caller' || f === 'receiver') {
-                const uid = call[f];
-                if (uid) {
-                  const User = (await import('./User.js')).default;
-                  const user = await User.findById(uid);
-                  call[f] = user || call[f];
-                }
-              }
-            }
-            resolve(call);
-          } catch (err) {
-            reject(err);
-          }
-        };
-        return this;
+      async then(resolve, reject) {
+        try {
+          if (!id) return resolve(null);
+          const options = {
+            populateCaller: populateFields.includes('caller'),
+            populateReceiver: populateFields.includes('receiver'),
+            limit: 1
+          };
+          const calls = await callRepository.find({ _id: id }, options);
+          resolve(calls[0] || null);
+        } catch (err) {
+          reject(err);
+        }
       }
     };
     return builder;
   },
 
   async findByIdAndUpdate(id, update = {}, options = {}) {
-    const payload = {};
-    const setObj = update.$set || update;
-    for (const [k, v] of Object.entries(setObj)) {
-      if (!k.startsWith('$')) {
-        let pgKey = k;
-        if (k === 'endedAt') pgKey = 'ended_at';
-        else if (k === 'durationSeconds') pgKey = 'duration_seconds';
-        else if (k === 'answeredAt') pgKey = 'answered_at';
-        else if (k === 'startedAt') pgKey = 'started_at';
-        payload[pgKey] = v;
-      }
-    }
-    
-    const { error } = await supabaseAdmin
-      .from('calls')
-      .update(payload)
-      .eq('id', id);
-    if (error) throw error;
-    
-    return this.findById(id);
+    return callRepository.update(id, update);
   },
 
   async create(data) {
-    const payload = {
-      caller_id: data.caller || data.callerId || data.caller_id,
-      receiver_id: data.receiver || data.receiverId || data.receiver_id,
-      chat_id: data.chat || data.chatId || data.chat_id || null,
-      type: data.type,
-      status: data.status || 'ringing',
-      started_at: data.startedAt || new Date(),
-      answered_at: data.answeredAt || null,
-      ended_at: data.endedAt || null,
-      duration_seconds: data.durationSeconds || 0,
-      updated_at: new Date()
-    };
-    const { data: row, error } = await supabaseAdmin
-      .from('calls')
-      .insert(payload)
-      .select()
-      .single();
-    if (error) throw error;
-    return mapCallFromPostgres(row);
+    return callRepository.create(data);
   },
 
   async deleteMany(query = {}) {
-    let q = supabaseAdmin.from('calls').delete();
-    if (query.chatId) q = q.eq('chat_id', query.chatId);
-    const { error } = await q;
-    if (error) throw error;
-    return { deletedCount: 1 };
+    return callRepository.deleteMany(query);
   },
 
   find(query = {}) {
-    let q = supabaseAdmin.from('calls').select('*');
-    const chatId = query.chat || query.chatId || query.chat_id;
-    if (chatId) q = q.eq('chat_id', chatId);
-    
+    let limitVal = null;
+    let sortVal = null;
+    let populateFields = [];
+
     const builder = {
+      limit(n) { limitVal = n; return this; },
+      sort(s) { sortVal = s; return this; },
+      select() { return this; },
+      lean() { return this; },
+      populate(field) {
+        // field is space-separated fields, e.g. "caller receiver"
+        const fields = field.split(' ');
+        populateFields.push(...fields);
+        return this;
+      },
       async then(resolve, reject) {
         try {
-          const { data, error } = await q;
-          if (error) throw error;
-          resolve((data || []).map(mapCallFromPostgres));
+          const options = {
+            limit: limitVal,
+            sort: sortVal,
+            populateCaller: populateFields.includes('caller'),
+            populateReceiver: populateFields.includes('receiver')
+          };
+          const res = await callRepository.find(query, options);
+          resolve(res);
         } catch (err) {
           reject(err);
         }
-      },
-      select() { return this; },
-      limit(n) { q = q.limit(n); return this; },
-      sort(sortStr) {
-        if (sortStr) {
-          const desc = sortStr.startsWith('-');
-          let field = desc ? sortStr.slice(1) : sortStr;
-          if (field === 'startedAt') field = 'started_at';
-          else if (field === 'createdAt') field = 'created_at';
-          else if (field === 'updatedAt') field = 'updated_at';
-          else if (field === 'answeredAt') field = 'answered_at';
-          else if (field === 'endedAt') field = 'ended_at';
-          else if (field === 'durationSeconds') field = 'duration_seconds';
-          
-          q = q.order(field, { ascending: !desc });
-        }
-        return this;
-      },
-      lean() { return this; },
-      populate(field) {
-        const originalThen = this.then;
-        this.then = async (resolve, reject) => {
-          try {
-            const calls = await new Promise((res, rej) => originalThen(res, rej));
-            if (calls.length === 0) return resolve(calls);
-
-            const fields = field.split(' ');
-            for (const f of fields) {
-              if (f === 'caller' || f === 'receiver') {
-                const ids = [...new Set(calls.map(c => c[f]).filter(Boolean))];
-                if (ids.length > 0) {
-                  const User = (await import('./User.js')).default;
-                  const users = await User.find({ _id: { $in: ids } });
-                  const userMap = new Map(users.map(u => [u.id, u]));
-                  for (const call of calls) {
-                    call[f] = userMap.get(call[f]) || call[f];
-                  }
-                }
-              }
-            }
-            resolve(calls);
-          } catch (err) {
-            reject(err);
-          }
-        };
-        return this;
       }
     };
     return builder;
