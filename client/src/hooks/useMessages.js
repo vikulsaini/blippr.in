@@ -88,6 +88,11 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     const socket = getRealtimeSocket();
     socket.emit('chat:join', { chatId });
 
+    const handleConnect = () => {
+      socket.emit('chat:join', { chatId });
+    };
+    socket.on('connect', handleConnect);
+
     // Instantly load from local cache
     const cachedMsgs = readCache(`messages:${chatId}`, currentUserId, []);
     const cachedCalls = readCache(`calls:${chatId}`, currentUserId, []);
@@ -98,7 +103,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     if (loadedChatsCache.has(chatId)) {
       api(`/api/chats/${chatId}/read`, { method: 'PATCH' }).catch(() => {});
       setChats((current) => current.map((chat) => (chat._id === chatId ? { ...chat, unreadCount: 0 } : chat)));
-      return;
+      return () => {
+        socket.off('connect', handleConnect);
+      };
     }
 
     Promise.all([
@@ -124,6 +131,10 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       .catch((err) => {
         console.error('Failed to process chat loading:', err);
       });
+
+    return () => {
+      socket.off('connect', handleConnect);
+    };
   }, [activeChat?._id, currentUserId, setChats, refreshTrigger]);
 
   useEffect(() => {

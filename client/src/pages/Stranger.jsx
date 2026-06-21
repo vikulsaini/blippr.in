@@ -130,11 +130,20 @@ export default function Stranger() {
     socket.on('stranger:left', handleLeft);
     socket.on('stranger:signal', handleSignal);
 
+    const handleConnect = () => {
+      const activeChatId = sessionRef.current?.chat?._id;
+      if (activeChatId) {
+        socket.emit('chat:join', { chatId: activeChatId });
+      }
+    };
+    socket.on('connect', handleConnect);
+
     return () => {
       socket.off('stranger:matched', handleMatched);
       socket.off('message:new', handleMessage);
       socket.off('stranger:left', handleLeft);
       socket.off('stranger:signal', handleSignal);
+      socket.off('connect', handleConnect);
       leaveSession();
     };
   }, []);
