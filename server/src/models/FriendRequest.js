@@ -49,6 +49,26 @@ export function mapFriendRequestFromPostgres(row) {
 }
 
 const FriendRequest = {
+  async exists(query = {}) {
+    let q = supabaseAdmin.from('friend_requests').select('id');
+    if (query.status) q = q.eq('status', query.status);
+    if (query.$or) {
+      const orStr = query.$or.map(o => {
+        const parts = [];
+        if (o.from) parts.push(`from_id.eq.${o.from}`);
+        if (o.to) parts.push(`to_id.eq.${o.to}`);
+        return parts.join(',');
+      }).join(',');
+      q = q.or(orStr);
+    } else {
+      if (query.from) q = q.eq('from_id', query.from);
+      if (query.to) q = q.eq('to_id', query.to);
+    }
+    const { data, error } = await q.limit(1).maybeSingle();
+    if (error) throw error;
+    return !!data;
+  },
+
   async findOne(query = {}) {
     let q = supabaseAdmin.from('friend_requests').select('*');
     

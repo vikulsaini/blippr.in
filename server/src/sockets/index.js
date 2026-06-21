@@ -50,10 +50,10 @@ async function leaveUserSocketsFromRoom(io, userId, roomId) {
 async function emitStrangerMatch(io, chat, initiatorId) {
   const populatedChat = await populateChat(chat._id);
   const roomId = `stranger:${chat._id}`;
-  await Promise.all(populatedChat.members.map((member) => joinUserSocketsToRoom(io, member._id.toString(), roomId)));
+  await Promise.all(populatedChat.members.map((member) => joinUserSocketsToRoom(io, (member._id || member).toString(), roomId)));
 
   populatedChat.members.forEach((member) => {
-    const memberId = member._id.toString();
+    const memberId = (member._id || member).toString();
     io.to(`user:${memberId}`).emit('stranger:matched', {
       chat: populatedChat,
       peer: peerFromChat(populatedChat, memberId),

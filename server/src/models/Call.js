@@ -58,15 +58,74 @@ const Call = {
     return mapCallFromPostgres(data);
   },
 
-  async findById(id) {
-    if (!id) return null;
-    const { data, error } = await supabaseAdmin
+  findById(id) {
+    let q = supabaseAdmin.from('calls').select('*');
+    if (id) {
+      q = q.eq('id', id);
+    }
+    const builder = {
+      async then(resolve, reject) {
+        try {
+          if (!id) return resolve(null);
+          const { data, error } = await q.maybeSingle();
+          if (error) throw error;
+          resolve(mapCallFromPostgres(data));
+        } catch (err) {
+          reject(err);
+        }
+      },
+      select() { return this; },
+      lean() { return this; },
+      populate(field) {
+        const originalThen = this.then;
+        this.then = async (resolve, reject) => {
+          try {
+            const call = await new Promise((res, rej) => originalThen(res, rej));
+            if (!call) return resolve(null);
+            
+            const fields = field.split(' ');
+            for (const f of fields) {
+              if (f === 'caller' || f === 'receiver') {
+                const uid = call[f];
+                if (uid) {
+                  const User = (await import('./User.js')).default;
+                  const user = await User.findById(uid);
+                  call[f] = user || call[f];
+                }
+              }
+            }
+            resolve(call);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        return this;
+      }
+    };
+    return builder;
+  },
+
+  async findByIdAndUpdate(id, update = {}, options = {}) {
+    const payload = {};
+    const setObj = update.$set || update;
+    for (const [k, v] of Object.entries(setObj)) {
+      if (!k.startsWith('$')) {
+        let pgKey = k;
+        if (k === 'endedAt') pgKey = 'ended_at';
+        else if (k === 'durationSeconds') pgKey = 'duration_seconds';
+        else if (k === 'answeredAt') pgKey = 'answered_at';
+        else if (k === 'startedAt') pgKey = 'started_at';
+        payload[pgKey] = v;
+      }
+    }
+    
+    const { error } = await supabaseAdmin
       .from('calls')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+      .update(payload)
+      .eq('id', id);
     if (error) throw error;
-    return mapCallFromPostgres(data);
+    
+    return this.findById(id);
   },
 
   async create(data) {

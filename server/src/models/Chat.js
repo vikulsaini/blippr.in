@@ -66,6 +66,21 @@ export function mapChatFromPostgres(row) {
 }
 
 const Chat = {
+  async exists(query = {}) {
+    let q = supabaseAdmin.from('chats').select('id');
+    if (query.type) q = q.eq('type', query.type);
+    if (query.members) {
+      if (query.members.$all) {
+        q = q.contains('members', query.members.$all);
+      } else {
+        q = q.contains('members', [query.members]);
+      }
+    }
+    const { data, error } = await q.limit(1).maybeSingle();
+    if (error) throw error;
+    return !!data;
+  },
+
   async findOne(query = {}) {
     let q = supabaseAdmin.from('chats').select('*');
     if (query._id) {
@@ -137,6 +152,27 @@ const Chat = {
       }
     };
     return builder;
+  },
+
+  async findByIdAndUpdate(id, update = {}, options = {}) {
+    const payload = {};
+    const setObj = update.$set || update;
+    for (const [k, v] of Object.entries(setObj)) {
+      if (!k.startsWith('$')) {
+        let pgKey = k;
+        if (k === 'lastCall') pgKey = 'last_call_id';
+        else if (k === 'lastMessage') pgKey = 'last_message_id';
+        payload[pgKey] = v;
+      }
+    }
+    
+    const { error } = await supabaseAdmin
+      .from('chats')
+      .update(payload)
+      .eq('id', id);
+    if (error) throw error;
+    
+    return this.findById(id);
   },
 
   async create(data) {
