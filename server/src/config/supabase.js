@@ -19,12 +19,14 @@ const supabaseServiceRoleKey = (rawServiceKey && rawServiceKey !== 'undefined' &
 
 let clientInstance = null;
 let adminClientInstance = null;
+let initError = null;
 
 if (supabaseUrl) {
   if (supabaseAnonKey) {
     try {
       clientInstance = createClient(supabaseUrl, supabaseAnonKey);
     } catch (error) {
+      initError = `client: ${error.message}`;
       console.error('Failed to initialize Supabase client:', error.message);
     }
   }
@@ -39,6 +41,7 @@ if (supabaseUrl) {
         }
       });
     } catch (error) {
+      initError = initError ? `${initError} | admin: ${error.message}` : `admin: ${error.message}`;
       console.error('Failed to initialize Supabase admin client:', error.message);
     }
   }
@@ -53,4 +56,5 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = clientInstance;
 export const supabaseAdmin = adminClientInstance || clientInstance;
+export const supabaseInitError = initError;
 

@@ -18,7 +18,7 @@ import notificationRoutes from './routes/notification.routes.js';
 import callRoutes from './routes/call.routes.js';
 import configRoutes from './routes/config.routes.js';
 import adminRoutes from './routes/admin.routes.js';
-import { supabase } from './config/supabase.js';
+import { supabase, supabaseInitError } from './config/supabase.js';
 
 const app = express();
 
@@ -61,7 +61,8 @@ app.get('/health', (_req, res) => {
       anonLength: anon.length,
       anonPrefix: anon.substring(0, 15),
       serviceLength: service.length,
-      servicePrefix: service.substring(0, 15)
+      servicePrefix: service.substring(0, 15),
+      initError: supabaseInitError
     }
   });
 });
