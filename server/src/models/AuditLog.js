@@ -52,11 +52,23 @@ const AuditLog = {
       },
       select() { return this; },
       limit(n) { q = q.limit(n); return this; },
-      sort(sortStr) {
-        if (sortStr) {
-          const desc = sortStr.startsWith('-');
-          const field = desc ? sortStr.slice(1) : sortStr;
-          q = q.order(field === 'timestamp' || field === 'createdAt' ? 'created_at' : field, { ascending: !desc });
+      sort(sortArg) {
+        if (sortArg) {
+          let field = 'createdAt';
+          let ascending = false;
+          if (typeof sortArg === 'string') {
+            const desc = sortArg.startsWith('-');
+            field = desc ? sortArg.slice(1) : sortArg;
+            ascending = !desc;
+          } else if (typeof sortArg === 'object') {
+            const keys = Object.keys(sortArg);
+            if (keys.length > 0) {
+              field = keys[0];
+              ascending = sortArg[field] === 1 || sortArg[field] === 'asc';
+            }
+          }
+          const pgField = (field === 'timestamp' || field === 'createdAt') ? 'created_at' : field;
+          q = q.order(pgField, { ascending });
         }
         return this;
       },
