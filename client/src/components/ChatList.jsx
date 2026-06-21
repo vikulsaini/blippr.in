@@ -7,6 +7,7 @@ import { api } from '../lib/api.js';
 import { callPreview, getNickname, getOtherMember } from '../lib/chat.js';
 import { haptics } from '../lib/haptics.js';
 import { presenceText } from '../lib/presence.js';
+import NotificationBell from './NotificationBell.jsx';
 
 const containerVariants = {
   hidden: {},
@@ -200,13 +201,18 @@ export default function ChatList({
                 </AnimatePresence>
               </div>
             </div>
-            <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="grid h-9 w-9 place-items-center rounded-full bg-white/5 hover:bg-white/10 text-primary transition active:scale-95 cursor-pointer"
-              aria-label="Toggle Search"
-            >
-              <Search size={18} />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <div className="md:hidden flex items-center">
+                <NotificationBell />
+              </div>
+              <button
+                onClick={() => setSearchOpen(!searchOpen)}
+                className="grid h-9 w-9 place-items-center rounded-full bg-white/5 hover:bg-white/10 text-primary transition active:scale-95 cursor-pointer"
+                aria-label="Toggle Search"
+              >
+                <Search size={18} />
+              </button>
+            </div>
           </div>
         )}
 

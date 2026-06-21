@@ -146,7 +146,7 @@ export default function Shell() {
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} tabs={activeTabs} />
       <div className="flex min-h-0 flex-col overflow-hidden">
         {showMainHeader && (
-          <header className="mb-2 flex items-center justify-between rounded-2xl border border-border-default bg-surface px-3 py-2 shadow-card md:mb-3 md:px-4 md:py-3">
+          <header className="hidden md:flex mb-2 items-center justify-between rounded-2xl border border-border-default bg-surface px-3 py-2 shadow-card md:mb-3 md:px-4 md:py-3 animate-fade-in">
             <BrandLogo compactTitle />
             <NotificationBell />
           </header>

@@ -13,6 +13,7 @@ import { api, getTokenSubject } from '../lib/api.js';
 import { readCache, writeCache } from '../lib/cache.js';
 import { normalizeId, sortChats } from '../lib/chat.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
+import { Shuffle } from 'lucide-react';
 
 export default function Chats() {
   const location = useLocation();
@@ -427,6 +428,17 @@ export default function Chats() {
         onToggleSpeaker={callSession.toggleSpeaker}
         onToggleLowDataMode={callSession.toggleLowDataMode}
       />
+      
+      {/* Floating Action Button for Matching */}
+      {!activeChat && (
+        <button
+          onClick={() => navigate('/app/stranger')}
+          className="fixed bottom-24 right-6 md:absolute md:bottom-6 md:right-6 w-14 h-14 rounded-full bg-primary text-[#0b1326] shadow-[0_8px_20px_rgba(210,187,255,0.3)] hover:shadow-[0_8px_25px_rgba(210,187,255,0.45)] hover:scale-[1.05] flex items-center justify-center z-40 active:scale-95 transition-all cursor-pointer group"
+          aria-label="Find Match"
+        >
+          <Shuffle size={22} className="text-[#0b1326] group-hover:rotate-12 transition-transform duration-200" />
+        </button>
+      )}
     </div>
   );
 }
