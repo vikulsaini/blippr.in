@@ -3,7 +3,7 @@ import { ArrowLeft, Ban, Bell, FileText, LockKeyhole, ShieldCheck, UserCheck, Za
 
 export default function Terms() {
   return (
-    <main className="min-h-screen bg-bg px-4 py-6 md:py-12 text-text-primary relative overflow-hidden scrollbar-none pb-24">
+    <main className="chat-dark-theme min-h-screen bg-bg px-4 py-6 md:py-12 text-text-primary relative overflow-hidden scrollbar-none pb-24">
       {/* Ambient Glows */}
       <div className="fixed top-1/4 -right-20 w-64 h-64 bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
       <div className="fixed bottom-1/4 -left-20 w-80 h-80 bg-success/5 blur-[120px] rounded-full pointer-events-none -z-10" />

@@ -141,7 +141,7 @@ export default function Shell() {
   return (
     <main
       data-random-route={isRandom ? 'true' : undefined}
-      className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-text-primary md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'} ${isChats ? 'chat-dark-theme bg-[#0b1326]' : ''}`}
+      className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-text-primary md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'} chat-dark-theme bg-[#0b1326]`}
     >
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} tabs={activeTabs} />
       <div className="flex min-h-0 flex-col overflow-hidden">

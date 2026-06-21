@@ -129,7 +129,7 @@ export default function ChatList({
 
   return (
     <section className="flex min-h-0 flex-1 flex-col px-2 pt-2 md:px-4 md:pt-3">
-      <div className="sticky top-0 z-10 -mx-3 bg-[#F8FAFC]/70 px-3 pb-3 backdrop-blur-xl md:-mx-4 md:px-4">
+      <div className="sticky top-0 z-10 -mx-3 bg-bg/70 px-3 pb-3 backdrop-blur-xl md:-mx-4 md:px-4">
         {selectedChats.size ? (
           <SelectionToolbar
             count={selectedChats.size}
