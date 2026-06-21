@@ -16,7 +16,7 @@ const supabaseAnonKey = (rawAnonKey && rawAnonKey !== 'undefined' && rawAnonKey 
 
 const supabaseServiceRoleKey = (rawServiceKey && rawServiceKey !== 'undefined' && rawServiceKey !== 'null')
   ? rawServiceKey
-  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVra3BramdxdWlhcnVmZXhmb2l5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTg2MTI4OCwiZXhwIjoyMDk3NDM3Mjg4fQ.OmArW7JRlc9FEoG_zdINtWNAGRDZgbJLKJLfepAukjA';
+  : null;
 
 let clientInstance = null;
 let adminClientInstance = null;
