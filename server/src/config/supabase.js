@@ -1,5 +1,6 @@
 // Re-initialized Supabase Server Configuration
 import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 
 const rawUrl = (process.env.SUPABASE_URL || process.env.SUPABASE_URI || process.env.VITE_SUPABASE_URL)?.trim();
 const rawAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY)?.trim();
@@ -24,7 +25,15 @@ let initError = null;
 if (supabaseUrl) {
   if (supabaseAnonKey) {
     try {
-      clientInstance = createClient(supabaseUrl, supabaseAnonKey);
+      clientInstance = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        },
+        realtime: {
+          transport: ws
+        }
+      });
     } catch (error) {
       initError = `client: ${error.message}`;
       console.error('Failed to initialize Supabase client:', error.message);
@@ -38,6 +47,9 @@ if (supabaseUrl) {
         auth: {
           persistSession: false,
           autoRefreshToken: false
+        },
+        realtime: {
+          transport: ws
         }
       });
     } catch (error) {
