@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { supabaseAdmin } from '../config/supabase.js';
 import { mapUserFromPostgres, mapUserToPostgres } from '../utils/userMapper.js';
 

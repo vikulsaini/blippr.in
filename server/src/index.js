@@ -82,7 +82,7 @@ async function seedAdminUser() {
     }
 
     const username = 'vikul_admin';
-    const newMongoUser = new User({
+    await User.create({
       email,
       supabaseId,
       username,
@@ -93,7 +93,6 @@ async function seedAdminUser() {
       dob: new Date('1996-01-01'),
       gender: 'male'
     });
-    await newMongoUser.save();
     console.log(`[Seed] Created MongoDB ADMIN user for ${email}`);
   } catch (err) {
     console.error('[Seed] Admin seeding failed:', err.message);
