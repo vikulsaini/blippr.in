@@ -106,8 +106,8 @@ export const callRepository = {
     let selectFields = '*';
     if (options.populateCaller || options.populateReceiver) {
       const parts = ['*'];
-      if (options.populateCaller) parts.push('caller:profiles(*)');
-      if (options.populateReceiver) parts.push('receiver:profiles(*)');
+      if (options.populateCaller) parts.push('caller:profiles!caller_id(*)');
+      if (options.populateReceiver) parts.push('receiver:profiles!receiver_id(*)');
       selectFields = parts.join(',');
     }
 
@@ -130,8 +130,16 @@ export const callRepository = {
     }
 
     if (options.sort) {
-      const desc = options.sort.startsWith('-');
-      let field = desc ? options.sort.slice(1) : options.sort;
+      const sortStr = typeof options.sort === 'string' 
+        ? options.sort 
+        : (typeof options.sort === 'object' && options.sort !== null
+            ? (Object.values(options.sort)[0] === -1 || String(Object.values(options.sort)[0]).toLowerCase() === 'desc' 
+                ? `-${Object.keys(options.sort)[0]}` 
+                : Object.keys(options.sort)[0]) 
+            : '');
+      
+      const desc = sortStr.startsWith('-');
+      let field = desc ? sortStr.slice(1) : sortStr;
       if (field === 'startedAt') field = 'started_at';
       else if (field === 'createdAt') field = 'created_at';
       else if (field === 'updatedAt') field = 'updated_at';
