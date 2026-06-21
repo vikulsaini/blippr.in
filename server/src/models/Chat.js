@@ -120,6 +120,20 @@ const Chat = {
     return mapChatFromPostgres(row);
   },
 
+  async countDocuments(query = {}) {
+    let q = supabaseAdmin.from('chats').select('id', { count: 'exact', head: true });
+    if (query.members) {
+      if (query.members.$all) {
+        q = q.contains('members', query.members.$all);
+      } else {
+        q = q.contains('members', [query.members]);
+      }
+    }
+    const { count, error } = await q;
+    if (error) throw error;
+    return count || 0;
+  },
+
   async deleteOne(query = {}) {
     const id = query.id || query._id;
     if (!id) return { deletedCount: 0 };
@@ -167,21 +181,62 @@ const Chat = {
 
   find(query = {}) {
     let q = supabaseAdmin.from('chats').select('*');
-    if (query.members) {
-      if (query.members.$all) {
-        q = q.contains('members', query.members.$all);
-      } else if (query.members.$nin) {
-        q = q.not('members', 'cs', `{${query.members.$nin.join(',')}}`);
-      } else {
-        q = q.contains('members', [query.members]);
+
+    const applyFilters = (filters) => {
+      for (const f of filters) {
+        if (!f) continue;
+        if (f.members) {
+          if (f.members.$all) {
+            q = q.contains('members', f.members.$all);
+          } else if (f.members.$nin) {
+            q = q.not('members', 'cs', `{${f.members.$nin.join(',')}}`);
+          } else {
+            q = q.contains('members', [f.members]);
+          }
+        }
+        if (f._id) {
+          if (f._id.$in) {
+            q = q.in('id', f._id.$in);
+          } else {
+            q = q.eq('id', f._id);
+          }
+        }
+        if (f.type) {
+          q = q.eq('type', f.type);
+        }
+        if (f.temporary !== undefined) {
+          if (f.temporary && f.temporary.$ne !== undefined) {
+            q = q.neq('temporary', f.temporary.$ne);
+          } else {
+            q = q.eq('temporary', f.temporary);
+          }
+        }
+        if (f.hiddenFor) {
+          if (f.hiddenFor.$ne) {
+            q = q.not('hidden_for', 'cs', `{${f.hiddenFor.$ne}}`);
+          } else {
+            q = q.contains('hidden_for', [f.hiddenFor]);
+          }
+        }
+        if (f.archivedFor) {
+          if (f.archivedFor.$ne) {
+            q = q.not('archived_for', 'cs', `{${f.archivedFor.$ne}}`);
+          } else {
+            q = q.contains('archived_for', [f.archivedFor]);
+          }
+        }
+        if (f.updatedAt) {
+          if (f.updatedAt.$lt) {
+            q = q.lt('updated_at', f.updatedAt.$lt instanceof Date ? f.updatedAt.$lt.toISOString() : f.updatedAt.$lt);
+          }
+        }
       }
-    }
-    if (query._id) {
-      if (query._id.$in) {
-        q = q.in('id', query._id.$in);
-      } else {
-        q = q.eq('id', query._id);
-      }
+    };
+
+    if (query.$and) {
+      applyFilters(query.$and);
+    } else {
+      applyFilters([query]);
     }
 
     const builder = {

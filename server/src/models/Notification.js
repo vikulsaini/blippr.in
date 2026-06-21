@@ -96,6 +96,51 @@ const Notification = {
     return mapNotificationFromPostgres(row);
   },
 
+  async countDocuments(query = {}) {
+    let q = supabaseAdmin.from('notifications').select('id', { count: 'exact', head: true });
+    if (query.user) q = q.eq('user_id', query.user);
+    if (query.userId) q = q.eq('user_id', query.userId);
+    if (query.readAt === null) q = q.is('read_at', null);
+    if (query.type) {
+      if (query.type.$in) {
+        q = q.in('type', query.type.$in);
+      } else {
+        q = q.eq('type', query.type);
+      }
+    }
+    const { count, error } = await q;
+    if (error) throw error;
+    return count || 0;
+  },
+
+  async updateMany(filter = {}, update = {}) {
+    const payload = {};
+    const setObj = update.$set || update;
+    for (const [k, v] of Object.entries(setObj)) {
+      if (k === 'readAt') {
+        payload.read_at = v;
+      } else if (!k.startsWith('$')) {
+        payload[k] = v;
+      }
+    }
+
+    let q = supabaseAdmin.from('notifications').update(payload);
+    if (filter.user) q = q.eq('user_id', filter.user);
+    if (filter.userId) q = q.eq('user_id', filter.userId);
+    if (filter.readAt === null) q = q.is('read_at', null);
+    if (filter.type) {
+      if (filter.type.$in) {
+        q = q.in('type', filter.type.$in);
+      } else {
+        q = q.eq('type', filter.type);
+      }
+    }
+
+    const { error, data } = await q;
+    if (error) throw error;
+    return { modifiedCount: data?.length || 1 };
+  },
+
   async deleteMany(query = {}) {
     let q = supabaseAdmin.from('notifications').delete();
     if (query.user) q = q.eq('user_id', query.user);
@@ -110,6 +155,20 @@ const Notification = {
     if (query.user) q = q.eq('user_id', query.user);
     if (query.userId) q = q.eq('user_id', query.userId);
     if (query.readAt === null) q = q.is('read_at', null);
+    if (query.type) {
+      if (query.type.$in) {
+        q = q.in('type', query.type.$in);
+      } else {
+        q = q.eq('type', query.type);
+      }
+    }
+    if (query.createdAt) {
+      if (query.createdAt.$lt) {
+        q = q.lt('created_at', query.createdAt.$lt instanceof Date ? query.createdAt.$lt.toISOString() : query.createdAt.$lt);
+      } else if (query.createdAt.$gt) {
+        q = q.gt('created_at', query.createdAt.$gt instanceof Date ? query.createdAt.$gt.toISOString() : query.createdAt.$gt);
+      }
+    }
 
     const builder = {
       async then(resolve, reject) {
