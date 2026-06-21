@@ -46,6 +46,7 @@ app.get('/health', (_req, res) => {
   const url = (process.env.SUPABASE_URL || process.env.SUPABASE_URI || process.env.VITE_SUPABASE_URL || '').trim();
   const anon = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim();
   const service = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  const rawRedis = (process.env.REDIS_URL || process.env.REDIS_URI || process.env.REDIS_URL_PRIVATE || '').trim();
   
   res.json({
     ok: true,
@@ -60,7 +61,9 @@ app.get('/health', (_req, res) => {
       anonPrefix: anon.substring(0, 15),
       serviceLength: service.length,
       servicePrefix: service.substring(0, 15),
-      initError: supabaseInitError
+      initError: supabaseInitError,
+      redisUrlLength: rawRedis.length,
+      redisUrlPrefix: rawRedis.substring(0, 15)
     }
   });
 });
