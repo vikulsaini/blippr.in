@@ -1,4 +1,6 @@
+import jwt from 'jsonwebtoken';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
+import User from '../models/User.js';
 import { mapUserFromPostgres } from '../utils/userMapper.js';
 import { trackUserActivity } from '../services/activity.service.js';
 import { readAuthCookie } from '../utils/authCookie.js';
@@ -13,13 +15,39 @@ export async function requireAuth(req, _res, next) {
       throw error;
     }
 
+    // 1. Try local JWT verification first (for guest and email users)
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      if (payload && payload.sub) {
+        const user = await User.findById(payload.sub);
+        if (!user) {
+          const error = new Error('Profile not found');
+          error.status = 401;
+          throw error;
+        }
+
+        if (user.bannedUntil && user.bannedUntil.getTime() > Date.now()) {
+          const error = new Error('Account temporarily restricted for safety violations.');
+          error.status = 403;
+          error.code = 'ACCOUNT_RESTRICTED';
+          throw error;
+        }
+
+        req.user = user;
+        trackUserActivity(user.id, req);
+        return next();
+      }
+    } catch (jwtError) {
+      // Fall back to Supabase verification
+    }
+
+    // 2. Fall back to Supabase Auth verification
     if (!supabase) {
       const error = new Error('Supabase integration is not configured on the server');
       error.status = 503;
       throw error;
     }
 
-    // Verify token directly with Supabase Auth
     const { data, error: authError } = await supabase.auth.getUser(token);
     const supabaseUser = data?.user;
     

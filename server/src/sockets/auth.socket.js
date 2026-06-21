@@ -1,4 +1,6 @@
+import jwt from 'jsonwebtoken';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
+import User from '../models/User.js';
 import { mapUserFromPostgres } from '../utils/userMapper.js';
 import { trackUserActivity } from '../services/activity.service.js';
 
@@ -7,6 +9,23 @@ export async function socketAuth(socket, next) {
     const token = socket.handshake.auth?.token;
     if (!token) throw new Error('Missing token');
 
+    // 1. Try local JWT verification first (for guest and email users)
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      if (payload && payload.sub) {
+        const user = await User.findById(payload.sub);
+        if (!user) throw new Error('Invalid user');
+        if (user.bannedUntil && user.bannedUntil.getTime() > Date.now()) throw new Error('Account temporarily restricted');
+
+        socket.user = user;
+        trackUserActivity(user.id, socket);
+        return next();
+      }
+    } catch (jwtError) {
+      // Fall back to Supabase verification
+    }
+
+    // 2. Fall back to Supabase Auth verification
     if (!supabase) throw new Error('Supabase integration is not configured');
 
     const { data, error: authError } = await supabase.auth.getUser(token);
