@@ -388,12 +388,17 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
       isInitial = false;
       flushRetryQueue().catch(() => {});
     }
+    const handleSocketState = (e) => {
+      if (e.detail?.state === 'connected' || e.detail?.state === 'reconnected') {
+        retry();
+      }
+    };
     window.addEventListener('online', retry);
-    window.addEventListener('blippr:socket-state', retry);
+    window.addEventListener('blippr:socket-state', handleSocketState);
     retry();
     return () => {
       window.removeEventListener('online', retry);
-      window.removeEventListener('blippr:socket-state', retry);
+      window.removeEventListener('blippr:socket-state', handleSocketState);
     };
   }, [flushRetryQueue]);
 
