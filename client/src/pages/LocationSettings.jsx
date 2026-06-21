@@ -64,7 +64,7 @@ export default function LocationSettings() {
   const locationShared = !!user?.location?.updatedAt;
 
   return (
-    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+    <div className="chat-dark-theme mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
       
       {/* Header */}
       <header className="flex items-center gap-3.5 mb-8">
@@ -82,7 +82,7 @@ export default function LocationSettings() {
       </header>
 
       <div className="space-y-5">
-        <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-6 shadow-card text-center space-y-5 relative overflow-hidden">
+        <div className="glass-panel rounded-3xl p-6 shadow-card text-center space-y-5 relative overflow-hidden">
           {/* Ambient inner glow */}
           <div className="absolute -right-10 -top-10 w-24 h-24 bg-primary/10 blur-2xl rounded-full pointer-events-none" />
           

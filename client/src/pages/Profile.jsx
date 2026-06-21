@@ -145,7 +145,7 @@ export default function Profile() {
                     if (user?.isGuest) {
                       window.dispatchEvent(new CustomEvent('blippr:guest-expired'));
                     } else {
-                      showToast('VIP subscriptions coming soon!', 'info');
+                      navigate('/app/pro');
                     }
                   }}
                   className="flex-1 py-3 bg-accent hover:brightness-110 text-white text-xs font-bold rounded-2xl transition shadow-glow active:scale-95"
@@ -189,7 +189,7 @@ export default function Profile() {
                     if (user?.isGuest) {
                       window.dispatchEvent(new CustomEvent('blippr:guest-expired'));
                     } else {
-                      showToast('VIP subscriptions coming soon!', 'info');
+                      navigate('/app/pro');
                     }
                   }}
                   className="flex-1 py-3 bg-accent hover:brightness-110 text-white text-xs font-bold rounded-2xl transition shadow-glow active:scale-95"
@@ -277,14 +277,14 @@ export default function Profile() {
                 iconBg="bg-accent/15 text-accent"
                 title="Terms of Service" 
                 subtitle="Read our terms and user guidelines"
-                onClick={() => navigate('/terms')} 
+                onClick={() => navigate('/app/legal')} 
               />
               <SettingsRow 
                 icon={Shield} 
                 iconBg="bg-accent/15 text-accent"
                 title="Privacy Policy" 
                 subtitle="Learn how we protect your personal data"
-                onClick={() => navigate('/privacy')} 
+                onClick={() => navigate('/app/legal')} 
               />
             </div>
 

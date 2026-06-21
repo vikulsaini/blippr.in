@@ -87,7 +87,7 @@ export default function PrivacySettings() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+    <div className="chat-dark-theme mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
       
       {/* Header */}
       <header className="flex items-center gap-3.5 mb-8">
@@ -108,7 +108,7 @@ export default function PrivacySettings() {
         
         {/* Toggle Settings Form */}
         <form onSubmit={savePrivacy} className="space-y-5">
-          <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-2 space-y-1 shadow-card">
+          <div className="glass-panel rounded-3xl p-2 space-y-1 shadow-card">
             <ToggleRow 
               title="Show Last Active" 
               subtitle="Allow friends to see your offline presence timer" 
@@ -133,7 +133,7 @@ export default function PrivacySettings() {
         </form>
 
         {/* Hidden Chat Vault Card */}
-        <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-5 shadow-card space-y-4">
+        <div className="glass-panel rounded-3xl p-5 shadow-card space-y-4">
           <div className="flex items-center gap-2 text-primary">
             <LockKeyhole size={18} />
             <h3 className="text-xs font-black uppercase tracking-wider text-white">Hidden Chat Vault</h3>

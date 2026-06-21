@@ -18,6 +18,9 @@ const EditProfile = lazy(() => import('./pages/EditProfile.jsx'));
 const Interests = lazy(() => import('./pages/Interests.jsx'));
 const PrivacySettings = lazy(() => import('./pages/PrivacySettings.jsx'));
 const LocationSettings = lazy(() => import('./pages/LocationSettings.jsx'));
+const ProUpgrade = lazy(() => import('./pages/ProUpgrade.jsx'));
+const Checkout = lazy(() => import('./pages/Checkout.jsx'));
+const LegalCenter = lazy(() => import('./pages/LegalCenter.jsx'));
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/auth" replace />;
@@ -50,6 +53,9 @@ export default function App() {
           <Route path="profile/privacy" element={<PrivacySettings />} />
           <Route path="profile/location" element={<LocationSettings />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="pro" element={<ProUpgrade />} />
+          <Route path="checkout" element={<Checkout />} />
+          <Route path="legal" element={<LegalCenter />} />
         </Route>
         <Route
           path="/blippr-control-center-secure-2026"

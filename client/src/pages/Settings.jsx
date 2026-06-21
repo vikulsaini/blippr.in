@@ -457,7 +457,7 @@ export default function SettingsPage() {
                 
                 {/* Custom list of links */}
                 <div className="bg-[#171f33]/30 border border-white/5 rounded-2xl overflow-hidden mt-4 divide-y divide-white/5">
-                  <Link to="/privacy" className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
+                  <Link to="/app/legal" className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-white/5 text-white/70 flex items-center justify-center">
                         <FileText size={18} />
@@ -469,7 +469,7 @@ export default function SettingsPage() {
                     </div>
                     <ChevronRight size={18} className="text-text-muted/50" />
                   </Link>
-                  <Link to="/terms" className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
+                  <Link to="/app/legal" className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-white/5 text-white/70 flex items-center justify-center">
                         <FileText size={18} />

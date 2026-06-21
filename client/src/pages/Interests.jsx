@@ -55,7 +55,7 @@ export default function Interests() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+    <div className="chat-dark-theme mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
       
       {/* Header */}
       <header className="flex items-center gap-3.5 mb-8">
@@ -73,7 +73,7 @@ export default function Interests() {
       </header>
 
       <form onSubmit={saveInterests} className="space-y-5">
-        <div className="bg-surface-glass backdrop-blur-md rounded-3xl border border-white/10 p-5 shadow-card space-y-4">
+        <div className="glass-panel rounded-3xl p-5 shadow-card space-y-4">
           <div className="flex items-center gap-2 text-primary px-1">
             <Sparkles size={18} />
             <h3 className="text-xs font-black uppercase tracking-widest text-white">Tell us what you like</h3>

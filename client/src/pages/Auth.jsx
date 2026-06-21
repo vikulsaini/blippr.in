@@ -35,6 +35,58 @@ export default function Auth() {
   const isSupabaseEnabled = Boolean(supabase);
   const navigate = useNavigate();
   
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let animationFrame;
+
+    function initCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      particles = [];
+      for (let i = 0; i < 30; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2 + 1,
+          speedY: Math.random() * 0.5 - 0.25,
+          speedX: Math.random() * 0.5 - 0.25,
+          opacity: Math.random() * 0.5
+        });
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.y > canvas.height) p.y = 0;
+        if (p.y < 0) p.y = canvas.height;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(210, 187, 255, ${p.opacity})`;
+        ctx.fill();
+      });
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', initCanvas);
+    initCanvas();
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', initCanvas);
+      cancelAnimationFrame(animationFrame);
+    };
+  }, []);
+
   // Supported modes: 'login' | 'guest' | 'completeProfile'
   const [mode, setMode] = useState('login'); 
   const [authSubMode, setAuthSubMode] = useState('login'); // 'login' or 'signup'
@@ -417,8 +469,11 @@ export default function Auth() {
   }
 
   return (
-    <main className="min-h-screen w-full bg-[#F8FAFC] text-[#191c1e] flex flex-col items-center justify-center p-4 overflow-hidden relative vibrant-gradient">
-      {/* Background decoration */}
+    <main className="chat-dark-theme min-h-screen w-full bg-[#0b1326] text-text-primary flex flex-col items-center justify-center p-4 overflow-hidden relative">
+      {/* Dynamic Background Sparkles Canvas */}
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none -z-10" />
+
+      {/* Background decoration glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
 
       {/* Content Canvas */}
@@ -426,25 +481,25 @@ export default function Auth() {
         {/* Brand Logo Area */}
         <div className="mb-4 text-center">
           <h1 className="font-display-lg text-4xl font-bold text-primary tracking-tighter">Blippr</h1>
-          <p className="text-xs text-[#3d3748] uppercase tracking-widest mt-1">Electric Social Connection</p>
+          <p className="text-xs text-text-muted uppercase tracking-widest mt-1">Electric Social Connection</p>
         </div>
 
         {/* Auth Card */}
-        <div className="glass-panel w-full p-8 rounded-3xl shadow-2xl flex flex-col gap-6 bg-white/70 backdrop-blur-xl border border-black/5">
+        <div className="glass-panel w-full p-8 rounded-3xl shadow-2xl flex flex-col gap-6 border border-white/10">
           {/* Tab Toggle (Only in Login mode, when OTP not sent) */}
           {mode === 'login' && !otpSent && (
-            <div className="flex p-1 bg-slate-100/50 rounded-full w-full overflow-hidden border border-black/5 text-xs font-bold">
+            <div className="flex p-1 bg-[#171f33]/60 rounded-full w-full overflow-hidden border border-white/5 text-xs font-bold">
               <button
                 type="button"
                 onClick={() => switchSubMode('login')}
-                className={`flex-1 py-2.5 rounded-full text-center transition-all duration-300 ${authSubMode === 'login' ? 'bg-primary text-white shadow-md' : 'text-[#4a4455] hover:text-primary'}`}
+                className={`flex-1 py-2.5 rounded-full text-center transition-all duration-300 ${authSubMode === 'login' ? 'bg-primary text-white shadow-md' : 'text-text-muted hover:text-white'}`}
               >
                 Login
               </button>
               <button
                 type="button"
                 onClick={() => switchSubMode('signup')}
-                className={`flex-1 py-2.5 rounded-full text-center transition-all duration-300 ${authSubMode === 'signup' ? 'bg-primary text-white shadow-md' : 'text-[#4a4455] hover:text-primary'}`}
+                className={`flex-1 py-2.5 rounded-full text-center transition-all duration-300 ${authSubMode === 'signup' ? 'bg-primary text-white shadow-md' : 'text-text-muted hover:text-white'}`}
               >
                 Sign Up
               </button>
@@ -462,12 +517,12 @@ export default function Auth() {
             >
               {/* Form Headline */}
               <div className="text-center">
-                <h2 className="text-xl font-bold tracking-tight text-[#191c1e]">
+                <h2 className="text-xl font-bold tracking-tight text-text-primary">
                   {mode === 'guest' ? 'Guest Setup' : ''}
                   {mode === 'completeProfile' ? 'Complete Profile' : ''}
                   {mode === 'login' && (authSubMode === 'login' ? 'Welcome Back' : 'Create Account')}
                 </h2>
-                <p className="text-xs font-semibold text-[#4a4455] mt-1 max-w-xs mx-auto leading-relaxed">
+                <p className="text-xs font-semibold text-text-secondary mt-1 max-w-xs mx-auto leading-relaxed">
                   {mode === 'guest' && 'Enter instantly without an email address.'}
                   {mode === 'completeProfile' && 'Choose your unique username, gender, and date of birth to complete setup.'}
                   {mode === 'login' && (authSubMode === 'login' ? 'Access your account instantly via Google, OTP, or Password.' : 'Sign up via email verification and customize your profile.')}
@@ -483,7 +538,7 @@ export default function Auth() {
                       type="button"
                       disabled={loading}
                       onClick={signInWithGoogle}
-                      className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-3.5 rounded-full font-bold text-sm active:scale-95 transition-all shadow-md hover:bg-slate-50 disabled:opacity-50 border border-black/10"
+                      className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-3.5 rounded-full font-bold text-sm active:scale-95 transition-all shadow-md hover:bg-slate-50 disabled:opacity-50 border border-white/10"
                     >
                       <GoogleIcon />
                       <span>Continue with Google</span>
@@ -491,9 +546,9 @@ export default function Auth() {
 
                     {/* Divider */}
                     <div className="flex items-center gap-4 py-1">
-                      <div className="h-[1px] flex-1 bg-black/10" />
-                      <span className="text-[#5c5768] text-[10px] font-bold uppercase tracking-wider">OR</span>
-                      <div className="h-[1px] flex-1 bg-black/10" />
+                      <div className="h-[1px] flex-1 bg-white/10" />
+                      <span className="text-text-muted text-[10px] font-bold uppercase tracking-wider">OR</span>
+                      <div className="h-[1px] flex-1 bg-white/10" />
                     </div>
                   </div>
                 )}
@@ -503,18 +558,18 @@ export default function Auth() {
                   <div className="flex flex-col gap-4">
                     {/* Login Method Toggle */}
                     {!otpSent && (
-                      <div className="flex items-center justify-center gap-6 text-[11px] font-bold text-[#3d3748] mb-2 select-none">
+                      <div className="flex items-center justify-center gap-6 text-[11px] font-bold text-text-secondary mb-2 select-none">
                         <button
                           type="button"
                           onClick={() => setLoginMethod('otp')}
-                          className={`pb-1 border-b-2 transition ${loginMethod === 'otp' ? 'text-primary border-primary' : 'border-transparent hover:text-slate-800'}`}
+                          className={`pb-1 border-b-2 transition ${loginMethod === 'otp' ? 'text-primary border-primary' : 'border-transparent hover:text-white'}`}
                         >
                           OTP Code
                         </button>
                         <button
                           type="button"
                           onClick={() => setLoginMethod('password')}
-                          className={`pb-1 border-b-2 transition ${loginMethod === 'password' ? 'text-primary border-primary' : 'border-transparent hover:text-slate-800'}`}
+                          className={`pb-1 border-b-2 transition ${loginMethod === 'password' ? 'text-primary border-primary' : 'border-transparent hover:text-white'}`}
                         >
                           Password
                         </button>
@@ -573,7 +628,7 @@ export default function Auth() {
                               <button
                                 type="button"
                                 onClick={() => { setOtpSent(false); setEmailCode(''); }}
-                                className="text-xs text-[#4a4455] hover:text-primary font-bold transition underline"
+                                className="text-xs text-text-secondary hover:text-primary font-bold transition underline"
                               >
                                 Change email address
                               </button>
@@ -649,13 +704,13 @@ export default function Auth() {
 
                         {/* Gender Select */}
                         <div className="space-y-1">
-                          <div className="grid grid-cols-2 gap-0.5 rounded-full border border-border-default bg-slate-100/50 p-1 text-[11px] h-14 items-center">
+                          <div className="grid grid-cols-2 gap-0.5 rounded-full border border-white/5 bg-[#171f33]/60 p-1 text-[11px] h-14 items-center">
                             {['female', 'male'].map((value) => (
                               <button
                                 key={value}
                                 type="button"
                                 onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                                className={`group relative rounded-full py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-[#4a4455] hover:text-primary'}`}
+                                className={`group relative rounded-full py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-text-secondary hover:text-white'}`}
                               >
                                 {profile.gender === value && (
                                   <motion.span
@@ -683,7 +738,7 @@ export default function Auth() {
                             type="password" 
                             value={confirmPassword} 
                             onChange={(e) => setConfirmPassword(e.target.value)} 
-                            className={`w-full bg-slate-100/40 border rounded-full py-4 px-6 pr-12 text-sm text-[#191c1e] placeholder:text-[#5c5768] outline-none focus:ring-2 focus:ring-primary/25 transition-all duration-200 font-semibold ${passwordsMatch ? 'border-success/80 focus:border-success shadow-[0_0_12px_rgba(16,185,129,0.15)]' : confirmPassword.length >= 8 ? 'border-danger/80 focus:border-danger' : 'border-black/5 focus:border-primary/80'}`}
+                            className={`w-full bg-[#171f33]/40 border rounded-full py-4 px-6 pr-12 text-sm text-text-primary placeholder:text-text-muted/60 outline-none focus:ring-2 focus:ring-primary/25 transition-all duration-200 font-semibold ${passwordsMatch ? 'border-success/80 focus:border-success shadow-[0_0_12px_rgba(16,185,129,0.15)]' : confirmPassword.length >= 8 ? 'border-danger/80 focus:border-danger' : 'border-white/5 focus:border-primary/80'}`}
                             placeholder="Confirm Password"
                           />
                           {passwordsMatch && (
@@ -714,10 +769,10 @@ export default function Auth() {
                             type="checkbox"
                             checked={signupTermsAccepted}
                             onChange={(e) => setSignupTermsAccepted(e.target.checked)}
-                            className="mt-1 h-4 w-4 rounded border-black/10 text-primary focus:ring-primary/25 bg-slate-100"
+                            className="mt-1 h-4 w-4 rounded border-white/10 text-primary focus:ring-primary/25 bg-[#171f33]/60"
                           />
-                          <label htmlFor="signup-terms" className="text-xs text-[#4a4455] leading-normal font-semibold cursor-pointer">
-                            I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms & Conditions</a> and confirm I am 18+
+                          <label htmlFor="signup-terms" className="text-xs text-text-secondary leading-normal font-semibold cursor-pointer">
+                            I agree to the <a href="/app/legal" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms & Conditions</a> and confirm I am 18+
                           </label>
                         </div>
 
@@ -759,7 +814,7 @@ export default function Auth() {
                           <button
                             type="button"
                             onClick={() => { setOtpSent(false); setEmailCode(''); }}
-                            className="text-xs text-[#4a4455] hover:text-primary font-bold transition underline"
+                            className="text-xs text-text-secondary hover:text-primary font-bold transition underline"
                           >
                             Go back to signup
                           </button>
@@ -782,14 +837,14 @@ export default function Auth() {
                     
                     {/* Gender Selector */}
                     <div className="space-y-1">
-                      <label className="text-[10px] text-[#3d3748] font-bold uppercase tracking-wider pl-4">Gender</label>
-                      <div className="grid grid-cols-2 gap-1 rounded-full border border-black/5 bg-slate-100/50 p-1 text-xs">
+                      <label className="text-[10px] text-text-secondary font-bold uppercase tracking-wider pl-4">Gender</label>
+                      <div className="grid grid-cols-2 gap-1 rounded-full border border-white/5 bg-[#171f33]/60 p-1 text-xs">
                         {['female', 'male'].map((value) => (
                           <button
                             key={value}
                             type="button"
                             onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-[#4a4455] hover:text-primary'}`}
+                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-text-secondary hover:text-white'}`}
                           >
                             {profile.gender === value && (
                               <motion.span
@@ -811,10 +866,10 @@ export default function Auth() {
                         type="checkbox"
                         checked={signupTermsAccepted}
                         onChange={(e) => setSignupTermsAccepted(e.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-black/10 text-primary focus:ring-primary/25 bg-slate-100"
+                        className="mt-1 h-4 w-4 rounded border-white/10 text-primary focus:ring-primary/25 bg-[#171f33]/60"
                       />
-                      <label htmlFor="complete-terms" className="text-xs text-[#4a4455] leading-normal font-semibold cursor-pointer">
-                        I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms & Conditions</a> and confirm I am 18+
+                      <label htmlFor="complete-terms" className="text-xs text-text-secondary leading-normal font-semibold cursor-pointer">
+                        I agree to the <a href="/app/legal" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms & Conditions</a> and confirm I am 18+
                       </label>
                     </div>
                   </div>
@@ -822,7 +877,7 @@ export default function Auth() {
 
                 {/* GUEST FIELDS */}
                 {mode === 'guest' && (
-                  <div className="flex flex-col gap-4 rounded-2xl border border-black/5 bg-slate-100/30 p-4 transition-colors duration-[350ms]">
+                  <div className="flex flex-col gap-4 rounded-2xl border border-white/5 bg-[#131b2e]/30 p-4 transition-colors duration-[350ms]">
                     <UnderlinedInput 
                       value={profile.name} 
                       onChange={(value) => setProfile((c) => ({ ...c, name: value }))} 
@@ -837,13 +892,13 @@ export default function Auth() {
                         type="number" 
                         isValid={Number(profile.age) >= 18}
                       />
-                      <div className="grid grid-cols-2 gap-1 rounded-full border border-black/5 bg-slate-100/50 p-1 text-xs h-14 items-center">
+                      <div className="grid grid-cols-2 gap-1 rounded-full border border-white/5 bg-[#171f33]/60 p-1 text-xs h-14 items-center">
                         {['female', 'male'].map((value) => (
                           <button
                             key={value}
                             type="button"
                             onClick={() => setProfile((c) => ({ ...c, gender: value }))}
-                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-[#4a4455] hover:text-primary'}`}
+                            className={`group relative rounded-full px-2 py-2.5 font-bold capitalize transition-all duration-200 active:scale-[0.96] z-10 ${profile.gender === value ? 'text-white' : 'text-text-secondary hover:text-white'}`}
                           >
                             {profile.gender === value && (
                               <motion.span
@@ -863,10 +918,10 @@ export default function Auth() {
                         type="checkbox"
                         checked={guestTermsAccepted}
                         onChange={(e) => setGuestTermsAccepted(e.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-black/10 text-primary focus:ring-primary/25 bg-slate-100"
+                        className="mt-1 h-4 w-4 rounded border-white/10 text-primary focus:ring-primary/25 bg-[#171f33]/60"
                       />
-                      <label htmlFor="guest-terms" className="text-xs text-[#4a4455] leading-normal font-semibold cursor-pointer">
-                        I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>, and I certify that I am 18 years of age or older.
+                      <label htmlFor="guest-terms" className="text-xs text-text-secondary leading-normal font-semibold cursor-pointer">
+                        I agree to the <a href="/app/legal" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a> and <a href="/app/legal" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Privacy Policy</a>, and I certify that I am 18 years of age or older.
                       </label>
                     </div>
                   </div>
@@ -900,11 +955,11 @@ export default function Auth() {
                 {/* Mode Switching */}
                 <div className="text-center pt-2">
                   {mode === 'login' ? (
-                    <button type="button" onClick={() => switchMode('guest')} className="text-xs text-[#4a4455] font-bold hover:text-primary hover:underline transition">
+                    <button type="button" onClick={() => switchMode('guest')} className="text-xs text-text-secondary font-bold hover:text-primary hover:underline transition">
                       Continue as Guest
                     </button>
                   ) : (
-                    <button type="button" onClick={() => switchMode('login')} className="text-xs text-[#4a4455] font-bold hover:text-primary hover:underline transition">
+                    <button type="button" onClick={() => switchMode('login')} className="text-xs text-text-secondary font-bold hover:text-primary hover:underline transition">
                       Return to Login
                     </button>
                   )}
@@ -915,8 +970,8 @@ export default function Auth() {
         </div>
 
         {/* Security Badge */}
-        <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-200/40 backdrop-blur-sm border border-black/5 shadow-sm text-xs font-semibold text-[#3d3748] self-center">
-          <ShieldCheck size={16} className="text-[#00687a]" />
+        <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 shadow-sm text-xs font-semibold text-text-secondary self-center">
+          <ShieldCheck size={16} className="text-secondary" />
           <span className="uppercase tracking-wider">End-to-End Encrypted Access</span>
         </div>
       </div>

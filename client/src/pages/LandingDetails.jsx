@@ -35,7 +35,7 @@ function RevealSection({ children, className = '', delay = 0 }) {
 
 function GlowDivider({ className = '' }) {
   return (
-    <div className={`relative w-full h-[1px] bg-black/5 ${className}`}>
+    <div className={`relative w-full h-[1px] bg-white/5 ${className}`}>
       <div className="absolute left-1/2 -translate-x-1/2 -top-[1.5px] w-24 h-[4px] bg-primary rounded-full blur-[2px] opacity-60" />
     </div>
   );
@@ -49,7 +49,7 @@ export default function LandingDetails() {
 
       {/* ─── STATS STRIP ─── */}
       <RevealSection>
-        <section className="bg-slate-100/40 border-y border-black/5 py-12">
+        <section className="bg-[#131b2e]/40 border-y border-white/5 py-12 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-8 px-5 sm:gap-16 sm:px-8 lg:px-10">
             <StatItem icon={Users} value="10K+" label="Active Users" />
             <StatItem icon={MessageCircle} value="500K+" label="Messages Sent" />
@@ -69,9 +69,9 @@ export default function LandingDetails() {
             <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">Built for Real Connection</p>
-                <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl text-[#191c1e]">Everything needed for a modern chat app.</h2>
+                <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl text-text-primary">Everything needed for a modern chat app.</h2>
               </div>
-              <p className="text-[#4a4455] font-medium lg:text-lg">
+              <p className="text-text-secondary font-medium lg:text-lg">
                 The interface stays compact on phones, then opens up into a clean responsive layout for people reviewing the product on laptops and desktops.
               </p>
             </div>
@@ -101,7 +101,7 @@ export default function LandingDetails() {
           <RevealSection>
             <div className="text-center">
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">Why Blippr</p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl text-[#191c1e]">A safer, smarter way to connect.</h2>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl text-text-primary">A safer, smarter way to connect.</h2>
             </div>
           </RevealSection>
           <div className="mt-14 grid gap-6 md:grid-cols-3">
@@ -127,7 +127,7 @@ export default function LandingDetails() {
           <RevealSection className="lg:col-span-1">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">Safety First</p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#191c1e]">Control who can reach you.</h2>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-text-primary">Control who can reach you.</h2>
             </div>
           </RevealSection>
           <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
@@ -153,7 +153,7 @@ export default function LandingDetails() {
           <RevealSection>
             <div className="text-center mb-14">
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">Real Stories</p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl text-[#191c1e]">What Blipprs are saying.</h2>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl text-text-primary">What Blipprs are saying.</h2>
             </div>
           </RevealSection>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -163,13 +163,13 @@ export default function LandingDetails() {
               { name: 'Meera P.', role: 'Cinephile', quote: 'The voice call feature works perfectly. Random chats actually turn into long-term friends. 10/10.', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&auto=format&fit=crop&q=80' }
             ].map((t, idx) => (
               <RevealSection key={t.name} delay={idx * 0.1}>
-                <article className="glass-card rounded-2xl p-6 flex flex-col justify-between h-full border border-black/5 hover:bg-white/60 transition duration-300">
-                  <p className="text-sm font-semibold leading-6 text-[#4a4455] italic">"{t.quote}"</p>
+                <article className="glass-card rounded-2xl p-6 flex flex-col justify-between h-full border border-white/5 hover:bg-white/5 transition duration-300">
+                  <p className="text-sm font-semibold leading-6 text-text-secondary italic">"{t.quote}"</p>
                   <div className="mt-6 flex items-center gap-3">
-                    <img src={t.avatar} alt={t.name} className="h-10 w-10 rounded-full border border-black/10 object-cover shadow-sm" />
+                    <img src={t.avatar} alt={t.name} className="h-10 w-10 rounded-full border border-white/10 object-cover shadow-sm" />
                     <div>
-                      <p className="text-sm font-bold text-[#191c1e]">{t.name}</p>
-                      <p className="text-xs font-semibold text-[#4a4455]/70">{t.role}</p>
+                      <p className="text-sm font-bold text-text-primary">{t.name}</p>
+                      <p className="text-xs font-semibold text-text-muted">{t.role}</p>
                     </div>
                   </div>
                 </article>
@@ -188,8 +188,8 @@ export default function LandingDetails() {
           <RevealSection>
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-primary">Installable PWA</p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl text-[#191c1e]">Share it now, package it later.</h2>
-              <p className="mt-4 max-w-2xl font-semibold text-[#4a4455]">
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl text-text-primary">Share it now, package it later.</h2>
+              <p className="mt-4 max-w-2xl font-semibold text-text-secondary">
                 Blippr opens from the browser and installs on Android from Chrome with the PWA install prompt.
               </p>
             </div>
@@ -206,19 +206,18 @@ export default function LandingDetails() {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-black/5 bg-slate-100/40 py-12">
+      <footer className="border-t border-white/5 bg-[#131b2e]/40 py-12 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <h2 className="text-xl font-black tracking-tighter text-primary">Blippr</h2>
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-semibold text-[#4a4455]">
-              <Link to="/privacy" className="hover:text-primary transition">Privacy</Link>
-              <Link to="/terms" className="hover:text-primary transition">Terms</Link>
-              <a href="#features" className="hover:text-primary transition">Features</a>
-              <a href="#safety" className="hover:text-primary transition">Safety</a>
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-semibold text-text-secondary">
+              <Link to="/app/legal" className="hover:text-white transition">Legal Hub</Link>
+              <a href="#features" className="hover:text-white transition">Features</a>
+              <a href="#safety" className="hover:text-white transition">Safety</a>
             </div>
           </div>
-          <div className="mt-8 border-t border-black/5 pt-8 text-center">
-            <p className="text-sm font-semibold text-[#4a4455]/60">© {new Date().getFullYear()} Blippr. All rights reserved.</p>
+          <div className="mt-8 border-t border-white/5 pt-8 text-center">
+            <p className="text-sm font-semibold text-text-muted">© {new Date().getFullYear()} Blippr. All rights reserved.</p>
           </div>
         </div>
       </footer>
@@ -233,8 +232,8 @@ function StatItem({ icon: Icon, value, label }) {
         <Icon size={18} />
       </span>
       <div>
-        <p className="text-xl font-extrabold text-[#191c1e]">{value}</p>
-        <p className="text-xs font-semibold text-[#4a4455]/70">{label}</p>
+        <p className="text-xl font-extrabold text-text-primary">{value}</p>
+        <p className="text-xs font-semibold text-text-muted">{label}</p>
       </div>
     </div>
   );
@@ -242,45 +241,45 @@ function StatItem({ icon: Icon, value, label }) {
 
 function Feature({ icon: Icon, title, text }) {
   return (
-    <article className="glass-card rounded-2xl p-6 h-full border border-black/5 hover:bg-white/60 transition duration-300 cursor-pointer shadow-sm">
+    <article className="glass-card rounded-2xl p-6 h-full border border-white/5 hover:bg-white/5 transition duration-300 cursor-pointer shadow-sm">
       <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary shadow-sm">
         <Icon size={20} />
       </span>
-      <h3 className="mt-5 font-extrabold text-[#191c1e]">{title}</h3>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[#4a4455]">{text}</p>
+      <h3 className="mt-5 font-extrabold text-text-primary">{title}</h3>
+      <p className="mt-2 text-sm font-semibold leading-6 text-text-secondary">{text}</p>
     </article>
   );
 }
 
 function Pillar({ icon, title, text }) {
   return (
-    <article className="glass-card rounded-3xl p-6 text-center h-full border border-black/5 hover:bg-white/60 transition duration-300 cursor-pointer shadow-sm">
+    <article className="glass-card rounded-3xl p-6 text-center h-full border border-white/5 hover:bg-white/5 transition duration-300 cursor-pointer shadow-sm">
       <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 shadow-sm">
         {icon}
       </span>
-      <h3 className="mt-5 text-lg font-extrabold text-[#191c1e]">{title}</h3>
-      <p className="mt-3 text-sm font-semibold leading-6 text-[#4a4455]">{text}</p>
+      <h3 className="mt-5 text-lg font-extrabold text-text-primary">{title}</h3>
+      <p className="mt-3 text-sm font-semibold leading-6 text-text-secondary">{text}</p>
     </article>
   );
 }
 
 function SafetyCard({ title, text }) {
   return (
-    <article className="glass-card rounded-2xl p-5 h-full border border-black/5 hover:bg-white/60 transition duration-300 shadow-sm">
+    <article className="glass-card rounded-2xl p-5 h-full border border-white/5 hover:bg-white/5 transition duration-300 shadow-sm">
       <ShieldCheck size={22} className="text-primary" />
-      <h3 className="mt-4 font-extrabold text-[#191c1e]">{title}</h3>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[#4a4455]">{text}</p>
+      <h3 className="mt-4 font-extrabold text-text-primary">{title}</h3>
+      <p className="mt-2 text-sm font-semibold leading-6 text-text-secondary">{text}</p>
     </article>
   );
 }
 
 function InstallStep({ label, title, text }) {
   return (
-    <article className="glass-card flex gap-4 rounded-2xl p-5 border border-black/5 hover:bg-white/60 transition duration-300 shadow-sm">
+    <article className="glass-card flex gap-4 rounded-2xl p-5 border border-white/5 hover:bg-white/5 transition duration-300 shadow-sm">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-white text-sm font-extrabold shadow-md shadow-primary/20">{label}</span>
       <div>
-        <h3 className="font-extrabold text-[#191c1e]">{title}</h3>
-        <p className="mt-1 text-sm font-semibold leading-6 text-[#4a4455]">{text}</p>
+        <h3 className="font-extrabold text-text-primary">{title}</h3>
+        <p className="mt-1 text-sm font-semibold leading-6 text-text-secondary">{text}</p>
       </div>
     </article>
   );
