@@ -66,15 +66,53 @@ const Message = {
     return mapMessageFromPostgres(data);
   },
 
-  async findById(id) {
-    if (!id) return null;
-    const { data, error } = await supabaseAdmin
-      .from('messages')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (error) throw error;
-    return mapMessageFromPostgres(data);
+  findById(id) {
+    let q = supabaseAdmin.from('messages').select('*');
+    if (id) {
+      q = q.eq('id', id);
+    }
+    const builder = {
+      async then(resolve, reject) {
+        try {
+          if (!id) return resolve(null);
+          const { data, error } = await q.maybeSingle();
+          if (error) throw error;
+          resolve(mapMessageFromPostgres(data));
+        } catch (err) {
+          reject(err);
+        }
+      },
+      select() { return this; },
+      lean() { return this; },
+      populate(field) {
+        const originalThen = this.then;
+        this.then = async (resolve, reject) => {
+          try {
+            const message = await new Promise((res, rej) => originalThen(res, rej));
+            if (!message) return resolve(null);
+            
+            if (field === 'sender') {
+              if (message.sender) {
+                const User = (await import('./User.js')).default;
+                const user = await User.findById(message.sender);
+                message.sender = user || message.sender;
+              }
+            } else if (field === 'replyTo') {
+              if (message.replyTo) {
+                const MessageModel = (await import('./Message.js')).default;
+                const reply = await MessageModel.findById(message.replyTo).populate('sender');
+                message.replyTo = reply || message.replyTo;
+              }
+            }
+            resolve(message);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        return this;
+      }
+    };
+    return builder;
   },
 
   async findOneAndUpdate(filter = {}, update = {}, options = {}) {

@@ -2,15 +2,26 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { mapUserFromPostgres, mapUserToPostgres } from '../utils/userMapper.js';
 
 const User = {
-  async findById(id) {
-    if (!id) return null;
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (error) throw error;
-    return mapUserFromPostgres(data);
+  findById(id) {
+    let q = supabaseAdmin.from('profiles').select('*');
+    if (id) {
+      q = q.eq('id', id);
+    }
+    const builder = {
+      async then(resolve, reject) {
+        try {
+          if (!id) return resolve(null);
+          const { data, error } = await q.maybeSingle();
+          if (error) throw error;
+          resolve(mapUserFromPostgres(data));
+        } catch (err) {
+          reject(err);
+        }
+      },
+      select() { return this; },
+      lean() { return this; }
+    };
+    return builder;
   },
 
   async findOne(query = {}) {

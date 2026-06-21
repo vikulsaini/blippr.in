@@ -82,15 +82,61 @@ const Chat = {
     return mapChatFromPostgres(data);
   },
 
-  async findById(id) {
-    if (!id) return null;
-    const { data, error } = await supabaseAdmin
-      .from('chats')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (error) throw error;
-    return mapChatFromPostgres(data);
+  findById(id) {
+    let q = supabaseAdmin.from('chats').select('*');
+    if (id) {
+      q = q.eq('id', id);
+    }
+    const builder = {
+      async then(resolve, reject) {
+        try {
+          if (!id) return resolve(null);
+          const { data, error } = await q.maybeSingle();
+          if (error) throw error;
+          resolve(mapChatFromPostgres(data));
+        } catch (err) {
+          reject(err);
+        }
+      },
+      select() { return this; },
+      lean() { return this; },
+      populate(field) {
+        const originalThen = this.then;
+        this.then = async (resolve, reject) => {
+          try {
+            const chat = await new Promise((res, rej) => originalThen(res, rej));
+            if (!chat) return resolve(null);
+            
+            if (field === 'members') {
+              const memberIds = chat.members || [];
+              if (memberIds.length > 0) {
+                const User = (await import('./User.js')).default;
+                const users = await User.find({ _id: { $in: memberIds } });
+                const userMap = new Map(users.map(u => [u.id, u]));
+                chat.members = chat.members.map(mid => userMap.get(mid) || mid);
+              }
+            } else if (field === 'lastMessage') {
+              if (chat.lastMessage) {
+                const Message = (await import('./Message.js')).default;
+                const msg = await Message.findById(chat.lastMessage);
+                chat.lastMessage = msg || chat.lastMessage;
+              }
+            } else if (field === 'lastCall') {
+              if (chat.lastCall) {
+                const Call = (await import('./Call.js')).default;
+                const call = await Call.findById(chat.lastCall);
+                chat.lastCall = call || chat.lastCall;
+              }
+            }
+            resolve(chat);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        return this;
+      }
+    };
+    return builder;
   },
 
   async create(data) {
