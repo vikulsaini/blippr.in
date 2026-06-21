@@ -1,4 +1,4 @@
-// Re-initialized Supabase Client Service Configuration (Trigger Vercel Redeploy)
+// Re-initialized Supabase Client Service Configuration (Trigger Vercel Redeploy - v2)
 import { createClient } from '@supabase/supabase-js';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
