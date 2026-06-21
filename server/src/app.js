@@ -9,6 +9,15 @@ import { apiLimiter } from './middleware/rateLimit.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { requestContext } from './middleware/requestContext.js';
 import authRoutes from './routes/auth.routes.js';
+import chatRoutes from './routes/chat.routes.js';
+import userRoutes from './routes/user.routes.js';
+import friendRoutes from './routes/friend.routes.js';
+import safetyRoutes from './routes/safety.routes.js';
+import mediaRoutes from './routes/media.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
+import callRoutes from './routes/call.routes.js';
+import configRoutes from './routes/config.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 import { supabase } from './config/supabase.js';
 
 const app = express();
@@ -45,6 +54,15 @@ app.get('/health', (_req, res) => {
   });
 });
 app.use('/api/auth', authRoutes);
+app.use('/api/chats', chatRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/friends', friendRoutes);
+app.use('/api/safety', safetyRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/calls', callRoutes);
+app.use('/api/config', configRoutes);
+app.use('/api/admin', adminRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
