@@ -4,6 +4,74 @@ import { readCache, writeCache } from '../lib/cache.js';
 import { getMessageSenderId, getOtherMember, normalizeId } from '../lib/chat.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
 import { playMessageSound } from '../lib/sounds.js';
+import { supabase } from '../lib/supabase.js';
+
+const mapRealtimeMessage = (row) => {
+  if (!row) return null;
+  return {
+    _id: row.id,
+    id: row.id,
+    chat: row.chat_id,
+    chatId: row.chat_id,
+    sender: row.sender_id,
+    senderId: row.sender_id,
+    text: row.text,
+    media: row.media || null,
+    location: row.location || null,
+    replyTo: row.reply_to_id,
+    replyToId: row.reply_to_id,
+    mentions: row.mentions || [],
+    reactions: row.reactions || [],
+    status: row.status,
+    seenBy: row.seen_by || [],
+    deletedFor: row.deleted_for || [],
+    editedAt: row.edited_at ? new Date(row.edited_at).toISOString() : null,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at).toISOString() : null,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null
+  };
+};
+
+const populateSender = (message, activeChat) => {
+  const senderId = message.senderId || message.sender;
+  if (!senderId) return message;
+  
+  const members = activeChat?.members || [];
+  const foundMember = members.find(m => normalizeId(m._id || m.id) === normalizeId(senderId));
+  if (foundMember) {
+    return {
+      ...message,
+      sender: {
+        _id: foundMember._id || foundMember.id,
+        id: foundMember._id || foundMember.id,
+        name: foundMember.name,
+        username: foundMember.username,
+        avatar: foundMember.avatar
+      }
+    };
+  }
+  return message;
+};
+
+const populateReplyTo = (message, currentMessages) => {
+  const replyToId = message.replyToId || message.replyTo;
+  if (!replyToId) return message;
+
+  const parentMsg = currentMessages.find(m => (m._id || m.id) === replyToId);
+  if (parentMsg) {
+    const parentSender = parentMsg.sender;
+    return {
+      ...message,
+      replyTo: {
+        _id: parentMsg._id || parentMsg.id,
+        id: parentMsg._id || parentMsg.id,
+        text: parentMsg.text,
+        sender: typeof parentSender === 'object' ? parentSender : { _id: parentSender, id: parentSender }
+      }
+    };
+  }
+  return message;
+};
 
 const RETRY_KEY = 'blippr_message_retry_queue';
 const loadedChatsCache = new Set();
@@ -145,63 +213,9 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
     if (activeChat?._id && currentUserId) writeCache(`calls:${activeChat._id}`, calls, currentUserId);
   }, [calls, activeChat?._id, currentUserId]);
 
+  // Listen to typing indicators via Socket.io
   useEffect(() => {
     const socket = getRealtimeSocket();
-    const handleMessage = ({ message }) => {
-      const mine = getMessageSenderId(message) === currentUserId;
-      const isForActiveChat = activeChat && message.chat === activeChat._id;
-      if (!mine && (!isForActiveChat || document.visibilityState !== 'visible')) {
-        playMessageSound();
-      }
-      if (isForActiveChat) {
-        setMessages((current) => {
-          if (current.some((item) => item._id === message._id)) return current;
-          if (mine) {
-            let foundIndex = -1;
-            if (message.media?.url) {
-              foundIndex = current.findIndex((item) => item.sender === currentUserId && (item.status === 'sending' || item.status === 'queued') && item.media?.type === message.media.type);
-            } else if (message.location) {
-              foundIndex = current.findIndex((item) => item.sender === currentUserId && (item.status === 'sending' || item.status === 'queued') && item.location?.type === message.location.type);
-            } else {
-              foundIndex = current.findIndex((item) => item.sender === currentUserId && (item.status === 'sending' || item.status === 'queued') && item.text === message.text);
-            }
-            if (foundIndex !== -1) {
-              const next = [...current];
-              const optimisticClientId = next[foundIndex].clientId || next[foundIndex]._id;
-              next[foundIndex] = {
-                ...message,
-                clientId: optimisticClientId,
-                status: message.status || 'sent'
-              };
-              return next;
-            }
-          }
-          return [...current, message];
-        });
-      }
-    };
-    const handleReaction = ({ messageId, reactions }) => {
-      setMessages((current) => current.map((message) => (message._id === messageId ? { ...message, reactions } : message)));
-    };
-    const handleEdited = ({ message }) => {
-      setMessages((current) => current.map((item) => (item._id === message._id ? message : item)));
-    };
-    const handleDeleted = ({ messageId }) => {
-      setMessages((current) => current.filter((message) => message._id !== messageId));
-    };
-    const handleDelivered = ({ chatId, userId }) => {
-      if (normalizeId(userId) === currentUserId) return;
-      if (!activeChat || chatId !== activeChat._id) return;
-      setMessages((current) => current.map((message) => (getMessageSenderId(message) === currentUserId && message.status === 'sent' ? { ...message, status: 'delivered' } : message)));
-    };
-    const handleSeen = ({ chatId, userId }) => {
-      if (normalizeId(userId) === currentUserId) return;
-      if (!activeChat || chatId !== activeChat._id) return;
-      setMessages((current) => current.map((message) => (getMessageSenderId(message) === currentUserId ? { ...message, status: 'seen' } : message)));
-    };
-    const handleStatus = ({ messageId, status }) => {
-      setMessages((current) => current.map((message) => (message._id === messageId ? { ...message, status } : message)));
-    };
     const handleTypingStart = ({ chatId, userId }) => {
       if (normalizeId(userId) !== currentUserId) {
         setTypingChats((current) => ({ ...current, [chatId]: true }));
@@ -216,27 +230,125 @@ export function useMessages({ activeChat, currentUserId, setChats }) {
         });
       }
     };
-    socket.on('message:new', handleMessage);
-    socket.on('message:reaction', handleReaction);
-    socket.on('message:edited', handleEdited);
-    socket.on('message:deleted', handleDeleted);
-    socket.on('message:delivered', handleDelivered);
-    socket.on('message:seen', handleSeen);
-    socket.on('message:status', handleStatus);
     socket.on('typing:start', handleTypingStart);
     socket.on('typing:stop', handleTypingStop);
     return () => {
-      socket.off('message:new', handleMessage);
-      socket.off('message:reaction', handleReaction);
-      socket.off('message:edited', handleEdited);
-      socket.off('message:deleted', handleDeleted);
-      socket.off('message:delivered', handleDelivered);
-      socket.off('message:seen', handleSeen);
-      socket.off('message:status', handleStatus);
       socket.off('typing:start', handleTypingStart);
       socket.off('typing:stop', handleTypingStop);
     };
-  }, [activeChat, currentUserId]);
+  }, [currentUserId]);
+
+  // Subscribe to real-time message updates via Supabase Postgres Changes
+  useEffect(() => {
+    const chatId = activeChat?._id;
+    if (!chatId || activeChat.isMock || !currentUserId || !supabase) {
+      return;
+    }
+
+    console.log(`[Supabase Realtime] Subscribing to messages for chat: ${chatId}`);
+
+    const channel = supabase
+      .channel(`chat-messages:${chatId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=eq.${chatId}`
+        },
+        (payload) => {
+          console.log('[Supabase Realtime] Received postgres change event:', payload);
+          const { eventType, new: newRow, old: oldRow } = payload;
+          
+          if (eventType === 'INSERT') {
+            const message = mapRealtimeMessage(newRow);
+            if (!message) return;
+
+            // Filter out if deleted or hidden for me
+            const isDeleted = message.deletedAt || message.deletedFor?.some(id => normalizeId(id) === currentUserId);
+            if (isDeleted) return;
+
+            const mine = getMessageSenderId(message) === currentUserId;
+            if (!mine && document.visibilityState !== 'visible') {
+              playMessageSound();
+            }
+
+            setMessages((current) => {
+              if (current.some((item) => (item._id || item.id) === message._id)) return current;
+              
+              const populated = populateReplyTo(populateSender(message, activeChat), current);
+
+              if (mine) {
+                let foundIndex = -1;
+                if (populated.media?.url) {
+                  foundIndex = current.findIndex((item) => 
+                    normalizeId(item.sender) === currentUserId && 
+                    (item.status === 'sending' || item.status === 'queued') && 
+                    item.media?.type === populated.media.type
+                  );
+                } else if (populated.location) {
+                  foundIndex = current.findIndex((item) => 
+                    normalizeId(item.sender) === currentUserId && 
+                    (item.status === 'sending' || item.status === 'queued') && 
+                    item.location?.type === populated.location.type
+                  );
+                } else {
+                  foundIndex = current.findIndex((item) => 
+                    normalizeId(item.sender) === currentUserId && 
+                    (item.status === 'sending' || item.status === 'queued') && 
+                    item.text === populated.text
+                  );
+                }
+                
+                if (foundIndex !== -1) {
+                  const next = [...current];
+                  const optimisticClientId = next[foundIndex].clientId || next[foundIndex]._id;
+                  next[foundIndex] = {
+                    ...populated,
+                    clientId: optimisticClientId,
+                    status: populated.status || 'sent'
+                  };
+                  return next;
+                }
+              }
+              return [...current, populated];
+            });
+          } 
+          
+          else if (eventType === 'UPDATE') {
+            const message = mapRealtimeMessage(newRow);
+            if (!message) return;
+
+            const isDeleted = message.deletedAt || message.deletedFor?.some(id => normalizeId(id) === currentUserId);
+            if (isDeleted) {
+              setMessages((current) => current.filter((item) => (item._id || item.id) !== message._id));
+              return;
+            }
+
+            setMessages((current) => {
+              const populated = populateReplyTo(populateSender(message, activeChat), current);
+              return current.map((item) => ((item._id || item.id) === populated._id ? populated : item));
+            });
+          } 
+          
+          else if (eventType === 'DELETE') {
+            const deletedId = oldRow?.id || newRow?.id;
+            if (deletedId) {
+              setMessages((current) => current.filter((item) => (item._id || item.id) !== deletedId));
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[Supabase Realtime] Subscription status for chat ${chatId}:`, status);
+      });
+
+    return () => {
+      console.log(`[Supabase Realtime] Unsubscribing from messages for chat: ${chatId}`);
+      supabase.removeChannel(channel);
+    };
+  }, [activeChat?._id, currentUserId, activeChat]);
 
   useEffect(() => {
     return () => {
