@@ -28,6 +28,9 @@ function isGuestExpired() {
 }
 
 export function getToken() {
+  const localToken = localStorage.getItem('blippr_token');
+  if (localToken) return localToken;
+
   const projectRef = (import.meta.env.VITE_SUPABASE_URL || 'https://ekkpkjgquiarufexfoiy.supabase.co')
     .replace('https://', '')
     .split('.')[0];
@@ -42,7 +45,7 @@ export function getToken() {
       // ignore
     }
   }
-  return localStorage.getItem('blippr_token');
+  return null;
 }
 
 export function setToken(token, isGuest = false) {

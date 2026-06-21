@@ -255,7 +255,7 @@ export default function Auth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED')) {
-        const hasLocalToken = Boolean(getToken());
+        const hasLocalToken = Boolean(localStorage.getItem('blippr_token'));
         // Only trigger sync if we don't have a token or if we are completing profile
         if (!hasLocalToken) {
           await syncSupabaseSession(session.access_token, authSubModeRef.current === 'signup' ? profileRef.current : null);
