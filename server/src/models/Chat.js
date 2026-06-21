@@ -85,7 +85,11 @@ const Chat = {
     let q = supabaseAdmin.from('chats').select('*');
     if (query._id) {
       q = q.eq('id', query._id);
-    } else if (query.members) {
+    }
+    if (query.type) {
+      q = q.eq('type', query.type);
+    }
+    if (query.members) {
       if (query.members.$all) {
         q = q.contains('members', query.members.$all);
       } else {
