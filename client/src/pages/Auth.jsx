@@ -65,6 +65,7 @@ export default function Auth() {
   }, [authSubMode]);
   const [error, setError] = useState('');
   const [guestTermsAccepted, setGuestTermsAccepted] = useState(false);
+  const [signupTermsAccepted, setSignupTermsAccepted] = useState(false);
 
   // Username status: 'idle' | 'checking' | 'available' | 'taken'
   const [usernameStatus, setUsernameStatus] = useState('idle');
@@ -143,7 +144,7 @@ export default function Auth() {
       if (signupData) {
         syncPayload.name = signupData.username;
         syncPayload.username = signupData.username;
-        syncPayload.age = ageFromDob(signupData.dob);
+        syncPayload.age = 18;
         syncPayload.gender = signupData.gender;
       }
       const result = await loginWithSupabase(syncPayload);
@@ -274,12 +275,8 @@ export default function Auth() {
       setError('Please enter a valid email address.');
       return;
     }
-    if (!profile.dob) {
-      setError('Date of birth is required.');
-      return;
-    }
-    if (ageFromDob(profile.dob) < 18) {
-      setError('You must be 18 years or older to join.');
+    if (!signupTermsAccepted) {
+      setError('You must agree to the Terms & Conditions and confirm you are 18+');
       return;
     }
     if (password.length < 8) {
@@ -366,12 +363,8 @@ export default function Auth() {
       setError('Please enter a valid username (3-24 characters, lowercase, numbers, underscores).');
       return;
     }
-    if (!profile.dob) {
-      setError('Date of birth is required.');
-      return;
-    }
-    if (ageFromDob(profile.dob) < 18) {
-      setError('You must be 18 years or older to join.');
+    if (!signupTermsAccepted) {
+      setError('You must agree to the Terms & Conditions and confirm you are 18+');
       return;
     }
 
@@ -381,7 +374,7 @@ export default function Auth() {
         accessToken: supabaseAccessToken,
         name: profile.username,
         username: profile.username,
-        age: ageFromDob(profile.dob),
+        age: 18,
         gender: profile.gender,
         bio: '',
         interests: []
@@ -654,17 +647,8 @@ export default function Auth() {
                           isValid={isEmailValid}
                         />
 
-                        {/* Age / DOB Input */}
-                        <div className="grid grid-cols-1 sm:grid-cols-[1.1fr_0.9fr] gap-3 items-center">
-                          <UnderlinedInput 
-                            value={profile.dob} 
-                            onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
-                            placeholder="Date of Birth" 
-                            type="date" 
-                            isValid={profile.dob && ageFromDob(profile.dob) >= 18}
-                          />
-                          
-                          {/* Gender Select */}
+                        {/* Gender Select */}
+                        <div className="space-y-1">
                           <div className="grid grid-cols-2 gap-0.5 rounded-full border border-border-default bg-slate-100/50 p-1 text-[11px] h-14 items-center">
                             {['female', 'male'].map((value) => (
                               <button
@@ -723,10 +707,24 @@ export default function Auth() {
                           </p>
                         )}
 
+                        {/* Terms & 18+ Checkbox */}
+                        <div className="flex items-start gap-2.5 pt-1 pb-1 select-none">
+                          <input
+                            id="signup-terms"
+                            type="checkbox"
+                            checked={signupTermsAccepted}
+                            onChange={(e) => setSignupTermsAccepted(e.target.checked)}
+                            className="mt-1 h-4 w-4 rounded border-black/10 text-primary focus:ring-primary/25 bg-slate-100"
+                          />
+                          <label htmlFor="signup-terms" className="text-xs text-[#4a4455] leading-normal font-semibold cursor-pointer">
+                            I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms & Conditions</a> and confirm I am 18+
+                          </label>
+                        </div>
+
                         <button
                           type="submit"
                           onClick={handleEmailSignup}
-                          disabled={otpSending || usernameStatus !== 'available' || !isEmailValid || !profile.dob || ageFromDob(profile.dob) < 18 || password.length < 8 || password !== confirmPassword}
+                          disabled={otpSending || usernameStatus !== 'available' || !isEmailValid || !signupTermsAccepted || password.length < 8 || password !== confirmPassword}
                           className="w-full h-14 bg-primary text-white font-bold rounded-full shadow-[0_8px_20px_rgba(124,58,237,0.25)] active:scale-95 transition-all hover:brightness-110 disabled:opacity-50 text-xs mt-2"
                         >
                           {otpSending ? 'Sending OTP...' : 'Create Account'}
@@ -806,16 +804,18 @@ export default function Auth() {
                       </div>
                     </div>
 
-                    {/* Date of Birth */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-[#3d3748] font-bold uppercase tracking-wider pl-4">Date of Birth</label>
-                      <UnderlinedInput 
-                        value={profile.dob} 
-                        onChange={(value) => setProfile((c) => ({ ...c, dob: value }))} 
-                        placeholder="DOB" 
-                        type="date" 
-                        isValid={profile.dob && ageFromDob(profile.dob) >= 18}
+                    {/* Terms & 18+ Checkbox */}
+                    <div className="flex items-start gap-2.5 pt-2 select-none">
+                      <input
+                        id="complete-terms"
+                        type="checkbox"
+                        checked={signupTermsAccepted}
+                        onChange={(e) => setSignupTermsAccepted(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-black/10 text-primary focus:ring-primary/25 bg-slate-100"
                       />
+                      <label htmlFor="complete-terms" className="text-xs text-[#4a4455] leading-normal font-semibold cursor-pointer">
+                        I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms & Conditions</a> and confirm I am 18+
+                      </label>
                     </div>
                   </div>
                 )}
@@ -887,7 +887,7 @@ export default function Auth() {
                   <div className="space-y-4 mt-4 pt-2">
                     <button
                       type="submit"
-                      disabled={loading || (mode === 'completeProfile' && (!isUsernameValid || !profile.dob || ageFromDob(profile.dob) < 18))}
+                      disabled={loading || (mode === 'completeProfile' && (!isUsernameValid || !signupTermsAccepted))}
                       onClick={mode === 'completeProfile' ? submitCompleteProfile : continueAsGuest}
                       className="w-full h-14 bg-primary text-white font-bold rounded-full shadow-[0_8px_20px_rgba(124,58,237,0.25)] flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] text-sm"
                     >

@@ -18,6 +18,7 @@ export default function GuestUpgradeModal({ me }) {
   });
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [upgradeTermsAccepted, setUpgradeTermsAccepted] = useState(false);
 
   useEffect(() => {
     const show = () => setOpen(true);
@@ -44,6 +45,10 @@ export default function GuestUpgradeModal({ me }) {
 
   async function submit(event) {
     event.preventDefault();
+    if (!upgradeTermsAccepted) {
+      setMessage('You must agree to the Terms of Service and confirm you are 18+');
+      return;
+    }
     setLoading(true);
     setMessage('');
     try {
@@ -53,8 +58,8 @@ export default function GuestUpgradeModal({ me }) {
           name: form.name,
           email: form.email,
           password: form.password,
-          dob: form.dob || undefined,
-          age: ageFromDob(form.dob),
+          dob: undefined,
+          age: 18,
           contact: form.contact,
           gender: form.gender,
           bio: form.bio,
@@ -107,10 +112,7 @@ export default function GuestUpgradeModal({ me }) {
               
               <Field label="Password" value={form.password} onChange={(value) => update('password', value)} type="password" />
               
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Date of Birth" value={form.dob} onChange={(value) => update('dob', value)} type="date" />
-                <Field label="Contact" value={form.contact} onChange={(value) => update('contact', value)} />
-              </div>
+              <Field label="Contact" value={form.contact} onChange={(value) => update('contact', value)} />
 
               <div>
                 <span className="text-xs text-text-muted font-bold ml-1">Gender</span>
@@ -129,6 +131,19 @@ export default function GuestUpgradeModal({ me }) {
               </div>
 
               <Field label="Hobbies (comma separated)" value={form.hobbies} onChange={(value) => update('hobbies', value)} />
+
+              <div className="flex items-start gap-2.5 pt-1 pb-1 select-none">
+                <input
+                  id="upgrade-terms"
+                  type="checkbox"
+                  checked={upgradeTermsAccepted}
+                  onChange={(e) => setUpgradeTermsAccepted(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-white/10 text-primary focus:ring-primary/25 bg-[#171f33]/40"
+                />
+                <label htmlFor="upgrade-terms" className="text-xs text-text-muted leading-normal font-semibold cursor-pointer">
+                  I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms of Service</a> and confirm I am 18+
+                </label>
+              </div>
 
               <label className="block">
                 <span className="text-xs text-text-muted font-bold ml-1">Short Bio</span>
