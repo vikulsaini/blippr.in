@@ -18,6 +18,11 @@ export function isAllowedOrigin(origin) {
   if (!origin) return true;
   const normalizedOrigin = origin.trim().replace(/\/$/, '');
   
+  // Allow the main domain and any subdomains of blippr.in
+  if (/^https?:\/\/(.*\.)?blippr\.in$/i.test(normalizedOrigin)) {
+    return true;
+  }
+  
   // Allow preview environments on Cloudflare Pages and Vercel
   if (normalizedOrigin.endsWith('.pages.dev') || normalizedOrigin.endsWith('.vercel.app')) {
     return true;
