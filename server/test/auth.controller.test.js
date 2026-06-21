@@ -12,6 +12,8 @@ const { signupWithEmail, loginWithEmail, continueAsGuest } = await import('../sr
 const { requireAuth } = await import('../src/middleware/auth.js');
 const { callHandler, chainable, expectError, makeReq, makeRes, userA } = await import('./helpers.js');
 const { redis } = await import('../src/config/redis.js');
+const { supabase, supabaseAdmin } = await import('../src/config/supabase.js');
+
 
 after(() => {
   redis.disconnect();
@@ -48,12 +50,17 @@ test('email signup rejects duplicate usernames', async () => {
 test('email signup creates a user, token, and httpOnly auth cookie', async () => {
   mock.method(User, 'findOne', () => Promise.resolve(null));
   mock.method(User, 'exists', () => Promise.resolve(null));
+  mock.method(supabaseAdmin.auth.admin, 'createUser', () => Promise.resolve({
+    data: { user: { id: userA } },
+    error: null
+  }));
   mock.method(User, 'create', async (payload) => ({
     _id: userA,
     phone: undefined,
     toString: () => userA,
     ...payload
   }));
+
 
   const res = makeRes();
   const { error } = await callHandler(
@@ -83,6 +90,10 @@ test('email signup creates a user, token, and httpOnly auth cookie', async () =>
 test('email login returns 403 when provider is missing and does not leak verification code', async () => {
   process.env.NODE_ENV = 'production';
   process.env.DISABLE_EMAIL_VERIFICATION = 'false';
+  mock.method(supabase.auth, 'signInWithPassword', () => Promise.resolve({
+    data: { user: { id: userA }, session: { access_token: 'test-session' } },
+    error: null
+  }));
   const bcrypt = (await import('bcryptjs')).default;
   const passwordHash = await bcrypt.hash('password123', 4);
   const unverifiedUser = {
@@ -92,6 +103,7 @@ test('email login returns 403 when provider is missing and does not leak verific
     emailVerifiedAt: undefined
   };
   mock.method(User, 'findOne', () => chainable(unverifiedUser, ['select']));
+
 
   const res = makeRes();
   const { error } = await callHandler(

@@ -1,27 +1,29 @@
 import { Router } from 'express';
 import {
   continueAsGuest,
-  emailLoginSchema,
-  emailResendSchema,
-  emailSignupSchema,
-  emailVerifySchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
   requestPasswordReset,
   resetPassword,
-  guestSchema,
-  guestUpgradeSchema,
   loginWithEmail,
   logout,
   resendEmailVerification,
   signupWithEmail,
   upgradeGuest,
   verifyEmail,
-  supabaseAuthSchema,
   supabaseLogin,
   checkUsernameAvailable,
   runDiagnostic
 } from '../controllers/auth.controller.js';
+import {
+  emailSignupSchema,
+  emailLoginSchema,
+  emailVerifySchema,
+  emailResendSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  guestUpgradeSchema,
+  guestSchema,
+  supabaseAuthSchema
+} from '../validations/auth.validation.js';
 import { authLimiter, guestLimiter } from '../middleware/rateLimit.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';

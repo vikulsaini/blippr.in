@@ -1,5 +1,3 @@
-import Joi from 'joi';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { redis } from '../config/redis.js';
 import User from '../models/User.js';
@@ -9,8 +7,7 @@ import { avatarForGender, createUniqueUsername, guestIdentity } from '../utils/i
 import { getClientIp } from '../utils/clientIp.js';
 import { issueEmailVerification, verifyEmailCode } from '../services/emailVerification.service.js';
 import { issuePasswordReset, validatePasswordReset } from '../services/passwordReset.service.js';
-import { notifyUser, sendDirectPushNotification } from '../services/notification.service.js';
-import { clearAuthCookie, setAuthCookie, readAuthCookie } from '../utils/authCookie.js';
+import { clearAuthCookie, setAuthCookie } from '../utils/authCookie.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 
 async function recordLogin(req, user) {
@@ -20,23 +17,9 @@ async function recordLogin(req, user) {
     await user.save();
     return;
   }
-  const previousIp = user.lastIp;
-  const isNewLocation = previousIp && previousIp !== ip;
-
   user.lastIp = ip;
   user.ipHistory = [...(user.ipHistory || []), { ip, at: new Date() }].slice(-8);
   await user.save();
-
-  if (isNewLocation) {
-    const { notification } = await notifyUser(user._id, {
-      title: 'New login detected',
-      body: 'Your Blippr account was used on another device or network.',
-      url: '/app/profile',
-      type: 'login',
-      actor: user._id
-    });
-    req.app.get('io')?.to(`user:${user._id}`).emit('notification:new', { notification });
-  }
 }
 
 function notifyAdminOfNewUser(req, user) {
@@ -73,99 +56,21 @@ function emailVerificationEnabled() {
 
 async function sendEmailVerificationResponse(res, user, status = 200, pushSubscription = null) {
   const { code, delivery } = await issueEmailVerification(user.email);
-  let pushSent = false;
-  if (pushSubscription && pushSubscription.endpoint) {
-    pushSent = await sendDirectPushNotification(pushSubscription, {
-      title: 'Blippr Verification Code',
-      body: `Your verification code is: ${code}`,
-      url: '/auth',
-      type: 'otp'
-    });
-  }
   return res.status(status).json({
     ok: true,
     verificationRequired: true,
     email: user.email,
     emailSent: delivery.sent,
-    pushSent,
-    message: pushSent 
-      ? 'Verification code sent via Push Notification.' 
-      : (delivery.sent ? 'Verification code sent to your email.' : 'Email provider is not configured. Check server console for code.')
+    pushSent: false,
+    message: delivery.sent 
+      ? 'Verification code sent to your email.' 
+      : 'Email provider is not configured. Check server console for code.'
   });
 }
-
-const pushSubscriptionSchema = Joi.object({
-  endpoint: Joi.string().uri().required(),
-  keys: Joi.object({
-    p256dh: Joi.string().required(),
-    auth: Joi.string().required()
-  }).required()
-}).optional();
-
-export const emailSignupSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(80).required(),
-  username: Joi.string().lowercase().pattern(/^[a-z0-9_]{3,24}$/).required(),
-  email: Joi.string().email().lowercase().required(),
-  password: Joi.string().min(8).max(72).required(),
-  age: Joi.number().integer().min(18).max(120).required(),
-  dob: Joi.date().iso().optional(),
-  contact: Joi.string().trim().max(40).allow('').optional(),
-  gender: Joi.string().valid('male', 'female').required(),
-  bio: Joi.string().max(160).allow('').optional(),
-  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional(),
-  pushSubscription: pushSubscriptionSchema
-});
-
-export const emailLoginSchema = Joi.object({
-  email: Joi.string().email().lowercase().required(),
-  password: Joi.string().min(8).max(72).required(),
-  pushSubscription: pushSubscriptionSchema
-});
-
-export const emailVerifySchema = Joi.object({
-  email: Joi.string().email().lowercase().required(),
-  code: Joi.string().length(6).required()
-});
-
-export const emailResendSchema = Joi.object({
-  email: Joi.string().email().lowercase().required(),
-  pushSubscription: pushSubscriptionSchema
-});
-
-
-export const forgotPasswordSchema = Joi.object({
-  email: Joi.string().email().lowercase().required()
-});
-
-export const resetPasswordSchema = Joi.object({
-  email: Joi.string().email().lowercase().required(),
-  code: Joi.string().length(6).required(),
-  password: Joi.string().min(8).max(72).required()
-});
-
-export const guestUpgradeSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(80).required(),
-  email: Joi.string().email().lowercase().required(),
-  password: Joi.string().min(8).max(72).required(),
-  age: Joi.number().integer().min(18).max(120).required(),
-  dob: Joi.date().iso().optional(),
-  contact: Joi.string().trim().max(40).allow('').optional(),
-  gender: Joi.string().valid('male', 'female').required(),
-  bio: Joi.string().max(160).allow('').optional(),
-  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional()
-});
-
-export const guestSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(80).required(),
-  age: Joi.number().integer().min(18).max(120).required(),
-  gender: Joi.string().valid('male', 'female').required(),
-  bio: Joi.string().max(160).allow('').optional()
-});
 
 export const requestPasswordReset = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
   if (!user) {
-    // Return a success message even if user not found to prevent email enumeration
     return res.json({ ok: true, message: 'If an account exists, a reset code was sent.' });
   }
 
@@ -189,11 +94,13 @@ export const resetPassword = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  user.passwordHash = await bcrypt.hash(req.body.password, 12);
-  await user.save();
+  if (supabaseAdmin && user.supabaseId) {
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.supabaseId, {
+      password: req.body.password
+    });
+    if (updateError) throw updateError;
+  }
   
-  // Clear any existing tokens in redis cache if applicable
-  // Or simply let them expire and force new login
   return res.json({ ok: true, message: 'Password reset successfully. You can now log in.' });
 });
 
@@ -211,12 +118,21 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  const passwordHash = await bcrypt.hash(req.body.password, 12);
+  // 1. Create the user in Supabase Auth (delegating password hashing & storage)
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: req.body.email.toLowerCase(),
+    password: req.body.password,
+    email_confirm: !emailVerificationEnabled()
+  });
+  if (authError) throw authError;
+
+  // 2. Create the public profile in PostgreSQL profiles
   const user = await User.create({
+    _id: authData.user.id,
+    supabaseId: authData.user.id,
     name: req.body.name,
-    email: req.body.email,
-    passwordHash,
-    username: req.body.username,
+    email: req.body.email.toLowerCase(),
+    username: req.body.username.toLowerCase(),
     age: req.body.age,
     dob: req.body.dob,
     contact: req.body.contact || '',
@@ -238,35 +154,37 @@ export const signupWithEmail = asyncHandler(async (req, res) => {
 });
 
 export const loginWithEmail = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email });
-  const passwordMatches = user ? await bcrypt.compare(req.body.password, user.passwordHash || '') : false;
+  // 1. Authenticate with Supabase Auth
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email: req.body.email.toLowerCase(),
+    password: req.body.password
+  });
 
-  if (!passwordMatches) {
+  if (authError) {
     const error = new Error('Invalid email or password');
     error.status = 401;
     throw error;
   }
 
+  // 2. Fetch the matching public profile
+  const user = await User.findOne({ supabaseId: authData.user.id });
+  if (!user) {
+    const error = new Error('Account profile not found');
+    error.status = 404;
+    throw error;
+  }
+
+  // 3. Handle verification code redirect if needed
   if (emailVerificationEnabled() && !user.emailVerifiedAt) {
     const { code, delivery } = await issueEmailVerification(user.email);
-    let pushSent = false;
-    if (req.body.pushSubscription && req.body.pushSubscription.endpoint) {
-      pushSent = await sendDirectPushNotification(req.body.pushSubscription, {
-        title: 'Blippr Verification Code',
-        body: `Your verification code is: ${code}`,
-        url: '/auth',
-        type: 'otp'
-      });
-    }
     return res.status(403).json({
       ok: false,
       code: 'EMAIL_NOT_VERIFIED',
-      message: pushSent
-        ? 'Verification code sent via Push Notification.'
-        : (delivery.sent ? 'Please verify your email. We sent a fresh code.' : 'Email provider is not configured. Check server console for code.'),
-      email: user.email,
+      message: delivery.sent 
+        ? 'Please verify your email. We sent a fresh code.' 
+        : 'Email provider is not configured. Check server console for code.',
       emailSent: delivery.sent,
-      pushSent
+      pushSent: false
     });
   }
 
@@ -294,6 +212,12 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   user.emailVerifiedAt = new Date();
   user.isGuest = false;
   await recordLogin(req, user);
+
+  // Confirm email status in Supabase Auth
+  if (supabaseAdmin && user.supabaseId) {
+    await supabaseAdmin.auth.admin.updateUserById(user.supabaseId, { email_confirm: true });
+  }
+
   return sendAuth(res, signJwt(user), user);
 });
 
@@ -374,7 +298,7 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
 
   // 1. Create the user in Supabase Auth
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email: req.body.email,
+    email: req.body.email.toLowerCase(),
     password: req.body.password,
     email_confirm: true
   });
@@ -384,7 +308,7 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
   const newId = authData.user.id;
   const username = req.user.username || (await createUniqueUsername(req.body.name));
 
-  // 2. Create the new profile
+  // 2. Create the new profile referencing the new Supabase Auth User ID
   const user = await User.create({
     _id: newId,
     supabaseId: newId,
@@ -402,73 +326,7 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
     emailVerifiedAt: new Date()
   });
 
-  // 3. Migrate references in chats table
-  const { data: chatsToUpdate } = await supabaseAdmin
-    .from('chats')
-    .select('id, members')
-    .contains('members', [oldId]);
-
-  if (chatsToUpdate && chatsToUpdate.length > 0) {
-    for (const chat of chatsToUpdate) {
-      const updatedMembers = chat.members.map(m => m === oldId ? newId : m);
-      await supabaseAdmin
-        .from('chats')
-        .update({ members: updatedMembers })
-        .eq('id', chat.id);
-    }
-  }
-
-  // Migrate references in messages table
-  await supabaseAdmin
-    .from('messages')
-    .update({ sender_id: newId })
-    .eq('sender_id', oldId);
-
-  // Migrate references in friend_requests table
-  await supabaseAdmin
-    .from('friend_requests')
-    .update({ sender_id: newId })
-    .eq('sender_id', oldId);
-
-  await supabaseAdmin
-    .from('friend_requests')
-    .update({ receiver_id: newId })
-    .eq('receiver_id', oldId);
-
-  // Migrate references in calls table
-  await supabaseAdmin
-    .from('calls')
-    .update({ host_id: newId })
-    .eq('host_id', oldId);
-
-  await supabaseAdmin
-    .from('calls')
-    .update({ peer_id: newId })
-    .eq('peer_id', oldId);
-
-  // Migrate references in notifications table
-  await supabaseAdmin
-    .from('notifications')
-    .update({ user_id: newId })
-    .eq('user_id', oldId);
-
-  await supabaseAdmin
-    .from('notifications')
-    .update({ actor_id: newId })
-    .eq('actor_id', oldId);
-
-  // Migrate references in reports table
-  await supabaseAdmin
-    .from('reports')
-    .update({ reporter_id: newId })
-    .eq('reporter_id', oldId);
-
-  await supabaseAdmin
-    .from('reports')
-    .update({ reported_id: newId })
-    .eq('reported_id', oldId);
-
-  // 4. Delete old guest profile row
+  // 3. Delete old guest profile row
   await supabaseAdmin
     .from('profiles')
     .delete()
@@ -476,8 +334,6 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
 
   return sendAuth(res, signJwt(user), user);
 });
-
-
 
 export const logout = asyncHandler(async (req, res) => {
   const header = req.headers.authorization || '';
@@ -497,16 +353,6 @@ export const logout = asyncHandler(async (req, res) => {
   }
   clearAuthCookie(res);
   res.json({ ok: true });
-});
-
-export const supabaseAuthSchema = Joi.object({
-  accessToken: Joi.string().required(),
-  name: Joi.string().trim().min(2).max(80).optional(),
-  username: Joi.string().lowercase().pattern(/^[a-z0-9_]{3,24}$/).optional(),
-  age: Joi.number().integer().min(18).max(120).optional(),
-  gender: Joi.string().valid('male', 'female').optional(),
-  bio: Joi.string().max(160).allow('').optional(),
-  interests: Joi.array().items(Joi.string().trim().max(40)).max(12).optional()
 });
 
 export const supabaseLogin = asyncHandler(async (req, res) => {
@@ -534,7 +380,6 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
   // Find user by supabaseId first
   let user = await User.findOne({ supabaseId });
 
-
   const isGoogleAuth = supabaseUser.app_metadata?.provider === 'google';
   let isNewUser = false;
 
@@ -544,16 +389,13 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
     let finalGender = gender;
 
     if (isGoogleAuth) {
-      // Auto-generate username for Google sign-ins if not provided
       if (!finalUsername) {
         const baseName = supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'google_user';
         finalUsername = await createUniqueUsername(baseName);
       }
-      // Provide defaults for age/gender if not specified (since we bypass onboarding)
       if (!finalAge) finalAge = 18;
-      if (!finalGender) finalGender = 'male'; // fallback
+      if (!finalGender) finalGender = 'male';
     } else {
-      // We need to create a new user. Check if required profile fields are present.
       if (!finalUsername || !finalAge || !finalGender) {
         return res.status(400).json({
           ok: false,
@@ -588,7 +430,6 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
 
     notifyAdminOfNewUser(req, user);
   } else {
-    // Ensure emailVerifiedAt is populated if they logged in with verified email/phone
     if (email && !user.emailVerifiedAt) {
       user.emailVerifiedAt = new Date();
       await user.save();
@@ -598,7 +439,6 @@ export const supabaseLogin = asyncHandler(async (req, res) => {
   user.isGuest = false;
   await recordLogin(req, user);
 
-  // Sync to Supabase Database
   await syncToSupabaseDb(user);
 
   return sendAuth(res, signJwt(user), user, isNewUser ? 201 : 200);
@@ -645,32 +485,5 @@ export const runDiagnostic = asyncHandler(async (req, res) => {
     uploadTest: null
   };
 
-  if (supabaseAdmin) {
-    try {
-      const bucketName = process.env.SUPABASE_BUCKET || 'media';
-      const testFilename = `diag-test-${Date.now()}.txt`;
-      const fileBuffer = Buffer.from('diag');
-
-      const { data, error } = await supabaseAdmin.storage
-        .from(bucketName)
-        .upload(testFilename, fileBuffer, {
-          contentType: 'text/plain',
-          upsert: true
-        });
-
-      if (error) {
-        results.uploadTest = { ok: false, error: error.message };
-      } else {
-        const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(testFilename);
-        results.uploadTest = { ok: true, publicUrl };
-        await supabaseAdmin.storage.from(bucketName).remove([testFilename]);
-      }
-    } catch (err) {
-      results.uploadTest = { ok: false, error: err.message };
-    }
-  }
-
   res.json({ ok: true, diagnostics: results });
 });
-
-
