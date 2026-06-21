@@ -45,12 +45,24 @@ app.use('/api', apiLimiter);
 
 app.get('/', (_req, res) => res.json({ ok: true, name: 'blippr', message: 'Blippr API is running' }));
 app.get('/health', (_req, res) => {
+  const url = (process.env.SUPABASE_URL || process.env.SUPABASE_URI || process.env.VITE_SUPABASE_URL || '').trim();
+  const anon = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim();
+  const service = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  
   res.json({
     ok: true,
     name: 'blippr',
     version: '1.0.6',
     supabaseConfigured: !!supabase,
-    dbStatus: app.locals.dbStatus || { status: 'unknown' }
+    dbStatus: app.locals.dbStatus || { status: 'unknown' },
+    diagnostics: {
+      urlLength: url.length,
+      urlPrefix: url.substring(0, 15),
+      anonLength: anon.length,
+      anonPrefix: anon.substring(0, 15),
+      serviceLength: service.length,
+      servicePrefix: service.substring(0, 15)
+    }
   });
 });
 app.use('/api/auth', authRoutes);
