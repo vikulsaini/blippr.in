@@ -20,10 +20,12 @@ export function mapUserFromPostgres(row) {
     avatar: row.avatar,
     bio: row.bio,
     role: row.role || 'user',
+    contact: row.contact || '',
     isVerified: row.is_verified ?? false,
     isGuest: row.is_guest ?? false,
     isOnline: row.is_online ?? false,
     lastSeenAt: row.last_seen_at ? new Date(row.last_seen_at) : null,
+    ipHistory: row.ip_history || [],
     bannedUntil: row.banned_until ? new Date(row.banned_until) : null,
     safetyViolationCount: row.safety_violation_count || 0,
     blockedUsers: row.blocked_users || [],
@@ -75,6 +77,7 @@ export function mapUserToPostgres(user) {
     gender: user.gender,
     avatar: user.avatar,
     bio: user.bio,
+    contact: user.contact || '',
     location_lat: user.location?.coordinates?.[1] || user.location_lat,
     location_lng: user.location?.coordinates?.[0] || user.location_lng,
     location_updated_at: user.location?.updatedAt || user.location_updated_at || new Date(),
@@ -88,10 +91,12 @@ export function mapUserToPostgres(user) {
     is_online: user.isOnline ?? user.is_online ?? false,
     is_guest: user.isGuest ?? user.is_guest ?? false,
     role: user.role || 'user',
+    is_verified: user.isVerified ?? user.is_verified ?? false,
     safety_violation_count: user.safetyViolationCount ?? user.safety_violation_count ?? 0,
     banned_until: user.bannedUntil ?? user.banned_until,
     last_seen_at: user.lastSeenAt ?? user.last_seen_at ?? new Date(),
     last_ip: user.lastIp ?? user.last_ip,
+    ip_history: user.ipHistory || user.ip_history || [],
     updated_at: new Date()
   };
 }

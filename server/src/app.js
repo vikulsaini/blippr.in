@@ -9,7 +9,6 @@ import { apiLimiter } from './middleware/rateLimit.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { requestContext } from './middleware/requestContext.js';
 import authRoutes from './routes/auth.routes.js';
-import { analyticsMiddleware } from './middleware/analytics.js';
 import { supabase } from './config/supabase.js';
 
 const app = express();
@@ -30,7 +29,6 @@ app.use((req, res, next) => {
 app.use(compression());
 app.use(cors(corsOptions));
 app.use(requestContext);
-app.use(analyticsMiddleware);
 app.use(express.json({ limit: '1mb' }));
 app.use(mongoSanitize());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
