@@ -141,7 +141,7 @@ export default function Shell() {
   return (
     <main
       data-random-route={isRandom ? 'true' : undefined}
-      className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-text-primary md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'}`}
+      className={`app-shell mx-auto grid h-dvh w-full max-w-[90rem] grid-cols-1 overflow-hidden text-text-primary md:grid-cols-[5rem_minmax(0,1fr)] ${isRandom ? 'px-1 pt-1 md:gap-2 md:px-2 md:py-2' : 'px-2 pt-2 md:gap-4 md:px-5 md:py-5'} ${isChats ? 'chat-dark-theme bg-[#0b1326]' : ''}`}
     >
       <DesktopNav locationPath={location.pathname} socketState={socketState} clock={clock} tabs={activeTabs} />
       <div className="flex min-h-0 flex-col overflow-hidden">
@@ -179,7 +179,7 @@ export default function Shell() {
       <GuestUpgradeModal me={me} />
       <ToastProvider />
       {!navHidden && (
-        <nav className="fixed bottom-0 inset-x-0 z-50 bg-white/80 backdrop-blur-lg border-t border-black/5 shadow-[0_-8px_20px_rgba(0,0,0,0.05)] flex justify-around items-center h-20 pb-safe md:hidden">
+        <nav className="fixed bottom-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-lg border-t border-border-default/40 shadow-[0_-8px_20px_rgba(0,0,0,0.05)] flex justify-around items-center h-20 pb-safe md:hidden">
           <div className="flex w-full justify-around items-center px-4">
             {activeTabs.map(({ to, label, icon: Icon }) => (
               <NavLink
@@ -188,7 +188,7 @@ export default function Shell() {
                 end={to === '/app'}
                 className={({ isActive }) =>
                   `group relative flex flex-col items-center justify-center gap-1.5 transition-all duration-200 active:scale-[0.92] ${
-                    isActive ? 'text-primary font-bold' : 'text-[#4a4455]/60 hover:text-primary'
+                    isActive ? 'text-primary font-bold' : 'text-text-muted hover:text-primary'
                   }`
                 }
               >
@@ -197,7 +197,7 @@ export default function Shell() {
                     <span className={`grid h-8 w-8 place-items-center rounded-xl transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-[0_4px_12px_rgba(124,58,237,0.25)]' : 'bg-transparent'}`}>
                       <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
                     </span>
-                    <span className={`text-[10px] font-bold tracking-wide uppercase leading-none ${isActive ? 'text-primary' : 'text-[#4a4455]/60'}`}>{label}</span>
+                    <span className={`text-[10px] font-bold tracking-wide uppercase leading-none ${isActive ? 'text-primary' : 'text-text-muted'}`}>{label}</span>
                   </>
                 )}
               </NavLink>
@@ -212,7 +212,7 @@ export default function Shell() {
 function DesktopNav({ locationPath, socketState, clock, tabs }) {
   const connected = socketState === 'connected' || socketState === 'reconnected';
   return (
-    <aside className="premium-nav hidden min-h-0 glass-card rounded-[2rem] p-2 md:flex md:flex-col border border-black/5 shadow-sm">
+    <aside className="premium-nav hidden min-h-0 glass-card rounded-[2rem] p-2 md:flex md:flex-col border border-border-default/40 shadow-sm">
       <nav className="mt-2 grid gap-3">
         {tabs.map(({ to, label, icon: Icon }) => {
           const active = to === '/app' ? locationPath === '/app' : locationPath === to;
@@ -224,7 +224,7 @@ function DesktopNav({ locationPath, socketState, clock, tabs }) {
               title={label}
               aria-label={label}
               className={`group relative flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.96] ${
-                active ? 'bg-primary/5 text-primary' : 'text-[#4a4455]/60 hover:bg-slate-100 hover:text-[#191c1e]'
+                active ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               <span className={`grid h-9 w-9 place-items-center rounded-2xl transition-all duration-200 ${active ? 'bg-primary text-white shadow-[0_4px_12px_rgba(124,58,237,0.25)]' : 'bg-transparent'}`}>
@@ -234,9 +234,9 @@ function DesktopNav({ locationPath, socketState, clock, tabs }) {
           );
         })}
       </nav>
-      <div className="mt-auto flex flex-col items-center justify-center gap-3 rounded-2xl border border-black/5 bg-slate-100/60 p-3 shadow-sm transition-all duration-300" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
+      <div className="mt-auto flex flex-col items-center justify-center gap-3 rounded-2xl border border-border-default/40 bg-surface-hover/60 p-3 shadow-sm transition-all duration-300" title={`${connected ? 'Realtime online' : 'Reconnecting'} - ${clock.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
         <span className={`live-dot h-2.5 w-2.5 rounded-full ${connected ? 'bg-success text-success' : 'bg-gold text-gold'}`} />
-        <span className="h-2 w-7 rounded-full bg-[#4a4455]/20 border border-black/5 transition-all duration-300" />
+        <span className="h-2 w-7 rounded-full bg-text-muted/20 border border-border-default/40 transition-all duration-300" />
       </div>
     </aside>
   );

@@ -235,9 +235,9 @@ export default function ChatList({
                   <div
                     key={friend._id}
                     onClick={() => onOpenChat(friend.chat)}
-                    className="flex flex-col items-center gap-1.5 flex-shrink-0 active:scale-95 transition-transform cursor-pointer"
+                    className="flex flex-col items-center gap-2 flex-shrink-0 active:scale-95 transition-transform cursor-pointer"
                   >
-                    <div className="relative w-14 h-14 rounded-full p-0.5 border-2 border-accent shadow-[0_0_12px_rgba(124,58,237,0.15)] bg-surface">
+                    <div className="relative w-16 h-16 rounded-full p-0.5 border-2 border-primary shadow-[0_0_15px_rgba(210,187,255,0.3)] bg-surface">
                       {friend.avatar ? (
                         <img className="w-full h-full rounded-full object-cover" src={friend.avatar} alt={displayName} />
                       ) : (
@@ -245,7 +245,7 @@ export default function ChatList({
                           {displayName ? displayName.charAt(0).toUpperCase() : 'F'}
                         </div>
                       )}
-                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success rounded-full border-2 border-surface presence-glow"></div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-success rounded-full border-2 border-surface presence-glow"></div>
                     </div>
                     <span className="text-[11px] font-semibold text-text-secondary max-w-[64px] truncate">{displayName.split(' ')[0]}</span>
                   </div>
@@ -259,7 +259,13 @@ export default function ChatList({
           <ChatSkeleton />
         ) : (
           <div className="space-y-4">
-          <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1.5">
+            <div className="flex justify-between items-center px-1 mb-2">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Messages</h3>
+              {personalUnread > 0 && (
+                <span className="text-success text-xs font-bold">{personalUnread} Unread</span>
+              )}
+            </div>
+            <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-1.5">
             <AnimatePresence initial={false}>
               {personalChats.map((chat) => {
                 const other = getOtherMember(chat, currentUserId);
@@ -633,12 +639,12 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           event.stopPropagation();
           onSelect();
         }}
-        className={`relative flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left cursor-pointer transition-[background-color,border-color] duration-200 ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : 'glass-card hover:bg-white/90'} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
+        className={`relative flex w-full items-center gap-4 rounded-xl p-4 text-left cursor-pointer transition-[background-color,border-color] duration-200 active:scale-[0.98] ${chat.unreadCount ? 'ring-1 ring-accent/20' : ''} ${selected ? 'border-accent/20 bg-accent-tint' : (chat.unreadCount ? 'glass-card' : 'bg-surface/40 hover:bg-surface-hover/40 border border-border-default/40')} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
       >
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
-          <div className="flex items-center gap-3 w-full">
+          <div className="flex items-center gap-4 w-full">
             {/* Avatar Container with online status dot */}
-            <div className="relative h-10 w-10 shrink-0 rounded-full bg-surface-hover flex items-center justify-center">
+            <div className="relative h-14 w-14 shrink-0 rounded-full bg-surface-hover flex items-center justify-center">
               {other?.avatar ? (
                 <img src={other.avatar} alt="" className="h-full w-full rounded-full object-cover" />
               ) : (
@@ -646,31 +652,40 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
                   {displayName ? displayName.charAt(0).toUpperCase() : 'F'}
                 </div>
               )}
-              <span className={`absolute -bottom-0.5 -right-0.5 status-dot ${other?.isOnline ? 'online' : 'offline'}`} />
+              {other?.isOnline && (
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-surface presence-glow" />
+              )}
             </div>
 
             {/* Chat info details */}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="truncate font-semibold text-text-primary">{displayName || 'Friend'}</p>
-                <span className="flex items-center gap-1 shrink-0">
-                  {chat.archived && <Archive size={12} className="text-text-faint" />}
-                  {chat.pinned && <Pin size={12} className="text-accent" />}
-                  {chat.starred && <Star size={12} className="fill-gold text-gold" />}
-                  {chat.muted && <BellOff size={12} className="text-text-faint" />}
-                </span>
-              </div>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <p className={`truncate text-xs ${typing ? 'font-semibold text-accent' : chat.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
-                  {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
-                </p>
-                {chat.unreadCount > 0 && (
-                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white badge-pulse">
-                    {chat.unreadCount}
+              <div className="flex justify-between items-baseline gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="truncate font-semibold text-text-primary text-base">{displayName || 'Friend'}</p>
+                  {(chat.isStranger || other?.isStranger) && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-success/15 text-success text-[10px] font-semibold shrink-0">Stranger</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="flex items-center gap-1">
+                    {chat.archived && <Archive size={11} className="text-text-faint" />}
+                    {chat.pinned && <Pin size={11} className="text-accent" />}
+                    {chat.starred && <Star size={11} className="fill-gold text-gold" />}
+                    {chat.muted && <BellOff size={11} className="text-text-faint" />}
                   </span>
-                )}
+                  <span className={`text-[11px] font-semibold ${chat.unreadCount ? 'text-success' : 'text-text-muted'}`}>
+                    {chat.lastMessage ? formatMessageTime(chat.lastMessage.createdAt) : ''}
+                  </span>
+                </div>
               </div>
+              <p className={`mt-1 truncate text-xs ${typing ? 'font-semibold text-accent' : chat.unreadCount ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'}`}>
+                {typing ? 'typing...' : chat.lastMessage?.text || callPreview(chat.lastCall, currentUserId) || presenceText(other)}
+              </p>
             </div>
+
+            {chat.unreadCount > 0 && (
+              <div className="w-2.5 h-2.5 bg-accent rounded-full shadow-[0_0_10px_rgba(210,187,255,0.6)] shrink-0 self-center ml-2 badge-pulse" />
+            )}
           </div>
         </ChatRowButton>
       </motion.article>
@@ -795,6 +810,24 @@ function ChatRowButton({ children, onOpen, onLongSelect }) {
       {children}
     </button>
   );
+}
+
+function formatMessageTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  const now = new Date();
+  
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday';
+  }
+  
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
 

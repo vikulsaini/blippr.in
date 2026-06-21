@@ -68,6 +68,66 @@
    DARK THEME (Midnight Ether Glassmorphism)
    ═══════════════════════════════════════════ */
 
+.chat-dark-theme {
+  color-scheme: dark;
+  --bg: #0b1326;
+  --surface: #171f33;
+  --surface-hover: #222a3e;
+  --surface-glass: rgba(23, 31, 51, 0.7);
+  --accent: #d2bbff;
+  --accent-hover: #bda0ff;
+  --accent-tint: rgba(210, 187, 255, 0.05);
+  --accent-light: rgba(210, 187, 255, 0.1);
+  --accent-ring: rgba(210, 187, 255, 0.25);
+  --accent-glow: rgba(210, 187, 255, 0.15);
+  --text-primary: #dbe2fd;
+  --text-secondary: #ccc3d8;
+  --text-muted: rgba(204, 195, 216, 0.6);
+  --text-faint: rgba(204, 195, 216, 0.4);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: #d2bbff;
+  --success: #4edea3;
+  --danger: #ffb4ab;
+  --danger-bg: #93000a;
+}
+
+.chat-dark-theme .glass-card,
+.chat-dark-theme .glass-panel,
+.chat-dark-theme .glass {
+  background: rgba(23, 31, 51, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.chat-dark-theme .search-container {
+  background: var(--surface) !important;
+}
+
+.chat-dark-theme .search-container:focus-within {
+  background: var(--surface-hover) !important;
+}
+
+.chat-dark-theme .status-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 8px #4edea3 !important;
+}
+
+.chat-dark-theme .presence-glow {
+  box-shadow: 0 0 8px #4edea3 !important;
+}
+
+.chat-dark-theme .skeleton {
+  background: linear-gradient(
+    90deg,
+    #171f33 25%,
+    #222a3e 37%,
+    #171f33 63%
+  );
+  background-size: 400% 100%;
+}
+
+
 
 
 /* ═══════════════════════════════════════════
