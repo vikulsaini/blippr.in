@@ -20,6 +20,9 @@ const io = new Server(httpServer, {
 // Bind socket handshake auth middleware
 io.use(socketAuthMiddleware);
 
+// Share Socket.io instance with Express routers
+app.set('io', io);
+
 // Handle new client connections
 io.on('connection', (socket) => {
   const userId = socket.data.userId;

@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { errorHandler } from './middleware/error.js';
 import configRouter from './routes/config.routes.js';
 import authRouter from './routes/auth.routes.js';
+import chatsRouter from './routes/chats.routes.js';
 
 const app = express();
 
@@ -30,6 +31,9 @@ app.use('/api/config', configRouter);
 
 // Authentication routes
 app.use('/api/auth', authRouter);
+
+// Chats routes
+app.use('/api/chats', chatsRouter);
 
 // Register global error handler
 app.use(errorHandler);
