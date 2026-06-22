@@ -2,7 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ear, Gauge, Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, RotateCw, Signal, SignalLow, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
 
-export default function CallOverlay({ call, minimized = false, onMinimize, onExpand, onAccept, onReject, onEnd, onToggleMute, onToggleCamera, onSwitchCamera, onToggleSpeaker, onToggleLowDataMode }) {
+export default function CallOverlay({ 
+  call, 
+  minimized = false, 
+  onMinimize, 
+  onExpand, 
+  onAccept, 
+  onReject, 
+  onEnd, 
+  onToggleMute, 
+  onToggleCamera, 
+  onSwitchCamera, 
+  onToggleSpeaker, 
+  onToggleLowDataMode,
+  messages = [],
+  onSendMessage,
+  currentUserId
+}) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
@@ -10,6 +26,7 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
   const chromeTimerRef = useRef(null);
   const [chromeVisible, setChromeVisible] = useState(true);
   const [duration, setDuration] = useState(0);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     if (call?.status !== 'connected') {
@@ -221,43 +238,38 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                   </div>
                 )}
 
-                <div className={`absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/80 via-black/20 to-transparent p-2 transition duration-300 sm:p-3 ${chromeClass}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 rounded-[14px] border border-white/10 bg-[#171f33]/80 px-2.5 py-1.5 text-left backdrop-blur-md sm:rounded-2xl sm:px-3">
-                      <p className="truncate text-[11px] font-semibold text-white sm:text-sm">{call.peerUser?.name || 'Blippr friend'}</p>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-semibold text-[#ccc3d8]/80 sm:text-[11px]">
-                        <span>{title}</span>
-                        <span>{routeLabel}</span>
-                        <span className={`inline-flex items-center gap-1 ${call.quality === 'poor' ? 'text-red-400' : call.quality === 'reconnecting' ? 'text-white/55' : 'text-[#4edea3]'}`}>
-                          <QualityIcon size={12} />
-                          {qualityLabel}
-                        </span>
-                      </div>
+                {/* Top Status Bar (Floating) */}
+                <header className={`absolute top-0 left-0 w-full z-50 p-6 flex items-start justify-between transition-opacity duration-300 ${chromeClass}`}>
+                  <div className="flex flex-col gap-1">
+                    <h1 className="font-headline-md text-headline-md text-white drop-shadow-lg">{call.peerUser?.name || 'Blippr Friend'}</h1>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-black/30 backdrop-blur-md rounded-full border border-white/10 w-fit">
+                      <span className="w-2 h-2 rounded-full bg-secondary active-glow"></span>
+                      <span className="font-label-md text-label-md text-white">{formatCallDuration(duration)}</span>
                     </div>
-
-                    {/* Premium Call Metrics & Signal Layer */}
-                    {call.status === 'connected' && (
-                      <div className="flex items-center gap-2 rounded-full border border-white/10 bg-[#171f33]/80 px-3 py-1.5 text-[10px] font-bold text-white backdrop-blur-md">
-                        <span className="h-2 w-2 rounded-full bg-[#4edea3] shadow-[0_0_8px_#4edea3] animate-pulse" />
-                        <span>HD</span>
-                        <span className="text-white/30">|</span>
-                        <span>{formatCallDuration(duration)}</span>
-                      </div>
-                    )}
-
-                    <button onClick={onMinimize} className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-[#171f33]/80 text-white/82 backdrop-blur-md transition hover:bg-white/10 sm:h-9 sm:w-9" aria-label="Minimize call">
-                      <Minimize2 size={16} />
-                    </button>
                   </div>
-                </div>
+                  <div className="flex flex-col items-end gap-3">
+                    <div className="glass-panel px-3 py-2 rounded-xl flex items-center gap-2 group cursor-pointer hover:bg-white/10 transition-colors">
+                      <span className="material-symbols-outlined text-secondary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
+                      <span className="font-label-md text-label-md text-white/90">Encrypted Connection</span>
+                    </div>
+                    {/* Network Strength */}
+                    <div className="flex gap-0.5 h-4 items-end px-2">
+                      <div className="w-1 h-1 bg-secondary rounded-full"></div>
+                      <div className="w-1 h-2 bg-secondary rounded-full"></div>
+                      <div className="w-1 h-3 bg-secondary rounded-full"></div>
+                      <div className={`w-1 h-4 bg-secondary rounded-full ${call.quality === 'poor' ? 'opacity-30' : 'opacity-100'}`}></div>
+                    </div>
+                  </div>
+                </header>
 
+                {/* Picture-in-Picture (Selfie Window) */}
                 {isVideo && call.localStream && (
                   <motion.div
                     drag
                     dragConstraints={{ left: -300, right: 0, top: 0, bottom: 500 }}
                     dragElastic={0.15}
                     dragMomentum={false}
-                    className="absolute right-2 top-16 z-10 h-20 w-16 overflow-hidden rounded-2xl border border-white/20 bg-slate-950 shadow-[0_18px_42px_rgba(0,0,0,0.45)] sm:right-4 sm:top-20 sm:h-28 sm:w-24 cursor-grab active:cursor-grabbing"
+                    className="absolute top-24 right-4 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl z-40 drag-handle cursor-grab active:cursor-grabbing"
                   >
                     {call.cameraOff ? (
                       <div className="grid h-full place-items-center text-white/45"><VideoOff size={22} /></div>
@@ -271,15 +283,120 @@ export default function CallOverlay({ call, minimized = false, onMinimize, onExp
                         style={{ transform: 'translate3d(0,0,0)', willChange: 'transform', backfaceVisibility: 'hidden' }}
                       />
                     )}
-                    <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur select-none pointer-events-none">You</span>
+                    {/* Selfie Label Overlay */}
+                    <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/40 backdrop-blur-sm rounded-md border border-white/10">
+                      <p className="font-label-md text-[10px] text-white uppercase tracking-widest">You</p>
+                    </div>
                   </motion.div>
                 )}
 
-                <div className={`absolute inset-x-0 bottom-0 z-20 grid place-items-center bg-gradient-to-t from-black/60 via-transparent to-black/40 px-2 pb-[calc(env(safe-area-inset-bottom)+0.65rem)] pt-12 transition duration-300 sm:px-3 ${chromeClass}`}>
-                  <div className="flex w-full max-w-sm justify-center rounded-[24px] border border-white/10 bg-[#171f33]/85 p-1.5 backdrop-blur-md sm:max-w-3xl sm:rounded-full sm:p-2 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-                    {controls}
+                {/* Interaction Controls (Floating Action Bar) */}
+                <nav className={`absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-full max-w-[400px] px-6 transition-opacity duration-300 ${chromeClass}`}>
+                  <div className="glass-panel p-4 rounded-[32px] flex items-center justify-between shadow-2xl w-full">
+                    {/* Mute Toggle */}
+                    <button 
+                      onClick={onToggleMute}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${call.muted ? 'bg-error-container text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                    >
+                      <span className="material-symbols-outlined">{call.muted ? 'mic_off' : 'mic'}</span>
+                    </button>
+                    {/* Flip Camera */}
+                    <button 
+                      onClick={onSwitchCamera}
+                      disabled={!isVideo || call.cameraOff}
+                      className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-all active:scale-90 disabled:opacity-35"
+                    >
+                      <span className="material-symbols-outlined">flip_camera_ios</span>
+                    </button>
+                    {/* End Call */}
+                    <button 
+                      onClick={onEnd}
+                      className="w-16 h-16 rounded-full flex items-center justify-center bg-error-container text-white shadow-lg pulse-red hover:brightness-110 transition-all active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>call_end</span>
+                    </button>
+                    {/* Chat Toggle */}
+                    <button 
+                      onClick={() => setChatOpen(!chatOpen)}
+                      className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-all active:scale-90 relative"
+                    >
+                      <span className="material-symbols-outlined">chat_bubble</span>
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-secondary border-2 border-surface rounded-full"></span>
+                    </button>
+                    {/* Speaker Output Toggle */}
+                    <button 
+                      onClick={onToggleSpeaker}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 ${call.speakerOn ? 'bg-secondary text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                    >
+                      <span className="material-symbols-outlined">{call.speakerOn ? 'volume_up' : 'volume_down'}</span>
+                    </button>
                   </div>
-                </div>
+                </nav>
+
+                {/* Hidden Chat Overlay (Slide-up) */}
+                <AnimatePresence>
+                  {chatOpen && (
+                    <motion.div 
+                      initial={{ y: '100%' }}
+                      animate={{ y: 0 }}
+                      exit={{ y: '100%' }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                      className="absolute inset-x-0 bottom-0 z-[60] h-3/4"
+                    >
+                      <div className="h-full glass-panel rounded-t-[40px] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                        {/* Drag Handle */}
+                        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-4 shrink-0"></div>
+                        <div className="px-6 pb-4 border-b border-white/5 flex items-center justify-between">
+                          <h2 className="font-headline-sm text-headline-sm text-white">Chat</h2>
+                          <button className="text-on-surface-variant hover:text-white transition-colors" onClick={() => setChatOpen(false)}>
+                            <span className="material-symbols-outlined">keyboard_arrow_down</span>
+                          </button>
+                        </div>
+                        <div className="flex-grow overflow-y-auto p-6 space-y-4">
+                          {messages.map((msg, i) => {
+                            const mine = msg.sender === currentUserId || msg.sender?._id === currentUserId;
+                            return (
+                              <div key={msg._id || i} className={`flex ${mine ? 'flex-row-reverse' : ''} items-end gap-3`}>
+                                {!mine && (
+                                  <div className="w-8 h-8 rounded-full bg-surface-variant shrink-0 overflow-hidden border border-white/10">
+                                    <img src={call.peerUser?.avatar} alt="" className="h-full w-full object-cover" />
+                                  </div>
+                                )}
+                                <div className={`max-w-[70%] rounded-2xl p-3 shadow-md ${mine ? 'bg-primary-container rounded-br-none text-white' : 'bg-surface-container-high rounded-bl-none text-white border border-white/5'}`}>
+                                  <p className="text-body-sm text-white">{msg.text}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {/* Input Field */}
+                        <form 
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const textVal = e.target.elements.chatInput.value.trim();
+                            if (textVal) {
+                              onSendMessage?.(textVal);
+                              e.target.elements.chatInput.value = '';
+                            }
+                          }}
+                          className="p-6 pb-10 bg-surface-container-lowest/50"
+                        >
+                          <div className="relative flex items-center">
+                            <input 
+                              name="chatInput"
+                              className="w-full bg-white/5 border border-white/10 text-white rounded-full py-4 px-6 focus:ring-secondary focus:border-secondary transition-all outline-none" 
+                              placeholder="Type a message..." 
+                              type="text"
+                            />
+                            <button type="submit" className="absolute right-2 w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-on-secondary shadow-md active:scale-90 transition-transform">
+                              <span className="material-symbols-outlined">send</span>
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.section>
           </motion.div>

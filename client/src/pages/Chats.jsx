@@ -427,6 +427,9 @@ export default function Chats() {
         onSwitchCamera={callSession.switchCamera}
         onToggleSpeaker={callSession.toggleSpeaker}
         onToggleLowDataMode={callSession.toggleLowDataMode}
+        messages={messages}
+        onSendMessage={sendMessage}
+        currentUserId={currentUserId}
       />
       
       {/* Floating Action Button for Matching */}
