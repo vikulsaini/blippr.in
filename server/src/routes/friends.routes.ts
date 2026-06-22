@@ -28,10 +28,21 @@ router.get('/requests', authMiddleware, async (req: AuthenticatedRequest, res) =
   const userId = req.user?.id;
   if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
   try {
-    const requests = (await supabase.from('friend_requests').select('*').eq('receiver_id', userId).eq('status', 'pending')).data;
+    const { data: requests, error: requestsError } = await supabase.from('friend_requests').select('*').eq('receiver_id', userId).eq('status', 'pending');
+    if (requestsError) {
+      if (requestsError.code === 'PGRST205' || requestsError.code === '42P01') {
+        console.warn('[Friends API] friend_requests table does not exist. Returning empty requests.');
+        res.status(200).json({ requests: [] });
+        return;
+      }
+      throw requestsError;
+    }
     if (!requests || requests.length === 0) { res.status(200).json({ requests: [] }); return; }
     const senderIds = requests.map((r) => r.sender_id);
-    const profiles = (await supabase.from('profiles').select('id, username, name, avatar_url').in('id', senderIds)).data;
+    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, name, avatar_url').in('id', senderIds);
+    if (profilesError && profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
+      throw profilesError;
+    }
     const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
     const formatted = requests.map((r) => {
       const p = profileMap.get(r.sender_id);
@@ -48,10 +59,21 @@ router.get('/requests/sent', authMiddleware, async (req: AuthenticatedRequest, r
   const userId = req.user?.id;
   if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
   try {
-    const requests = (await supabase.from('friend_requests').select('*').eq('sender_id', userId).eq('status', 'pending')).data;
+    const { data: requests, error: requestsError } = await supabase.from('friend_requests').select('*').eq('sender_id', userId).eq('status', 'pending');
+    if (requestsError) {
+      if (requestsError.code === 'PGRST205' || requestsError.code === '42P01') {
+        console.warn('[Friends API] friend_requests table does not exist. Returning empty sent requests.');
+        res.status(200).json({ requests: [] });
+        return;
+      }
+      throw requestsError;
+    }
     if (!requests || requests.length === 0) { res.status(200).json({ requests: [] }); return; }
     const receiverIds = requests.map((r) => r.receiver_id);
-    const profiles = (await supabase.from('profiles').select('id, username, name, avatar_url').in('id', receiverIds)).data;
+    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, name, avatar_url').in('id', receiverIds);
+    if (profilesError && profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
+      throw profilesError;
+    }
     const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
     const formatted = requests.map((r) => {
       const p = profileMap.get(r.receiver_id);

@@ -7,11 +7,32 @@ const router = Router();
 // Public profile fields that can be returned to other users
 const PUBLIC_PROFILE_FIELDS = 'id, username, name, avatar_url, age, gender, bio, created_at';
 
+// Helper to check if a string is a valid UUID
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (id?: string): boolean => !!id && UUID_REGEX.test(id);
+
 // 1. Get current authenticated user profile
 router.get('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userId = req.user?.id;
   if (!userId) {
     res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  // Handle Guest Profile
+  if (!isUuid(userId)) {
+    res.status(200).json({
+      user: {
+        id: userId,
+        username: userId,
+        name: req.user?.user_metadata?.name || 'Guest User',
+        age: req.user?.user_metadata?.age || 18,
+        gender: req.user?.user_metadata?.gender || 'other',
+        bio: req.user?.user_metadata?.bio || '',
+        avatar_url: '',
+        isGuest: true
+      }
+    });
     return;
   }
 
@@ -23,14 +44,7 @@ router.get('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
       .maybeSingle();
 
     if (error) {
-      console.error('[Users API] Supabase query error:', JSON.stringify(error, null, 2));
-      res.status(500).json({
-        error: 'Failed to retrieve profile',
-        details: error.message,
-        code: error.code,
-        hint: error.hint,
-      });
-      return;
+      throw error;
     }
 
     if (!profile) {
@@ -39,9 +53,9 @@ router.get('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
     }
 
     res.status(200).json({ user: profile });
-  } catch (err: any) {
-    console.error('[Users API] Error fetching self profile:', err?.message || err);
-    res.status(500).json({ error: 'Failed to retrieve profile', details: err?.message });
+  } catch (err) {
+    console.error('[Users API] Error fetching self profile:', err);
+    res.status(500).json({ error: 'Failed to retrieve profile' });
   }
 });
 
@@ -70,6 +84,23 @@ router.patch('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
   }
   if (age && (typeof age !== 'number' || age < 13 || age > 150)) {
     res.status(400).json({ error: 'Age must be between 13 and 150' });
+    return;
+  }
+
+  // Handle Guest updates (in-memory return)
+  if (!isUuid(userId)) {
+    res.status(200).json({
+      user: {
+        id: userId,
+        username: userId,
+        name: name || req.user?.user_metadata?.name || 'Guest User',
+        age: age ? Number(age) : (req.user?.user_metadata?.age || 18),
+        gender: gender || req.user?.user_metadata?.gender || 'other',
+        bio: bio !== undefined ? bio : (req.user?.user_metadata?.bio || ''),
+        avatar_url: '',
+        isGuest: true
+      }
+    });
     return;
   }
 
@@ -125,6 +156,11 @@ router.delete('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
     return;
   }
 
+  if (!isUuid(userId)) {
+    res.status(200).json({ success: true, message: 'Guest session ended' });
+    return;
+  }
+
   try {
     const { error } = await supabase
       .from('profiles')
@@ -159,6 +195,17 @@ router.post('/me/location', authMiddleware, async (req: AuthenticatedRequest, re
   }
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
     res.status(400).json({ error: 'Invalid coordinate values' });
+    return;
+  }
+
+  if (!isUuid(userId)) {
+    res.status(200).json({
+      user: {
+        id: userId,
+        location: { latitude, longitude, accuracy: accuracy || null },
+        isGuest: true
+      }
+    });
     return;
   }
 
@@ -197,6 +244,23 @@ router.get('/me/export', authMiddleware, async (req: AuthenticatedRequest, res) 
     return;
   }
 
+  if (!isUuid(userId)) {
+    res.status(200).json({
+      profile: {
+        id: userId,
+        username: userId,
+        name: req.user?.user_metadata?.name || 'Guest User',
+        age: req.user?.user_metadata?.age || 18,
+        gender: req.user?.user_metadata?.gender || 'other',
+        bio: req.user?.user_metadata?.bio || '',
+        avatar_url: '',
+        isGuest: true
+      },
+      exportedAt: new Date().toISOString()
+    });
+    return;
+  }
+
   try {
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
     res.status(200).json({ profile, exportedAt: new Date().toISOString() });
@@ -214,7 +278,7 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
     const { data: users, error } = await supabase
       .from('profiles')
       .select(PUBLIC_PROFILE_FIELDS)
-      .neq('id', userId || '')
+      .neq('id', isUuid(userId) ? userId : '')
       .limit(10);
 
     if (error) {

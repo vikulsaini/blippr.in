@@ -42,6 +42,17 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
       .eq('user_id', userId);
 
     if (membershipError) {
+      if (membershipError.code === 'PGRST205' || membershipError.code === '42P01') {
+        console.warn('[Chats API] room_members table does not exist. Returning empty chats.');
+        res.status(200).json({
+          chats: [],
+          pageInfo: {
+            hasMore: false,
+            nextCursor: null
+          }
+        });
+        return;
+      }
       console.error('[Chats API] Membership query error:', JSON.stringify(membershipError, null, 2));
       throw membershipError;
     }
@@ -69,6 +80,17 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
       .in('id', roomIds);
 
     if (error) {
+      if (error.code === 'PGRST205' || error.code === '42P01') {
+        console.warn('[Chats API] rooms table does not exist. Returning empty chats.');
+        res.status(200).json({
+          chats: [],
+          pageInfo: {
+            hasMore: false,
+            nextCursor: null
+          }
+        });
+        return;
+      }
       console.error('[Chats API] Rooms query error:', JSON.stringify(error, null, 2));
       throw error;
     }
@@ -121,6 +143,11 @@ router.get('/:chatId/messages', authMiddleware, async (req: AuthenticatedRequest
       .order('created_at', { ascending: true });
 
     if (error) {
+      if (error.code === 'PGRST205' || error.code === '42P01') {
+        console.warn('[Chats API] messages table does not exist. Returning empty messages list.');
+        res.status(200).json({ messages: [] });
+        return;
+      }
       throw error;
     }
 

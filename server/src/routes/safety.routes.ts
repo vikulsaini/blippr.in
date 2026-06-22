@@ -54,6 +54,11 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
       .eq('blocker_id', userId);
 
     if (error) {
+      if (error.code === 'PGRST205' || error.code === '42P01') {
+        console.warn('[Safety API] blocks table does not exist. Returning empty blocked list.');
+        res.status(200).json({ users: [] });
+        return;
+      }
       throw error;
     }
 
@@ -70,6 +75,11 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
       .in('id', blockedIds);
 
     if (profilesError) {
+      if (profilesError.code === 'PGRST205' || profilesError.code === '42P01') {
+        console.warn('[Safety API] profiles table does not exist. Returning empty blocked list.');
+        res.status(200).json({ users: [] });
+        return;
+      }
       throw profilesError;
     }
 
