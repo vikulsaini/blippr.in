@@ -23,6 +23,7 @@ export default function Shell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [theme, setTheme] = useState(() => localStorage.getItem('blippr_theme') || 'dark');
+  const [me, setMe] = useState(null);
 
   useEffect(() => {
     if (theme === 'dark') {
