@@ -4,7 +4,8 @@
   "private": true,
   "description": "Blippr - mobile-first real-time chat PWA with stranger matching, friends, calls, and media.",
   "workspaces": [
-    "client"
+    "client",
+    "server"
   ],
   "scripts": {
     "dev": "npm run dev --workspace client",
