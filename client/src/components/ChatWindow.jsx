@@ -313,57 +313,80 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
       <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] rounded-full bg-accent/10 blur-[120px] pointer-events-none z-0" />
       <div className="absolute bottom-[-100px] right-[-100px] w-[300px] h-[300px] rounded-full bg-[#4edea3]/10 blur-[100px] pointer-events-none z-0" />
 
-      <header className="shrink-0 border-b border-white/5 bg-[#171f33]/60 backdrop-blur-md px-3 py-2.5 shadow-card z-10 relative">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-3">
-            <button onClick={onBack} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 hover:bg-white/10 text-primary transition active:scale-95 cursor-pointer border border-white/5 shrink-0" aria-label="Back to chats"><ArrowLeft size={18} /></button>
-            <button onClick={() => (chat?.isMock ? onProfile?.() : (otherMember && onProfile?.(otherMember)))} className="min-w-0 text-left">
-              <p className="truncate font-semibold text-text-primary flex items-center gap-1.5 text-base">
-                {chat?.isMock ? chat.name : (displayName || 'Select a chat')}
-                {!chat?.isMock && otherMember && (
-                  <span className={`h-2 w-2 rounded-full ${otherMember.isOnline ? 'bg-secondary shadow-[0_0_8px_#10B981]' : 'bg-zinc-600'}`} />
+      <header className="shrink-0 h-16 border-b border-white/10 bg-[#0b1326]/70 backdrop-blur-xl flex items-center justify-between px-4 z-10 relative">
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={onBack} className="active:scale-95 transition-transform hover:opacity-80 text-[#d2bbff] shrink-0" aria-label="Back to chats">
+            <ArrowLeft size={24} />
+          </button>
+          
+          <button onClick={() => (chat?.isMock ? onProfile?.() : (otherMember && onProfile?.(otherMember)))} className="flex items-center gap-3 min-w-0 text-left cursor-pointer">
+            <div className="relative shrink-0">
+              <div className="w-10 h-10 rounded-full border border-[#4edea3]/30 overflow-hidden bg-[#171f33]">
+                {chat?.isMock ? (
+                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-[#d2bbff]">
+                    {chat.name.substring(0, 2).toUpperCase()}
+                  </div>
+                ) : otherMember?.avatar ? (
+                  <img className="w-full h-full object-cover" src={otherMember.avatar} alt={displayName} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-[#d2bbff]">
+                    {(displayName || 'B').substring(0, 1).toUpperCase()}
+                  </div>
                 )}
+              </div>
+              {!chat?.isMock && otherMember && (
+                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0b1326] ${otherMember.isOnline ? 'bg-[#4edea3] shadow-[0_0_8px_rgba(78,222,163,0.6)]' : 'bg-zinc-600'}`} />
+              )}
+            </div>
+            
+            <div className="flex flex-col">
+              <h1 className="font-headline-sm text-sm md:text-base font-semibold text-[#dbe2fd] leading-tight truncate max-w-[150px]">
+                {chat?.isMock ? chat.name : (displayName || 'Select a chat')}
+              </h1>
+              <p className="font-label-md text-xs text-[#4edea3]">
+                {isTyping ? 'typing...' : chat?.isMock ? '3 members • 2 online' : otherMember?.isOnline ? 'Online' : 'Offline'}
               </p>
-              <p className={`truncate text-xs font-medium ${isTyping || (chat?.isMock ? isTyping : otherMember?.isOnline) ? 'text-primary' : 'text-text-muted'}`}>
-                {isTyping ? 'typing...' : chat?.isMock ? '3 members • 2 online' : otherMember ? presenceText(otherMember) : 'No active conversation'}
-              </p>
-            </button>
-          </div>
-          <div className="flex gap-2">
-            {chat?.isMock && chat?.type === 'channel' ? (
-              <>
-                <IconButton label="Search messages" icon={Search} onClick={() => setSearchOpen((open) => !open)} />
-                <IconButton label="Channel info" icon={FileText} onClick={() => onProfile?.()} />
-              </>
-            ) : (
-              <>
-                <IconButton label="Audio call" icon={Phone} onClick={() => onStartCall?.('audio')} />
-                <IconButton label="Video call" icon={Video} onClick={() => onStartCall?.('video')} />
-                <IconButton label="Search messages" icon={Search} onClick={() => setSearchOpen((open) => !open)} />
-              </>
-            )}
-          </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {!chat?.isMock && chat?.type !== 'channel' && (
+            <>
+              <button onClick={() => onStartCall?.('video')} className="active:scale-95 transition-transform hover:opacity-80 p-2 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0" aria-label="Video call">
+                <Video size={18} className="text-[#d2bbff]" />
+              </button>
+              <button onClick={() => onStartCall?.('audio')} className="active:scale-95 transition-transform hover:opacity-80 p-2 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0" aria-label="Audio call">
+                <Phone size={18} className="text-[#d2bbff]" />
+              </button>
+            </>
+          )}
+          <button onClick={() => setSearchOpen((open) => !open)} className="active:scale-95 transition-transform hover:opacity-80 p-2 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0" aria-label="Search messages">
+            <Search size={18} className="text-[#d2bbff]" />
+          </button>
         </div>
         {searchOpen && (
-          <div className="relative mt-2">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/40 shrink-0" />
-            <input
-              type="text"
-              value={messageSearch}
-              onChange={(event) => setMessageSearch(event.target.value)}
-              placeholder="Search in conversation..."
-              className="w-full bg-[#171f33]/40 border border-white/5 rounded-full py-2.5 pl-11 pr-10 text-white placeholder-text-muted/40 focus:ring-2 focus:ring-primary/50 outline-none transition-all text-xs font-semibold"
-            />
-            {messageSearch && (
-              <button 
-                onClick={() => setMessageSearch('')} 
-                type="button" 
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-text-muted hover:bg-white/5 transition flex items-center justify-center shrink-0" 
-                aria-label="Clear search"
-              >
-                <X size={13} />
-              </button>
-            )}
+          <div className="absolute top-16 left-0 right-0 p-2 bg-[#0b1326]/90 border-b border-white/10 z-20">
+            <div className="relative">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ccc3d8]/40 shrink-0" />
+              <input
+                type="text"
+                value={messageSearch}
+                onChange={(event) => setMessageSearch(event.target.value)}
+                placeholder="Search in conversation..."
+                className="w-full bg-[#171f33]/40 border border-white/5 rounded-full py-2.5 pl-11 pr-10 text-white placeholder-[#ccc3d8]/40 focus:ring-2 focus:ring-[#d2bbff]/50 outline-none transition-all text-xs font-semibold"
+              />
+              {messageSearch && (
+                <button 
+                  onClick={() => setMessageSearch('')} 
+                  type="button" 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-[#ccc3d8] hover:bg-white/5 transition flex items-center justify-center shrink-0" 
+                  aria-label="Clear search"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
           </div>
         )}
       </header>
@@ -424,7 +447,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
           await onSend(event);
           inputRef.current?.focus();
         }}
-        className="shrink-0 border-t border-white/5 bg-[#171f33]/60 backdrop-blur-md px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 shadow-elevated z-10 relative"
+        className="shrink-0 px-4 pb-4 pt-2 bg-transparent z-10 relative w-full"
       >
         {replyTo && (
           <div className="mb-2 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-sm">
@@ -490,7 +513,7 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="flex items-center gap-2 rounded-[24px] border border-white/10 bg-[#0b1326]/50 backdrop-blur-md shadow-inner p-1.5 w-full">
+        <div className="bg-[#171f33]/70 backdrop-blur-xl rounded-full flex items-center p-1.5 shadow-2xl border border-white/10 ring-1 ring-white/5 w-full">
           <input
             ref={fileInputRef}
             type="file"
@@ -499,76 +522,70 @@ export default function ChatWindow({ chat, messages = [], calls = [], currentUse
             className="hidden"
             onChange={handleFilePick}
           />
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            whileHover={{ scale: 1.05 }}
+          <button
             type="button"
             onClick={openAttachmentSheet}
-            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${attachmentOpen ? 'bg-primary text-white shadow-glow' : 'bg-transparent text-text-secondary hover:bg-white/5 hover:text-white'}`}
+            className={`w-10 h-10 flex items-center justify-center rounded-full text-[#ccc3d8]/60 hover:text-[#d2bbff] transition-colors active:scale-90 duration-200 bg-transparent shrink-0 ${attachmentOpen ? 'text-[#d2bbff]' : ''}`}
             aria-label="Share photos, media, files or location"
           >
-            <Plus size={18} />
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            whileHover={{ scale: 1.05 }}
-            type="button"
-            onClick={() => setEmojiOpen((open) => !open)}
-            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${emojiOpen ? 'bg-primary text-white shadow-glow' : 'bg-transparent text-text-secondary hover:bg-white/5 hover:text-white'}`}
-            aria-label="Emoji"
-          >
-            <Smile size={18} />
-          </motion.button>
-          <textarea
-            ref={inputRef}
-            value={text}
-            onChange={(event) => handleTextInput(event.target.value)}
-            onFocus={() => setEmojiOpen(false)}
-            className="max-h-28 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-medium text-text-primary outline-none self-center"
-            placeholder={recording ? 'Recording voice...' : chat ? 'Message' : 'Start from Discover'}
-            disabled={!chat || recording}
-            rows={1}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                event.currentTarget.form?.requestSubmit();
-              }
-            }}
-          />
-          {text.trim() ? (
-            <motion.button
-              whileTap={{ scale: 0.92 }}
-              whileHover={{ scale: 1.05 }}
-              disabled={!chat}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white hover:bg-accent-hover transition disabled:opacity-40 shadow-glow"
-              aria-label="Send"
-            >
-              <Send size={16} />
-            </motion.button>
-          ) : recording ? (
-            <motion.button
-              whileTap={{ scale: 0.92 }}
-              whileHover={{ scale: 1.05 }}
+            <Plus size={20} />
+          </button>
+          <div className="flex-1 px-2 min-w-0">
+            <textarea
+              ref={inputRef}
+              value={text}
+              onChange={(event) => handleTextInput(event.target.value)}
+              onFocus={() => setEmojiOpen(false)}
+              className="w-full bg-transparent border-none focus:ring-0 text-[#dbe2fd] placeholder-[#ccc3d8]/40 font-body-md text-sm py-2 max-h-24 resize-none outline-none overflow-y-auto"
+              placeholder={recording ? 'Recording voice...' : chat ? 'Send a message...' : 'Start from Discover'}
+              disabled={!chat || recording}
+              rows={1}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
               type="button"
-              onClick={stopRecording}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-danger text-white hover:bg-red-600 transition"
-              aria-label="Stop recording"
+              onClick={() => setEmojiOpen((open) => !open)}
+              className={`w-10 h-10 flex items-center justify-center rounded-full text-[#ccc3d8]/60 hover:text-[#ffb784] transition-colors active:scale-90 duration-200 bg-transparent shrink-0 ${emojiOpen ? 'text-[#ffb784]' : ''}`}
+              aria-label="Emoji"
             >
-              <Square size={14} />
-            </motion.button>
-          ) : (
-            <motion.button
-              whileTap={{ scale: 0.92 }}
-              whileHover={{ scale: 1.05 }}
-              type="button"
-              onClick={startRecording}
-              disabled={!chat}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-transparent text-text-secondary hover:bg-white/5 hover:text-white transition disabled:opacity-40"
-              aria-label="Voice message"
-            >
-              <Mic size={16} />
-            </motion.button>
-          )}
+              <Smile size={20} />
+            </button>
+            {text.trim() ? (
+              <button
+                disabled={!chat}
+                className="w-10 h-10 flex items-center justify-center bg-[#7c3aed] text-white rounded-full shadow-lg hover:shadow-[#7c3aed]/30 transition-all active:scale-95 active:rotate-12 shrink-0"
+                aria-label="Send"
+              >
+                <Send size={18} />
+              </button>
+            ) : recording ? (
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="w-10 h-10 flex items-center justify-center bg-[#ffb4ab] text-white rounded-full shadow-lg hover:shadow-red-600/30 transition-all active:scale-95 shrink-0"
+                aria-label="Stop recording"
+              >
+                <Square size={16} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={startRecording}
+                disabled={!chat}
+                className="w-10 h-10 flex items-center justify-center bg-[#7c3aed]/20 text-[#d2bbff] rounded-full hover:bg-[#7c3aed]/40 transition-all active:scale-95 shrink-0"
+                aria-label="Voice message"
+              >
+                <Mic size={18} />
+              </button>
+            )}
+          </div>
         </div>
         <AnimatePresence>
           {permissionPrompt && (

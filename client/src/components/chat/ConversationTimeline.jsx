@@ -84,14 +84,27 @@ export default function ConversationTimeline({
   if (!renderedTimeline.length) {
     return (
       <>
+        <div className="flex justify-center my-6">
+          <div className="bg-[#171f33]/70 backdrop-blur-xl px-4 py-1.5 rounded-full flex items-center gap-2 border border-[#d2bbff]/20 shadow-sm">
+            <span className="material-symbols-outlined text-[#d2bbff] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+            <span className="text-[10px] text-[#ccc3d8] uppercase tracking-widest font-semibold font-label-md">Blipp-Sync Active</span>
+          </div>
+        </div>
         <EmptyState name={displayName} />
-        {isTyping && <TypingBubble />}
+        {isTyping && <TypingBubble name={displayName} />}
       </>
     );
   }
 
   return (
     <>
+      <div className="flex justify-center my-6">
+        <div className="bg-[#171f33]/70 backdrop-blur-xl px-4 py-1.5 rounded-full flex items-center gap-2 border border-[#d2bbff]/20 shadow-sm">
+          <span className="material-symbols-outlined text-[#d2bbff] text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+          <span className="text-[10px] text-[#ccc3d8] uppercase tracking-widest font-semibold font-label-md">Blipp-Sync Active</span>
+        </div>
+      </div>
+
       <div className="space-y-2.5" style={{ transition: 'none' }}>
         <AnimatePresence initial={false}>
           {renderedTimeline.map((item, index) => {
@@ -137,7 +150,7 @@ export default function ConversationTimeline({
             );
           })}
         </AnimatePresence>
-        {isTyping && <TypingBubble />}
+        {isTyping && <TypingBubble name={displayName} />}
         <div ref={endRef} />
       </div>
 
@@ -242,7 +255,7 @@ const MessageBubble = memo(function MessageBubble({ message, mine, onLongPress, 
           onPointerUp={stopPress}
           onPointerCancel={stopPress}
           onPointerLeave={stopPress}
-          className={`max-w-[78%] touch-pan-y rounded-[20px] px-3.5 py-2.5 text-sm ${mine ? 'rounded-br-none bg-gradient-to-br from-[#7c3aed] to-[#5b21b6] text-white border border-[#d2bbff]/20 shadow-[0_4px_14px_rgba(124,58,237,0.35)]' : 'rounded-bl-none border border-white/10 bg-[#171f33]/75 backdrop-blur-md text-[#dbe2fd] shadow-md'} transition-all duration-200`}
+          className={`max-w-[82%] touch-pan-y rounded-2xl p-4 text-sm ${mine ? 'rounded-br-none bg-[#7c3aed] text-[#ede0ff] shadow-[0_4px_12px_rgba(124,58,237,0.2)]' : 'rounded-bl-none border border-white/5 bg-[#222a3e] text-[#dbe2fd] shadow-sm'} transition-all duration-200`}
           style={{
             opacity: (message.status === 'sending' || message.status === 'queued') ? 0.7 : 1,
             transition: 'background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, opacity 200ms ease'
@@ -482,24 +495,20 @@ function CallHistoryItem({ call, currentUserId }) {
   );
 }
 
-function TypingBubble() {
+function TypingBubble({ name = 'Someone' }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-      className="flex justify-start"
+      className="flex items-center gap-2 mt-4 ml-2"
     >
-      <div className="flex items-center gap-1.5 rounded-[20px] rounded-bl-none border border-white/10 bg-[#171f33]/60 backdrop-blur-sm px-4 py-2.5 shadow-md">
-        {[0, 1, 2].map((dot) => (
-          <motion.span
-            key={dot}
-            className="h-2 w-2 rounded-full bg-[#d2bbff]"
-            animate={{ y: [0, -4, 0], opacity: [0.45, 1, 0.45] }}
-            transition={{ duration: 0.85, repeat: Infinity, delay: dot * 0.14, ease: 'easeInOut' }}
-          />
-        ))}
+      <div className="typing-indicator flex items-center gap-1 bg-[#171f33]/70 backdrop-blur-xl px-3 py-2 rounded-full border border-white/10">
+        <span className="h-1.5 w-1.5 bg-[#4edea3] rounded-full"></span>
+        <span className="h-1.5 w-1.5 bg-[#4edea3] rounded-full"></span>
+        <span className="h-1.5 w-1.5 bg-[#4edea3] rounded-full"></span>
       </div>
+      <span className="font-label-md text-xs text-[#ccc3d8]/60 italic">{name} is typing...</span>
     </motion.div>
   );
 }
