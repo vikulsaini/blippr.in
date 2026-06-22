@@ -179,7 +179,7 @@ export default function Shell() {
       <GuestUpgradeModal me={me} />
       <ToastProvider />
       {!navHidden && (
-        <nav className="fixed bottom-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-lg border-t border-border-default/40 shadow-[0_-8px_20px_rgba(0,0,0,0.05)] flex justify-around items-center h-20 pb-safe md:hidden">
+        <nav className="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container/80 dark:bg-surface-container/80 backdrop-blur-lg border-t border-white/5 shadow-[0_-8px_20px_rgba(0,0,0,0.2)] flex justify-around items-center h-20 pb-safe md:hidden">
           <div className="flex w-full justify-around items-center px-4">
             {activeTabs.map(({ to, label, icon: Icon }) => (
               <NavLink
@@ -187,17 +187,17 @@ export default function Shell() {
                 to={to}
                 end={to === '/app'}
                 className={({ isActive }) =>
-                  `group relative flex flex-col items-center justify-center gap-1.5 transition-all duration-200 active:scale-[0.92] ${
-                    isActive ? 'text-primary font-bold' : 'text-text-muted hover:text-primary'
+                  `group relative flex flex-col items-center justify-center gap-1 transition-colors duration-200 active:scale-90 ${
+                    isActive ? 'text-secondary font-bold' : 'text-on-surface-variant/60 hover:text-secondary/80'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <span className={`grid h-8 w-8 place-items-center rounded-xl transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-[0_4px_12px_rgba(124,58,237,0.25)]' : 'bg-transparent'}`}>
-                      <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
+                    <span className="grid h-8 w-8 place-items-center transition-all duration-200">
+                      <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
                     </span>
-                    <span className={`text-[10px] font-bold tracking-wide uppercase leading-none ${isActive ? 'text-primary' : 'text-text-muted'}`}>{label}</span>
+                    <span className="text-[10px] font-bold tracking-wide uppercase leading-none">{label}</span>
                   </>
                 )}
               </NavLink>

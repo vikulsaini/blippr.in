@@ -226,13 +226,13 @@ export default function ChatList({
             )}
             {(searchOpen || query) && (
               <div className="relative mt-2 px-1">
-                <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted/40 shrink-0" />
+                <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-on-surface-variant/40 shrink-0" />
                 <input
                   type="text"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search conversations..."
-                  className="w-full bg-[#171f33]/40 border border-white/5 rounded-full py-3 pl-12 pr-10 text-white placeholder-text-muted/40 focus:ring-2 focus:ring-primary/50 outline-none transition-all text-sm font-semibold"
+                  className="w-full bg-surface-container border-none rounded-full py-3 pl-12 pr-10 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/50 transition-all outline-none text-sm font-semibold"
                 />
                 {query && (
                   <button 
@@ -251,7 +251,7 @@ export default function ChatList({
       <div data-chat-feed onScroll={handleScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 md:pb-3 scrollbar-thin px-4 space-y-4">
         {tab === 'chats' && activeFriends.length > 0 && (
           <section className="mb-2 shrink-0">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-text-muted/60 mb-4">Active Now</h3>
+            <h2 className="font-label-md text-label-md text-on-surface-variant/60 mb-4 uppercase tracking-widest">Active Now</h2>
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none scroll-smooth">
               {activeFriends.map((friend) => {
                 const displayName = getNickname(friend.chat, currentUserId, friend);
@@ -271,7 +271,7 @@ export default function ChatList({
                       )}
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-secondary rounded-full border-2 border-surface presence-glow"></div>
                     </div>
-                    <span className="text-[11px] font-semibold text-text-secondary max-w-[64px] truncate">{displayName.split(' ')[0]}</span>
+                    <span className="font-label-md text-label-md text-on-surface max-w-[64px] truncate">{displayName.split(' ')[0]}</span>
                   </div>
                 );
               })}
@@ -663,12 +663,18 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
           event.stopPropagation();
           onSelect();
         }}
-        className={`relative flex w-full items-center gap-4 rounded-xl p-4 text-left cursor-pointer transition-[background-color,border-color] duration-200 active:scale-[0.98] ${chat.unreadCount ? 'ring-1 ring-primary/20 shadow-glow' : ''} ${selected ? 'border-primary/25 bg-primary/10 shadow-glow' : (chat.unreadCount ? 'glass-card border border-white/10' : 'bg-[#131b2e]/60 hover:bg-[#171f33]/80 border border-white/5')} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
+        className={`relative flex w-full items-center gap-4 rounded-xl p-4 text-left cursor-pointer transition-[background-color,border-color] duration-200 active:scale-[0.98] ${
+          selected 
+            ? 'border-primary/25 bg-primary/10 shadow-glow' 
+            : chat.unreadCount 
+              ? 'glass-card border border-white/10' 
+              : 'bg-surface-container-low hover:bg-[#171f33]/80 border border-white/5'
+        } ${chat.muted ? 'opacity-80' : ''} ${muteFlashing ? 'bg-amber-500/20 ring-2 ring-amber-500/30' : ''}`}
       >
         <ChatRowButton onOpen={onOpen} onLongSelect={onSelect}>
           <div className="flex items-center gap-4 w-full">
-            {/* Avatar Container with online status dot */}
-            <div className={`relative h-14 w-14 shrink-0 rounded-full flex items-center justify-center ${chat.unreadCount ? 'p-0.5 border-2 border-primary shadow-[0_0_12px_rgba(210,187,255,0.4)]' : 'p-0.5 border border-white/10'}`}>
+            {/* Avatar Container with online status dot and pinned badge */}
+            <div className={`relative h-14 w-14 shrink-0 rounded-full flex items-center justify-center ${chat.unreadCount ? 'p-0.5 border-2 border-primary shadow-[0_0_12px_rgba(210,187,255,0.4)]' : 'p-0.5 border border-white/10'} ${!other?.isOnline ? 'grayscale' : ''}`}>
               {other?.avatar ? (
                 <img src={other.avatar} alt="" className="h-full w-full rounded-full object-cover" />
               ) : (
@@ -677,7 +683,12 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
                 </div>
               )}
               {other?.isOnline && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-secondary rounded-full border-2 border-surface presence-glow" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-secondary rounded-full border-2 border-surface-container presence-glow" />
+              )}
+              {chat.pinned && (
+                <span className="material-symbols-outlined absolute -top-1 -left-1 text-primary text-[14px] bg-surface rounded-full p-0.5 border border-white/10" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  push_pin
+                </span>
               )}
             </div>
 
@@ -685,19 +696,18 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
             <div className="min-w-0 flex-1">
               <div className="flex justify-between items-baseline gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <p className="truncate font-semibold text-text-primary text-base">{displayName || 'Friend'}</p>
+                  <h3 className="font-headline-sm text-headline-sm text-on-surface truncate">{displayName || 'Friend'}</h3>
                   {(chat.isStranger || other?.isStranger) && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-secondary/15 text-secondary text-[10px] font-semibold shrink-0">Stranger</span>
+                    <span className="px-2 py-0.5 rounded-full bg-secondary/15 text-secondary font-label-md text-label-md shrink-0">Stranger</span>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="flex items-center gap-1">
                     {chat.archived && <Archive size={11} className="text-text-faint" />}
-                    {chat.pinned && <Pin size={11} className="text-primary" />}
                     {chat.starred && <Star size={11} className="fill-gold text-gold" />}
                     {chat.muted && <BellOff size={11} className="text-text-faint" />}
                   </span>
-                  <span className={`text-[11px] font-semibold ${chat.unreadCount ? 'text-secondary font-bold' : 'text-text-muted'}`}>
+                  <span className={`font-label-md text-label-md ${chat.unreadCount ? 'text-secondary font-bold' : 'text-on-surface-variant/40'}`}>
                     {chat.lastMessage ? formatMessageTime(chat.lastMessage.createdAt) : ''}
                   </span>
                 </div>
