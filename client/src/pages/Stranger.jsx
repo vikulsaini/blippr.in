@@ -892,23 +892,6 @@ function EmptyRandom({ finding, queueText, activeUsers, viewMode, switchMode, ha
         </div>
       </div>
 
-      {/* Mode Toggles */}
-      <div className="glass-panel p-1.5 rounded-full flex justify-between items-center relative w-full max-w-xs z-20">
-        <button 
-          onClick={() => switchMode('chat')}
-          className={`mode-btn relative z-10 flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-label-md text-label-md ${viewMode === 'chat' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant/60'}`}
-        >
-          <span className="material-symbols-outlined text-[20px]">chat</span>
-          TEXT
-        </button>
-        <button 
-          onClick={() => switchMode('video')}
-          className={`mode-btn relative z-10 flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-label-md text-label-md ${viewMode === 'video' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant/60'}`}
-        >
-          <span className="material-symbols-outlined text-[20px]">videocam</span>
-          VIDEO
-        </button>
-      </div>
 
       {/* Matching Action */}
       <button 
