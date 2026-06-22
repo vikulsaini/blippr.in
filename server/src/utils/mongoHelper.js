@@ -85,7 +85,7 @@ export function toDbQuery(query) {
   const dbQuery = {};
   for (const [k, v] of Object.entries(query)) {
     let key = k;
-    if (k === 'id' || k === '_id') key = '_id';
+    if (k === 'id' || k === '_id' || k === 'supabaseId') key = '_id';
     else if (k === 'chatId') key = 'chat_id';
     else if (k === 'chat') key = 'chat_id';
     else if (k === 'senderId') key = 'sender_id';
