@@ -12,8 +12,11 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: '*',
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      callback(null, true);
+    },
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 

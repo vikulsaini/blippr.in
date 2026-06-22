@@ -11,11 +11,15 @@ const app = express();
 // Secure server by setting various HTTP headers
 app.use(helmet());
 
-// Enable CORS with dynamic or wildcards depending on development/production
+// Enable CORS with dynamic origin matching and credentials true for credentials 'include' requests
 app.use(cors({
-  origin: '*', // Allow all origins for the API or matchmaker connections, customize in production if needed
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: (origin, callback) => {
+    // Echo back the requesting origin dynamically to satisfy credentials: 'include'
+    callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
 
 app.use(express.json());
