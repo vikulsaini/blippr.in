@@ -7,6 +7,12 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email?: string;
     role?: string;
+    user_metadata?: {
+      name?: string;
+      age?: number;
+      gender?: string;
+      bio?: string;
+    };
   };
 }
 
@@ -42,6 +48,12 @@ export const authMiddleware = (
       sub?: string;
       email?: string;
       role?: string;
+      user_metadata?: {
+        name?: string;
+        age?: number;
+        gender?: string;
+        bio?: string;
+      };
     };
     
     if (!payload.sub) {
@@ -53,6 +65,7 @@ export const authMiddleware = (
       id: payload.sub,
       email: payload.email,
       role: payload.role,
+      user_metadata: payload.user_metadata,
     };
     next();
   } catch (error) {

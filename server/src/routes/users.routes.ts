@@ -23,7 +23,14 @@ router.get('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
       .maybeSingle();
 
     if (error) {
-      throw error;
+      console.error('[Users API] Supabase query error:', JSON.stringify(error, null, 2));
+      res.status(500).json({
+        error: 'Failed to retrieve profile',
+        details: error.message,
+        code: error.code,
+        hint: error.hint,
+      });
+      return;
     }
 
     if (!profile) {
@@ -32,9 +39,9 @@ router.get('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
     }
 
     res.status(200).json({ user: profile });
-  } catch (err) {
-    console.error('[Users API] Error fetching self profile:', err);
-    res.status(500).json({ error: 'Failed to retrieve profile' });
+  } catch (err: any) {
+    console.error('[Users API] Error fetching self profile:', err?.message || err);
+    res.status(500).json({ error: 'Failed to retrieve profile', details: err?.message });
   }
 });
 

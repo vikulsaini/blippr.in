@@ -15,9 +15,13 @@ async function isRoomMember(roomId: string, userId: string): Promise<boolean> {
       .eq('user_id', userId)
       .maybeSingle();
     
-    if (error) return false;
+    if (error) {
+      console.error('[Chats] isRoomMember query error:', JSON.stringify(error, null, 2));
+      return false;
+    }
     return !!data;
-  } catch {
+  } catch (err: any) {
+    console.error('[Chats] isRoomMember exception:', err?.message || err);
     return false;
   }
 }
@@ -38,6 +42,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
       .eq('user_id', userId);
 
     if (membershipError) {
+      console.error('[Chats API] Membership query error:', JSON.stringify(membershipError, null, 2));
       throw membershipError;
     }
 
@@ -64,6 +69,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
       .in('id', roomIds);
 
     if (error) {
+      console.error('[Chats API] Rooms query error:', JSON.stringify(error, null, 2));
       throw error;
     }
 
@@ -84,9 +90,9 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
         nextCursor: null
       }
     });
-  } catch (err) {
-    console.error('[Chats API] Error fetching rooms:', err);
-    res.status(500).json({ error: 'Failed to fetch chats' });
+  } catch (err: any) {
+    console.error('[Chats API] Error fetching rooms:', err?.message || err);
+    res.status(500).json({ error: 'Failed to fetch chats', details: err?.message });
   }
 });
 
