@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Ban, Flag, Music, Save, UserMinus, Volume2, X, Search, MessageCircle, Bell, MoreHorizontal, Image, Link, FileText, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { presenceText } from '../lib/presence.js';
@@ -6,6 +7,7 @@ import { previewSound } from '../lib/sounds.js';
 import { getRingtoneForFriend, mediaToSound, packSound, setFriendRingtone, soundPack } from '../lib/soundPrefs.js';
 
 export default function UserProfileModal({ user, chat, currentUserId, onClose, onNickname, onUnfriend, onBlock, onReport }) {
+  const navigate = useNavigate();
   const [nickname, setNickname] = useState('');
   const [reportReason, setReportReason] = useState('Inappropriate behavior');
   const [busyAction, setBusyAction] = useState('');

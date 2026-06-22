@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, LogIn, ShieldCheck, UserCheck, UserPlus, X, ArrowLeft, MessageCircle, Heart, Lock, Bolt } from 'lucide-react';
 import { api, getToken } from '../lib/api.js';
@@ -278,22 +279,50 @@ export default function NotificationBell() {
                 )}
 
                 {!loading && !feed.length && (
-                  <div className="py-20 flex-1 flex flex-col items-center justify-center text-center">
-                    <div className="relative mb-4">
-                      <span className="tone-ring grid h-16 w-16 place-items-center rounded-2xl bg-accent/10 text-accent">
-                        <Bell size={28} />
-                      </span>
+                  <div className="flex-grow flex flex-col items-center justify-center py-16 px-4 relative overflow-hidden select-none">
+                    {/* Glowing Aura & Visual Anchor */}
+                    <div className="relative mb-6 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl animate-soft-pulse" />
+                      <div className="relative w-28 h-28 bg-[#171f33]/60 border border-white/10 flex items-center justify-center rounded-full shadow-lg">
+                        <Bell size={48} className="text-primary opacity-60" />
+                      </div>
+                      {/* Floating Micro-Elements */}
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full animate-bounce" />
+                      <span className="absolute top-1/2 -left-3 w-1.5 h-1.5 bg-[#d2bbff] rounded-full animate-pulse" />
                     </div>
-                    <p className="mt-2 text-base font-bold text-text-primary">No important notifications yet.</p>
-                    <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-text-secondary font-semibold">
-                      Messages and call rings stay in their own chat/call surfaces so this screen stays clean.
+
+                    {/* Content Hierarchy */}
+                    <h3 className="text-lg font-bold text-text-primary mb-2 tracking-tight">All Quiet Here</h3>
+                    <p className="text-xs text-text-secondary max-w-[240px] leading-relaxed mx-auto mb-8 font-medium">
+                      We'll notify you when new <span className="text-primary font-semibold">sparks</span> and activity happen.
                     </p>
-                    <button 
-                      onClick={loadFeed} 
-                      className="btn-secondary mx-auto mt-5 flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold shadow-sm"
-                    >
-                      Refresh Feed
-                    </button>
+
+                    {/* CTA Actions */}
+                    <div className="w-full max-w-[240px] flex flex-col gap-2 mx-auto">
+                      <button 
+                        onClick={() => {
+                          setOpen(false);
+                          navigate('/app/discover');
+                        }}
+                        className="w-full py-2.5 bg-primary text-white font-bold text-xs rounded-xl shadow-md hover:bg-primary/95 transition-all duration-200 active:scale-95"
+                      >
+                        Explore New Sparks
+                      </button>
+                      <button 
+                        onClick={loadFeed}
+                        className="w-full py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-text-secondary font-bold text-xs rounded-xl transition-all duration-200 active:scale-95"
+                      >
+                        Refresh Feed
+                      </button>
+                    </div>
+
+                    {/* Technical brutalist footer */}
+                    <div className="absolute bottom-4 left-0 w-full flex justify-center opacity-30">
+                      <div className="flex items-center gap-1.5 font-mono text-[9px] text-[#ccc3d8]/80 uppercase tracking-widest">
+                        <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
+                        SYSTEM_IDLE: STATUS_OK
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

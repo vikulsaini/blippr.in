@@ -1296,6 +1296,15 @@ select:focus-visible {
   animation: bounce 1.3s linear infinite;
 }
 
+.pulse-aura {
+  animation: aura-pulse 3s ease-in-out infinite;
+}
+
+@keyframes aura-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 0.15; }
+}
+
 
 
 

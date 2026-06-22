@@ -214,26 +214,70 @@ export default function CallOverlay({
                   </div>
                 ) : (
                   <div className="relative grid h-full place-items-center p-6 text-center bg-[#0b1326] overflow-hidden">
+                    {/* Pulsing background auras */}
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
+                      <div className="absolute w-[320px] h-[320px] rounded-full bg-[#7c3aed]/15 blur-[50px] pulse-aura" />
+                      <div className="absolute w-[440px] h-[440px] rounded-full bg-[#4edea3]/10 blur-[70px] pulse-aura" style={{ animationDelay: '1.5s' }} />
+                    </div>
+
                     {/* Blurred background avatar */}
-                    <div className="absolute inset-0 opacity-40 blur-2xl scale-110 pointer-events-none">
+                    <div className="absolute inset-0 opacity-20 blur-3xl scale-110 pointer-events-none">
                       <img src={call.peerUser?.avatar} alt="" className="h-full w-full object-cover" />
                     </div>
                     
                     <div className="relative z-10 flex flex-col items-center">
-                      <div className="relative h-28 w-28 mb-6">
-                        <span className="absolute inset-0 animate-ping rounded-full bg-[#4edea3]/20" />
-                        <img src={call.peerUser?.avatar} alt="" className="relative h-28 w-28 rounded-full bg-[#131b2e] object-cover shadow-[0_0_20px_rgba(78,222,163,0.3)] border border-[#4edea3]/20" />
+                      {/* Large Glowing Avatar Border */}
+                      <div className="relative h-36 w-36 mb-8 flex items-center justify-center">
+                        {/* Outer pulsing ring */}
+                        <span className="absolute -inset-4 rounded-full border border-white/5 bg-white/[0.02] backdrop-blur-sm animate-pulse" />
+                        {/* Glowing secondary ring */}
+                        <span className="absolute -inset-2 rounded-full border border-[#4edea3]/20 shadow-[0_0_30px_rgba(78,222,163,0.2)] animate-pulse" style={{ animationDuration: '4s' }} />
+                        <img 
+                          src={call.peerUser?.avatar} 
+                          alt="" 
+                          className="relative h-36 w-36 rounded-full bg-[#131b2e] object-cover shadow-[0_0_40px_rgba(78,222,163,0.3)] border-2 border-[#4edea3]/80" 
+                        />
                       </div>
-                      <p className="text-lg font-semibold text-white">{call.peerUser?.name || 'Blippr friend'}</p>
-                      <p className="mt-2 text-sm text-[#ccc3d8]/80">
+
+                      {/* Contact Identity & State */}
+                      <h2 className="text-2xl font-bold tracking-tight text-white mb-2">{call.peerUser?.name || 'Blippr friend'}</h2>
+                      <p className="text-sm font-medium tracking-wider text-[#ccc3d8]/80 uppercase">
                         {call.status === 'incoming' 
                           ? 'Incoming call...' 
                           : call.status === 'calling' 
                             ? 'Calling...' 
                             : call.status === 'reconnecting' 
                               ? 'Reconnecting...' 
-                              : 'Ringing...'}
+                              : 'Connected'}
                       </p>
+
+                      {/* Dynamic Live Waveform Bar Visualization */}
+                      <div className="mt-8 flex items-end justify-center gap-1.5 h-16 w-64">
+                        {Array.from({ length: 18 }).map((_, idx) => {
+                          const baseHeight = 8;
+                          const isConnected = call.status === 'connected';
+                          const maxHeight = isConnected ? 56 : 16;
+                          const duration = 0.6 + (idx % 4) * 0.15;
+                          return (
+                            <motion.span
+                              key={idx}
+                              className="w-1.5 rounded-full bg-gradient-to-t from-[#4edea3] to-[#7c3aed]"
+                              animate={isConnected ? {
+                                height: [baseHeight, maxHeight - (idx % 3) * 10, baseHeight]
+                              } : {
+                                height: [baseHeight, baseHeight + 8, baseHeight]
+                              }}
+                              transition={{
+                                duration: duration,
+                                repeat: Infinity,
+                                repeatType: "reverse",
+                                delay: idx * 0.05,
+                                ease: 'easeInOut'
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}

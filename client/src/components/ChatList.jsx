@@ -323,11 +323,52 @@ export default function ChatList({
               </div>
             )}
             {!loading && personalChats.length === 0 && (
-              <div className="py-8 text-center bg-surface/30 rounded-2xl border border-border-default/40 p-6">
-                <p className="text-xs text-text-muted">No personal messages yet.</p>
-                <button onClick={onFindPeople} className="btn-secondary mt-3 px-4 py-2 text-xs rounded-full font-bold transition shadow-sm">
-                  Start Matching
+              <div className="py-12 flex flex-col items-center justify-center text-center relative overflow-hidden select-none">
+                {/* Hero Illustration / Icon */}
+                <div className="relative mb-6">
+                  {/* Abstract Glow */}
+                  <div className="absolute inset-0 bg-primary/15 blur-2xl rounded-full animate-pulse" style={{ animationDuration: '3s' }} />
+                  <div className="relative w-36 h-36 bg-[#171f33]/60 border border-white/10 rounded-full flex items-center justify-center shadow-md">
+                    <span className="material-symbols-outlined text-primary/40 text-6xl" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                  </div>
+                  {/* Floating Micro-Elements */}
+                  <div className="absolute -top-1 -right-1 w-10 h-10 bg-[#1e293b] border border-white/10 rounded-xl flex items-center justify-center shadow-md hover:rotate-12 transition-transform duration-300">
+                    <span className="material-symbols-outlined text-[#4edea3] text-lg">chat_bubble</span>
+                  </div>
+                  <div className="absolute bottom-2 -left-4 w-8 h-8 bg-[#1e293b] border border-white/10 rounded-full flex items-center justify-center shadow-md">
+                    <span className="material-symbols-outlined text-[#7c3aed] text-md" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                  </div>
+                </div>
+
+                {/* Typography */}
+                <h3 className="text-lg font-bold text-text-primary mb-1.5 tracking-tight">No Sparks Yet</h3>
+                <p className="text-xs text-text-secondary max-w-[240px] mb-6 leading-relaxed">
+                  Start a conversation to see your digital sparks fly.
+                </p>
+
+                {/* Action button */}
+                <button 
+                  onClick={onFindPeople}
+                  className="px-6 py-3 bg-primary text-white font-bold text-xs rounded-full shadow-lg hover:brightness-105 active:scale-95 transition-all duration-200"
+                >
+                  Start Blipping
                 </button>
+
+                {/* Suggestion Chips */}
+                <div className="mt-8 flex gap-2 flex-wrap justify-center">
+                  <span 
+                    onClick={onFindPeople}
+                    className="px-3.5 py-1.5 bg-[#171f33]/50 border border-white/5 rounded-full text-[10.5px] font-bold text-text-secondary cursor-pointer hover:bg-white/5 transition-colors"
+                  >
+                    Say Hello 👋
+                  </span>
+                  <span 
+                    onClick={onFindPeople}
+                    className="px-3.5 py-1.5 bg-[#171f33]/50 border border-white/5 rounded-full text-[10.5px] font-bold text-text-secondary cursor-pointer hover:bg-white/5 transition-colors"
+                  >
+                    Find Matches
+                  </span>
+                </div>
               </div>
             )}
           </div>

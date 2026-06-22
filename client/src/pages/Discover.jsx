@@ -403,7 +403,7 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-[#131b2e] to-[#171f33] flex items-center justify-center">
             <div className="text-center">
-              <span className="text-4xl font-extrabold text-[#d2bbff] select-none">{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</span>
+              <span className="text-4xl font-extrabold text-[#d2bbff] select-none">{user.name?.charAt(0).toUpperCase() || 'U'}</span>
             </div>
           </div>
         )}
