@@ -403,7 +403,7 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-[#131b2e] to-[#171f33] flex items-center justify-center">
             <div className="text-center">
-              <span className="text-4xl font-extrabold text-[#d2bbff] select-none">{user.name?.charAt(0).toUpperCase() || 'U'}</span>
+              <span className="text-4xl font-extrabold text-[#d2bbff] select-none">{(user.name || 'U').charAt(0).toUpperCase()}</span>
             </div>
           </div>
         )}
@@ -465,7 +465,7 @@ function UserRow({ user, status, onProfile, onAction }) {
             <img src={user.avatar} alt="" className="h-12 w-12 rounded-full bg-bg object-cover transition-transform duration-300 hover:scale-105" />
           ) : (
             <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-accent to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm">
-              {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              {(user.name || 'U').charAt(0).toUpperCase()}
             </div>
           )}
           {user.isOnline && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#4edea3] border-2 border-[#171f33] shadow-[0_0_8px_#4edea3]" />}

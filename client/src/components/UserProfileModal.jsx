@@ -110,7 +110,7 @@ export default function UserProfileModal({ user, chat, currentUserId, onClose, o
             <img src={user.avatar} alt="" className="h-20 w-20 rounded-full object-cover border-2 border-border-default shadow-card shrink-0" />
           ) : (
             <div className="grid h-20 w-20 place-items-center rounded-full bg-accent/10 font-bold text-accent text-2xl border border-border-default shadow-card shrink-0">
-              {user.name.slice(0, 2).toUpperCase()}
+              {(user.name || 'US').slice(0, 2).toUpperCase()}
             </div>
           )}
           <h2 className="mt-3 text-xl font-bold text-text-primary leading-snug">{nickname || user.name}</h2>

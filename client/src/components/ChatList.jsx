@@ -266,7 +266,7 @@ export default function ChatList({
                         <img className="w-full h-full rounded-full object-cover" src={friend.avatar} alt={displayName} />
                       ) : (
                         <div className="w-full h-full rounded-full bg-gradient-to-tr from-accent to-accent-light flex items-center justify-center text-white font-bold text-sm">
-                          {displayName ? displayName.charAt(0).toUpperCase() : 'F'}
+                          {(displayName || 'F').charAt(0).toUpperCase()}
                         </div>
                       )}
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-secondary rounded-full border-2 border-surface presence-glow"></div>
@@ -720,7 +720,7 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
                 <img src={other.avatar} alt="" className="h-full w-full rounded-full object-cover" />
               ) : (
                 <div className="h-full w-full rounded-full bg-gradient-to-tr from-primary to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm">
-                  {displayName ? displayName.charAt(0).toUpperCase() : 'F'}
+                  {(displayName || 'F').charAt(0).toUpperCase()}
                 </div>
               )}
               {other?.isOnline && (

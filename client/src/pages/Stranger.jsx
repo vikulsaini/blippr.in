@@ -561,7 +561,7 @@ export default function Stranger() {
                       <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl border border-white/10" />
                     ) : (
                       <div className="h-10 w-10 rounded-[15px] sm:h-11 sm:w-11 sm:rounded-2xl bg-gradient-to-tr from-accent to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm border border-white/10">
-                        {peer.name ? peer.name.charAt(0).toUpperCase() : 'U'}
+                        {(peer.name || 'U').charAt(0).toUpperCase()}
                       </div>
                     )}
                     <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#4edea3] border-2 border-[#171f33] shadow-[0_0_8px_#4edea3]" />
@@ -691,7 +691,7 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
               <img src={peer.avatar} alt="" className="mx-auto h-20 w-20 rounded-[28px] object-cover shadow-glow" />
             ) : peer ? (
               <div className="mx-auto h-20 w-20 rounded-[28px] bg-gradient-to-tr from-accent to-[#7c3aed] flex items-center justify-center text-white font-bold text-2xl shadow-glow">
-                {peer.name ? peer.name.charAt(0).toUpperCase() : 'U'}
+                {(peer.name || 'U').charAt(0).toUpperCase()}
               </div>
             ) : (
               <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/8 text-white/50">

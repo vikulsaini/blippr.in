@@ -79,7 +79,7 @@ export default function ReportUser() {
               <img className="w-full h-full object-cover" src={reportedUser.avatar} alt={reportedUser.name} />
             ) : (
               <div className="w-full h-full bg-gradient-to-tr from-[#131b2e] to-[#171f33] flex items-center justify-center font-bold text-[#d2bbff] text-2xl">
-                {reportedUser.name?.charAt(0).toUpperCase()}
+                {(reportedUser.name || 'U').charAt(0).toUpperCase()}
               </div>
             )}
           </div>
