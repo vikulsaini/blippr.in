@@ -12,7 +12,7 @@ export async function connectMongo() {
   console.log('[Database] connectMongo() called. dbInstance is currently:', dbInstance ? 'set' : 'null');
   await client.connect();
   
-  let dbName = 'blippr';
+  let dbName = 'test';
   try {
     const url = new URL(mongoUri.replace('mongodb+srv://', 'http://').replace('mongodb://', 'http://'));
     const path = url.pathname.replace(/^\//, '');
