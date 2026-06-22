@@ -18,7 +18,8 @@ for (const key of requiredEnv) {
   }
 }
 
-const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET;
+const rawJwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET;
+const supabaseJwtSecret = rawJwtSecret ? rawJwtSecret.trim().replace(/\s+/g, '') : '';
 if (!supabaseJwtSecret) {
   missing.push('SUPABASE_JWT_SECRET or JWT_SECRET');
 }
