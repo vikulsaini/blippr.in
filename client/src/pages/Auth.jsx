@@ -216,8 +216,12 @@ export default function Auth() {
         }
       }, 3000);
       if (err.body && err.body.code === 'PROFILE_REQUIRED') {
-        setSupabaseAccessToken(token);
-        setMode('completeProfile');
+        if (authSubModeRef.current === 'login') {
+          setError('No account found. Please sign up first!');
+        } else {
+          setSupabaseAccessToken(token);
+          setMode('completeProfile');
+        }
       } else {
         setError(err.message || 'Failed to sync authentication session.');
       }

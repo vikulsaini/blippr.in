@@ -271,7 +271,7 @@ export default function ChatList({
                       )}
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-secondary rounded-full border-2 border-surface presence-glow"></div>
                     </div>
-                    <span className="font-label-md text-label-md text-on-surface max-w-[64px] truncate">{displayName.split(' ')[0]}</span>
+                    <span className="font-label-md text-label-md text-on-surface max-w-[64px] truncate">{(displayName || 'Friend').split(' ')[0]}</span>
                   </div>
                 );
               })}

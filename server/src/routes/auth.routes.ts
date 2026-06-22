@@ -49,25 +49,81 @@ router.post('/supabase', async (req, res) => {
     const payload = jwt.verify(accessToken, env.SUPABASE_JWT_SECRET) as any;
     const userId = payload.sub;
 
-    // Sync profile to database using the service role client
+    // Check if a profile already exists for this user ID
+    let profile = null;
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          id: userId,
-          username: username || payload.email?.split('@')[0],
-          name: name || username || payload.email?.split('@')[0],
-          age: age || 18,
-          gender: gender || 'other',
-          bio: bio || '',
-          updated_at: new Date().toISOString(),
-        });
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
       if (error) {
-        console.error('[Auth Sync] Supabase profile sync error:', error.message);
+        console.error('[Auth Sync] Profile check error:', error.message);
+      } else {
+        profile = data;
       }
     } catch (dbErr) {
-      console.error('[Auth Sync] Database profile write failed:', dbErr);
+      console.error('[Auth Sync] Database profile fetch failed:', dbErr);
+    }
+
+    if (!profile) {
+      // If there is no existing profile and the user is not completing signup (no username sent)
+      if (!username) {
+        res.status(400).json({
+          code: 'PROFILE_REQUIRED',
+          message: 'No account found. Please sign up first!'
+        });
+        return;
+      }
+
+      // User is completing signup, insert a new profile record
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            username: username.toLowerCase(),
+            name: name || username,
+            age: age || 18,
+            gender: gender || 'other',
+            bio: bio || '',
+            updated_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          console.error('[Auth Sync] Supabase profile insert error:', error.message);
+          res.status(500).json({ error: 'Failed to create user profile.' });
+          return;
+        }
+      } catch (insertErr) {
+        console.error('[Auth Sync] Database profile insert failed:', insertErr);
+        res.status(500).json({ error: 'Database connection failed during signup.' });
+        return;
+      }
+    } else {
+      // Profile exists, perform updates if new metadata values are supplied
+      if (username || name || age || gender || bio) {
+        try {
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              ...(username && { username: username.toLowerCase() }),
+              ...(name && { name }),
+              ...(age && { age }),
+              ...(gender && { gender }),
+              ...(bio && { bio }),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+
+          if (error) {
+            console.error('[Auth Sync] Profile update error:', error.message);
+          }
+        } catch (updateErr) {
+          console.error('[Auth Sync] Database profile update failed:', updateErr);
+        }
+      }
     }
 
     res.status(200).json({ token: accessToken });
