@@ -394,11 +394,11 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
     >
       <div className="w-full h-full relative group">
         {user.avatar ? (
-          <img src={user.avatar} className="w-full h-full object-cover select-none pointer-events-none" alt={user.name} />
+          <img src={user.avatar} className="w-full h-full object-cover select-none pointer-events-none" alt={user.name || 'User'} />
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-[#131b2e] to-[#171f33] flex items-center justify-center">
             <div className="text-center">
-              <span className="text-4xl font-extrabold text-[#d2bbff] select-none">{user.name.charAt(0)}</span>
+              <span className="text-4xl font-extrabold text-[#d2bbff] select-none">{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</span>
             </div>
           </div>
         )}
@@ -410,11 +410,11 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
             <span className="text-[10px] font-bold text-white">Active</span>
           </div>
         )}
-
+ 
         {/* Info Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 select-none">
           <div className="flex items-baseline gap-2 mb-1">
-            <h2 className="text-2xl font-black text-white tracking-tight">{user.name}</h2>
+            <h2 className="text-2xl font-black text-white tracking-tight">{user.name || 'User'}</h2>
             <span className="text-zinc-300 text-lg font-semibold">{user.age}</span>
           </div>
           
@@ -472,8 +472,8 @@ function UserRow({ user, status, onProfile, onAction }) {
           {user.isOnline && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#4edea3] border-2 border-[#171f33] shadow-[0_0_8px_#4edea3]" />}
         </button>
         <div className="min-w-0">
-          <p className="truncate font-semibold text-white leading-tight">{user.name}</p>
-          <p className="truncate text-[11px] text-[#ccc3d8]/80 mt-0.5">@{user.username} · {user.gender} · {user.age}</p>
+          <p className="truncate font-semibold text-white leading-tight">{user.name || 'User'}</p>
+          <p className="truncate text-[11px] text-[#ccc3d8]/80 mt-0.5">@{user.username || 'user'} · {user.gender || 'unknown'} · {user.age || '18'}</p>
           {user.bio && <p className="truncate text-[10px] text-[#ccc3d8]/70 italic max-w-[170px] mt-0.5">"{user.bio}"</p>}
         </div>
       </div>
