@@ -1,99 +1,147 @@
 import { Server, Socket } from 'socket.io';
+import { supabase } from '../../config/supabase.js';
 
-interface InitiateCallPayload {
-  targetUserId: string;
+interface CallOfferPayload {
+  to: string;
   offer: any;
+  callType: 'audio' | 'video';
 }
 
-interface AnswerCallPayload {
-  targetUserId: string;
+interface CallAnswerPayload {
+  to: string;
   answer: any;
+  callId: string;
 }
 
-interface IceCandidatePayload {
-  targetUserId: string;
+interface CallRejectPayload {
+  to: string;
+  callId: string;
+}
+
+interface CallEndPayload {
+  to: string;
+  callId: string;
+}
+
+interface CallIceCandidatePayload {
+  to: string;
   candidate: any;
-}
-
-interface TerminateCallPayload {
-  targetUserId: string;
+  callId: string;
 }
 
 export const registerCallHandlers = (io: Server, socket: Socket): void => {
   const userId = socket.data.userId;
   if (!userId) {
-    console.error('[Call Handlers] Attempted to register call handlers for unauthenticated socket');
     return;
   }
 
-  // Join the user's private channel room named after their unique user ID.
-  // This allows Socket.io to route messages directly to this specific user across clusters.
+  // Join the user's private signaling room
   socket.join(userId);
-  console.log(`[Call] User ${userId} joined their private signaling room`);
 
-  // 1. Initiate Call (Offer)
-  socket.on('call:initiate', (payload: InitiateCallPayload) => {
-    const { targetUserId, offer } = payload;
-    if (!targetUserId || !offer) {
-      socket.emit('call:error', { message: 'Invalid call setup payload' });
+  // 1. Client initiates call (SDP Offer)
+  socket.on('call:offer', async (payload: CallOfferPayload, ack?: (response: any) => void) => {
+    const { to, offer, callType } = payload;
+    if (!to || !offer) {
+      if (ack) ack({ error: 'Invalid offer parameters' });
       return;
     }
 
-    console.log(`[Call] User ${userId} is offering to call ${targetUserId}`);
+    const callId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    console.log(`[Call] Relaying call offer from ${userId} -> ${to} (ID: ${callId}, Type: ${callType})`);
 
-    // Emit the offer to the target user room, using the authenticated socket.data.userId
-    // to strictly prevent caller identity spoofing.
-    socket.to(targetUserId).emit('call:offer', {
-      callerId: userId,
+    // Fetch caller name and avatar details from Supabase
+    let callerName = 'Blippr User';
+    let callerAvatar = '';
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('name, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (data && !error) {
+        callerName = data.name || callerName;
+        callerAvatar = data.avatar_url || '';
+      }
+    } catch (err) {
+      console.error('[Call Handlers] Supabase profile fetch failed:', err);
+    }
+
+    // Forward incoming call to recipient
+    socket.to(to).emit('call:incoming', {
+      from: userId,
       offer,
+      callType,
+      callId,
+      callerName,
+      callerAvatar,
     });
+
+    if (ack) {
+      ack({ callId });
+    }
   });
 
-  // 2. Answer Call (Answer)
-  socket.on('call:answer', (payload: AnswerCallPayload) => {
-    const { targetUserId, answer } = payload;
-    if (!targetUserId || !answer) {
-      socket.emit('call:error', { message: 'Invalid call answer payload' });
+  // 2. Client answers call (SDP Answer)
+  socket.on('call:answer', (payload: CallAnswerPayload, ack?: (response: any) => void) => {
+    const { to, answer, callId } = payload;
+    if (!to || !answer || !callId) {
+      if (ack) ack({ error: 'Invalid answer parameters' });
       return;
     }
 
-    console.log(`[Call] User ${userId} answered call from ${targetUserId}`);
+    console.log(`[Call] Relaying answer from ${userId} -> ${to} (CallID: ${callId})`);
 
-    // Forward answer to the target user (the original caller)
-    socket.to(targetUserId).emit('call:answer', {
-      answererId: userId,
+    socket.to(to).emit('call:answer', {
       answer,
+      callId,
     });
+
+    if (ack) {
+      ack({ success: true });
+    }
   });
 
-  // 3. ICE Candidate Relay
-  socket.on('call:ice_candidate', (payload: IceCandidatePayload) => {
-    const { targetUserId, candidate } = payload;
-    if (!targetUserId || !candidate) {
-      socket.emit('call:error', { message: 'Invalid ICE candidate payload' });
+  // 3. Client rejects call
+  socket.on('call:reject', (payload: CallRejectPayload) => {
+    const { to, callId } = payload;
+    if (!to || !callId) {
       return;
     }
 
-    // Forward ICE candidate to peer
-    socket.to(targetUserId).emit('call:ice_candidate', {
-      senderId: userId,
+    console.log(`[Call] Relaying reject from ${userId} -> ${to} (CallID: ${callId})`);
+
+    socket.to(to).emit('call:reject', {
+      callId,
+    });
+  });
+
+  // 4. Client ends active call
+  socket.on('call:end', (payload: CallEndPayload) => {
+    const { to, callId } = payload;
+    if (!to || !callId) {
+      return;
+    }
+
+    console.log(`[Call] Relaying end from ${userId} -> ${to} (CallID: ${callId})`);
+
+    socket.to(to).emit('call:end', {
+      callId,
+    });
+  });
+
+  // 5. Relaying ICE Candidates
+  socket.on('call:ice-candidate', (payload: CallIceCandidatePayload) => {
+    const { to, candidate, callId } = payload;
+    if (!to || !candidate || !callId) {
+      return;
+    }
+
+    // Relay candidates directly to peer
+    socket.to(to).emit('call:ice-candidate', {
       candidate,
-    });
-  });
-
-  // 4. Terminate Call
-  socket.on('call:terminate', (payload: TerminateCallPayload) => {
-    const { targetUserId } = payload;
-    if (!targetUserId) {
-      socket.emit('call:error', { message: 'Invalid termination payload' });
-      return;
-    }
-
-    console.log(`[Call] User ${userId} terminated call with ${targetUserId}`);
-
-    // Notify peer of termination
-    socket.to(targetUserId).emit('call:terminated', {
-      senderId: userId,
+      callId,
     });
   });
 };
