@@ -25,17 +25,21 @@ import {
 import BrandLogo from '../components/BrandLogo.jsx';
 import { api, setToken, getToken } from '../lib/api.js';
 import { getAnonymousPushSubscription } from '../lib/notifications.js';
+import { supabase } from '../lib/supabase.js';
 
 const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', gender: 'female', bio: '', hobbies: '' };
 
 const SOCIAL_PROFILES = [];
 
-const loginWithSupabase = () => {
-  throw new Error('Supabase Auth is disabled');
+const loginWithSupabase = async (payload) => {
+  return await api('/api/auth/supabase', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 };
 
 export default function Auth() {
-  const isSupabaseEnabled = false;
+  const isSupabaseEnabled = true;
   const navigate = useNavigate();
   
   const canvasRef = useRef(null);
