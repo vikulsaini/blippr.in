@@ -12,7 +12,7 @@ export function createSocket() {
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1200,
     reconnectionDelayMax: 6000,
-    timeout: 20000
+    timeout: 20000,
   });
 
   socket.on('connect', () => {

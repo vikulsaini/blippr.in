@@ -14,12 +14,29 @@ const httpServer = createServer(app);
 const ALLOWED_ORIGINS = [
   'https://blippr.in',
   'https://www.blippr.in',
+  // Railway dynamic domain
+  ...(env.RAILWAY_PUBLIC_DOMAIN ? [`https://${env.RAILWAY_PUBLIC_DOMAIN}`] : []),
+  // Explicit client URL override
+  ...(env.CLIENT_URL ? [env.CLIENT_URL] : []),
 ];
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Allow any localhost origin in development
+  if (env.NODE_ENV !== 'production') {
+    try {
+      const url = new URL(origin);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return true;
+    } catch { /* invalid URL */ }
+  }
+  return false;
+}
 
 const io = new Server(httpServer, {
   cors: {
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         console.warn(`[Socket.IO CORS] Blocked connection from origin: ${origin}`);
@@ -29,6 +46,9 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  // Ping/timeout for Railway proxy compatibility
+  pingInterval: 25000,
+  pingTimeout: 20000,
 });
 
 // Bind socket handshake auth middleware
@@ -54,16 +74,17 @@ io.on('connection', (socket) => {
 
 const startServer = async (): Promise<void> => {
   try {
-    // Connect to Redis asynchronously in the background so it doesn't block server startup
     connectRedis()
       .then(() => console.log('[Bootstrap] Redis connection established successfully'))
       .catch((redisErr) => console.error('[Bootstrap] WARNING: Redis client failed to connect in background.', redisErr));
 
-    // Start listening
     httpServer.listen(env.PORT, () => {
       console.log('==================================================');
-      console.log(`🚀 Varta Server running in ${env.NODE_ENV} mode`);
-      console.log(`🔊 Listening on http://localhost:${env.PORT}`);
+      console.log(`\u{1F680} Varta Server running in ${env.NODE_ENV} mode`);
+      console.log(`\u{1F50A} Listening on http://localhost:${env.PORT}`);
+      if (env.RAILWAY_PUBLIC_DOMAIN) {
+        console.log(`\u{1F310} Railway public URL: https://${env.RAILWAY_PUBLIC_DOMAIN}`);
+      }
       console.log('==================================================');
     });
   } catch (err) {

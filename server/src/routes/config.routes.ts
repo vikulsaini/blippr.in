@@ -6,12 +6,23 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
+// Determine the correct socket URL based on environment
+function getSocketUrl(): string {
+  // If an explicit client URL is set, use it (works for Railway and custom domains)
+  if (env.CLIENT_URL) return env.CLIENT_URL;
+  // Railway dynamic domain
+  if (env.RAILWAY_PUBLIC_DOMAIN) return `https://${env.RAILWAY_PUBLIC_DOMAIN}`;
+  // Fallback to production domain or localhost
+  if (env.NODE_ENV === 'production') return 'https://api.blippr.in';
+  return `http://localhost:${env.PORT}`;
+}
+
 // 1. General Application Configuration (Public)
 router.get('/app', (req, res) => {
   res.status(200).json({
     appName: 'Varta',
     environment: env.NODE_ENV,
-    socketUrl: env.NODE_ENV === 'production' ? 'https://api.blippr.in' : `http://localhost:${env.PORT}`,
+    socketUrl: getSocketUrl(),
     features: {
       matchmaking: true,
       webrtc: true,
