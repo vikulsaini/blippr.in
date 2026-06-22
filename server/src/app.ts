@@ -5,6 +5,8 @@ import { errorHandler } from './middleware/error.js';
 import configRouter from './routes/config.routes.js';
 import authRouter from './routes/auth.routes.js';
 import chatsRouter from './routes/chats.routes.js';
+import friendsRouter from './routes/friends.routes.js';
+import safetyRouter from './routes/safety.routes.js';
 
 const app = express();
 
@@ -39,7 +41,14 @@ app.use('/api/auth', authRouter);
 // Chats routes
 app.use('/api/chats', chatsRouter);
 
+// Friends routes
+app.use('/api/friends', friendsRouter);
+
+// Safety routes
+app.use('/api/safety', safetyRouter);
+
 // Register global error handler
 app.use(errorHandler);
 
 export { app };
+

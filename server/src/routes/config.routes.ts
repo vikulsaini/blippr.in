@@ -22,19 +22,22 @@ router.get('/app', (req, res) => {
 
 // 2. WebRTC Server Settings / ICE configuration (Authenticated to prevent bandwidth/session abuse)
 router.get('/rtc', authMiddleware, (req, res) => {
+  const turnUrlsStr = process.env.TURN_URLS || '';
+  const urls = turnUrlsStr
+    ? turnUrlsStr.split(',').map((u) => u.trim()).filter(Boolean)
+    : [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stun2.l.google.com:19302',
+        'stun:stun3.l.google.com:19302',
+        'stun:stun4.l.google.com:19302',
+      ];
+
   res.status(200).json({
     turn: {
-      iceServers: [
-        {
-          urls: [
-            'stun:stun.l.google.com:19302',
-            'stun:stun1.l.google.com:19302',
-            'stun:stun2.l.google.com:19302',
-            'stun:stun3.l.google.com:19302',
-            'stun:stun4.l.google.com:19302',
-          ],
-        },
-      ],
+      urls,
+      username: process.env.TURN_USERNAME || undefined,
+      credential: process.env.TURN_PASSWORD || process.env.TURN_CREDENTIAL || undefined,
     },
   });
 });

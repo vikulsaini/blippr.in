@@ -28,13 +28,21 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
 
     const chats = (rooms || []).map((room) => ({
       _id: room.id,
+      type: 'direct',
+      temporary: false,
       updatedAt: room.updated_at,
       unreadCount: 0,
       lastMessage: null,
       members: room.room_members?.map((m: any) => ({ _id: m.user_id })) || [],
     }));
 
-    res.status(200).json(chats);
+    res.status(200).json({
+      chats,
+      pageInfo: {
+        hasMore: false,
+        nextCursor: null
+      }
+    });
   } catch (err) {
     console.error('[Chats API] Error fetching rooms:', err);
     res.status(200).json([]);
