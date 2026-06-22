@@ -4,6 +4,9 @@ import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
+// Public profile fields that can be returned to other users
+const PUBLIC_PROFILE_FIELDS = 'id, username, name, avatar_url, age, gender, bio, created_at';
+
 // 1. Get current authenticated user profile
 router.get('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userId = req.user?.id;
@@ -44,6 +47,39 @@ router.patch('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
   }
 
   const { name, username, gender, bio, age, dob, contact, hobbies } = req.body;
+
+  // Input validation
+  if (username && (typeof username !== 'string' || username.length < 3 || username.length > 30)) {
+    res.status(400).json({ error: 'Username must be between 3 and 30 characters' });
+    return;
+  }
+  if (name && (typeof name !== 'string' || name.length > 100)) {
+    res.status(400).json({ error: 'Name must be under 100 characters' });
+    return;
+  }
+  if (bio && typeof bio === 'string' && bio.length > 500) {
+    res.status(400).json({ error: 'Bio must be under 500 characters' });
+    return;
+  }
+  if (age && (typeof age !== 'number' || age < 13 || age > 150)) {
+    res.status(400).json({ error: 'Age must be between 13 and 150' });
+    return;
+  }
+
+  // Check username uniqueness if updating
+  if (username) {
+    const { data: existingUser } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username.toLowerCase())
+      .neq('id', userId)
+      .maybeSingle();
+
+    if (existingUser) {
+      res.status(409).json({ error: 'Username is already taken' });
+      return;
+    }
+  }
 
   try {
     const { data, error } = await supabase
@@ -109,11 +145,21 @@ router.post('/me/location', authMiddleware, async (req: AuthenticatedRequest, re
 
   const { latitude, longitude, accuracy } = req.body;
 
+  // Validate coordinates
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    res.status(400).json({ error: 'Valid latitude and longitude are required' });
+    return;
+  }
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    res.status(400).json({ error: 'Invalid coordinate values' });
+    return;
+  }
+
   try {
     const { data, error } = await supabase
       .from('profiles')
       .update({
-        location: { latitude, longitude, accuracy },
+        location: { latitude, longitude, accuracy: accuracy || null },
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId)
@@ -148,18 +194,19 @@ router.get('/me/export', authMiddleware, async (req: AuthenticatedRequest, res) 
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
     res.status(200).json({ profile, exportedAt: new Date().toISOString() });
   } catch (err) {
+    console.error('[Users API] Error exporting data:', err);
     res.status(500).json({ error: 'Failed to export user data' });
   }
 });
 
-// 7. Get suggested users to discover
+// 7. Get suggested users to discover (returns only public fields)
 router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userId = req.user?.id;
 
   try {
     const { data: users, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(PUBLIC_PROFILE_FIELDS)
       .neq('id', userId || '')
       .limit(10);
 
@@ -170,23 +217,26 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
     res.status(200).json({ users: users || [] });
   } catch (err) {
     console.error('[Users API] Error fetching suggested users:', err);
-    res.status(200).json({ users: [] });
+    res.status(500).json({ error: 'Failed to fetch suggested users' });
   }
 });
 
-// 8. Search users
+// 8. Search users (returns only public fields)
 router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const { q } = req.query;
-  if (!q) {
+  if (!q || typeof q !== 'string' || q.trim().length === 0) {
     res.status(200).json({ users: [] });
     return;
   }
 
+  // Limit search query length to prevent abuse
+  const sanitizedQuery = q.trim().substring(0, 100);
+
   try {
     const { data: users, error } = await supabase
       .from('profiles')
-      .select('*')
-      .ilike('username', `%${q}%`)
+      .select(PUBLIC_PROFILE_FIELDS)
+      .or(`username.ilike.%${sanitizedQuery}%,name.ilike.%${sanitizedQuery}%`)
       .limit(20);
 
     if (error) {
@@ -196,7 +246,7 @@ router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res) => 
     res.status(200).json({ users: users || [] });
   } catch (err) {
     console.error('[Users API] Error searching users:', err);
-    res.status(200).json({ users: [] });
+    res.status(500).json({ error: 'Failed to search users' });
   }
 });
 

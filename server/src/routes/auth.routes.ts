@@ -5,16 +5,45 @@ import { supabase } from '../config/supabase.js';
 
 const router = Router();
 
+// In-memory rate limiting (simple; for production use a proper store like Redis)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || entry.resetAt < now) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= maxRequests) {
+    return false;
+  }
+  entry.count++;
+  return true;
+}
+
 // 1. Guest Authentication Endpoint (Public)
 router.post('/guest', (req, res) => {
   const { name, age, gender, bio } = req.body;
 
-  if (!name) {
+  // Validate name
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
     res.status(400).json({ error: 'Name is required to sign in as guest.' });
     return;
   }
+  if (name.trim().length > 50) {
+    res.status(400).json({ error: 'Name must be under 50 characters.' });
+    return;
+  }
 
-  const guestId = `guest_${Math.random().toString(36).substring(2, 15)}`;
+  // Rate limit guest creation per IP (10 per hour)
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  if (!checkRateLimit(`guest:${ip}`, 10, 60 * 60 * 1000)) {
+    res.status(429).json({ error: 'Too many guest accounts created. Please try again later.' });
+    return;
+  }
+
+  const guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+  const sanitizedName = name.trim().substring(0, 50);
 
   // Sign a JWT token using our secret so that it can be locally verified in the socket handshake
   const token = jwt.sign(
@@ -23,10 +52,10 @@ router.post('/guest', (req, res) => {
       role: 'guest',
       email: `${guestId}@blippr.guest`,
       user_metadata: {
-        name,
-        age,
-        gender,
-        bio,
+        name: sanitizedName,
+        age: age || null,
+        gender: gender || null,
+        bio: bio || '',
       },
     },
     env.SUPABASE_JWT_SECRET,
@@ -48,6 +77,17 @@ router.post('/supabase', async (req, res) => {
   try {
     const payload = jwt.verify(accessToken, env.SUPABASE_JWT_SECRET) as any;
     const userId = payload.sub;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Invalid token: missing user identifier' });
+      return;
+    }
+
+    // Validate username if provided
+    if (username && (typeof username !== 'string' || username.length < 3 || username.length > 30)) {
+      res.status(400).json({ error: 'Username must be between 3 and 30 characters' });
+      return;
+    }
 
     // Check if a profile already exists for this user ID
     let profile = null;
@@ -74,6 +114,18 @@ router.post('/supabase', async (req, res) => {
           code: 'PROFILE_REQUIRED',
           message: 'No account found. Please sign up first!'
         });
+        return;
+      }
+
+      // Check username uniqueness before inserting
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username.toLowerCase())
+        .maybeSingle();
+
+      if (existingUser) {
+        res.status(409).json({ error: 'Username is already taken' });
         return;
       }
 
@@ -136,8 +188,21 @@ router.post('/supabase', async (req, res) => {
 router.get('/username-check', async (req, res) => {
   const { username } = req.query;
 
-  if (!username) {
+  if (!username || typeof username !== 'string') {
     res.status(400).json({ error: 'Username parameter is required.' });
+    return;
+  }
+
+  const sanitizedUsername = username.trim().toLowerCase();
+  
+  if (sanitizedUsername.length < 3 || sanitizedUsername.length > 30) {
+    res.status(200).json({ available: false, error: 'Username must be between 3 and 30 characters' });
+    return;
+  }
+
+  // Only allow alphanumeric and underscores
+  if (!/^[a-z0-9_]+$/.test(sanitizedUsername)) {
+    res.status(200).json({ available: false, error: 'Username can only contain letters, numbers, and underscores' });
     return;
   }
 
@@ -145,7 +210,7 @@ router.get('/username-check', async (req, res) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('username')
-      .eq('username', String(username).toLowerCase())
+      .eq('username', sanitizedUsername)
       .maybeSingle();
 
     if (error) {
@@ -155,8 +220,7 @@ router.get('/username-check', async (req, res) => {
     res.status(200).json({ available: !data });
   } catch (err) {
     console.error('[Username Check] Error checking profiles:', err);
-    // Fallback in case table doesn't exist or during development
-    res.status(200).json({ available: true });
+    res.status(503).json({ error: 'Unable to check username availability. Please try again.' });
   }
 });
 

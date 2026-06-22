@@ -4,6 +4,41 @@ import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
+// Helper: find shared room IDs between two users
+async function findSharedRoomIds(userId1: string, userId2: string): Promise<string[]> {
+  const { data: userRooms } = await supabase
+    .from('room_members')
+    .select('room_id')
+    .eq('user_id', userId1);
+
+  const { data: targetRooms } = await supabase
+    .from('room_members')
+    .select('room_id')
+    .eq('user_id', userId2);
+
+  if (!userRooms || !targetRooms) return [];
+
+  const userRoomIds = new Set(userRooms.map((rm) => rm.room_id));
+  return targetRooms
+    .map((rm) => rm.room_id)
+    .filter((id) => userRoomIds.has(id));
+}
+
+// Helper: delete mutual friend requests (safe separate queries)
+async function deleteMutualFriendRequests(userId1: string, userId2: string) {
+  await supabase
+    .from('friend_requests')
+    .delete()
+    .eq('sender_id', userId1)
+    .eq('receiver_id', userId2);
+
+  await supabase
+    .from('friend_requests')
+    .delete()
+    .eq('sender_id', userId2)
+    .eq('receiver_id', userId1);
+}
+
 // 1. Get blocked users (Authenticated)
 router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userId = req.user?.id;
@@ -18,7 +53,9 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
       .select('blocked_id')
       .eq('blocker_id', userId);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     if (!blockedRecords || blockedRecords.length === 0) {
       res.status(200).json({ users: [] });
@@ -32,7 +69,9 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
       .select('id, name, username, avatar_url')
       .in('id', blockedIds);
 
-    if (profilesError) throw profilesError;
+    if (profilesError) {
+      throw profilesError;
+    }
 
     const formattedUsers = (profiles || []).map((p) => ({
       _id: p.id,
@@ -44,7 +83,7 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
     res.status(200).json({ users: formattedUsers });
   } catch (err) {
     console.error('[Safety API] Error getting blocked users:', err);
-    res.status(200).json({ users: [] });
+    res.status(500).json({ error: 'Failed to fetch blocked users' });
   }
 });
 
@@ -72,35 +111,21 @@ router.post('/block', authMiddleware, async (req: AuthenticatedRequest, res) => 
       .from('blocks')
       .upsert({ blocker_id: blockerId, blocked_id: blockedId }, { onConflict: 'blocker_id,blocked_id' });
 
-    if (blockError) throw blockError;
+    if (blockError) {
+      throw blockError;
+    }
 
-    // Automatically clean up friend request relation if exists
-    await supabase
-      .from('friend_requests')
-      .delete()
-      .or(`and(sender_id.eq.${blockerId},receiver_id.eq.${blockedId}),and(sender_id.eq.${blockedId},receiver_id.eq.${blockerId})`);
+    // Automatically clean up friend request relation if exists (safe separate queries)
+    await deleteMutualFriendRequests(blockerId, blockedId);
 
     // Clean up direct rooms shared by both users
-    const { data: userRooms } = await supabase
-      .from('room_members')
-      .select('room_id')
-      .eq('user_id', blockerId);
+    const sharedRoomIds = await findSharedRoomIds(blockerId, blockedId);
 
-    const { data: targetRooms } = await supabase
-      .from('room_members')
-      .select('room_id')
-      .eq('user_id', blockedId);
-
-    if (userRooms && targetRooms) {
-      const userRoomIds = new Set(userRooms.map((rm) => rm.room_id));
-      const sharedRoomIds = targetRooms.map((rm) => rm.room_id).filter((id) => userRoomIds.has(id));
-
-      if (sharedRoomIds.length > 0) {
-        await supabase
-          .from('rooms')
-          .delete()
-          .in('id', sharedRoomIds);
-      }
+    if (sharedRoomIds.length > 0) {
+      await supabase
+        .from('rooms')
+        .delete()
+        .in('id', sharedRoomIds);
     }
 
     res.status(200).json({ success: true, message: 'User blocked successfully' });
@@ -131,7 +156,9 @@ router.post('/unblock', authMiddleware, async (req: AuthenticatedRequest, res) =
       .eq('blocker_id', blockerId)
       .eq('blocked_id', blockedId);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     res.status(200).json({ success: true, message: 'User unblocked successfully' });
   } catch (err) {
@@ -154,6 +181,16 @@ router.post('/report', authMiddleware, async (req: AuthenticatedRequest, res) =>
     return;
   }
 
+  // Validate inputs
+  if (reason && typeof reason === 'string' && reason.length > 200) {
+    res.status(400).json({ error: 'Reason must be under 200 characters' });
+    return;
+  }
+  if (notes && typeof notes === 'string' && notes.length > 1000) {
+    res.status(400).json({ error: 'Notes must be under 1000 characters' });
+    return;
+  }
+
   try {
     const { error } = await supabase
       .from('reports')
@@ -165,9 +202,11 @@ router.post('/report', authMiddleware, async (req: AuthenticatedRequest, res) =>
         created_at: new Date().toISOString(),
       });
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
-    res.status(200).json({ success: true, message: 'Report submitted successfully' });
+    res.status(201).json({ success: true, message: 'Report submitted successfully' });
   } catch (err) {
     console.error('[Safety API] Error reporting user:', err);
     res.status(500).json({ error: 'Failed to submit report.' });
