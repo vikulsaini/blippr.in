@@ -33,6 +33,11 @@ jobs:
         run: npm run test --workspace server
 
       - name: Build Client
+        env:
+          VITE_API_URL: https://api.blippr.in
+          VITE_SOCKET_URL: https://api.blippr.in
+          VITE_SUPABASE_URL: https://ekkpkjgquiarufexfoiy.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_sdwPq0LDCBwwtv446BbVpA_iEmXMDEC
         run: npm run build --workspace client
 
   deploy-frontend:
@@ -55,6 +60,11 @@ jobs:
         run: npm install
 
       - name: Build Client
+        env:
+          VITE_API_URL: https://api.blippr.in
+          VITE_SOCKET_URL: https://api.blippr.in
+          VITE_SUPABASE_URL: https://ekkpkjgquiarufexfoiy.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_sdwPq0LDCBwwtv446BbVpA_iEmXMDEC
         run: npm run build --workspace client
 
       - name: Deploy to Cloudflare Pages
