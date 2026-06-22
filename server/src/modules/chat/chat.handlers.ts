@@ -29,7 +29,36 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     return;
   }
 
-  // 1. Typing status indicator
+  // 1. Join Chat Room
+  socket.on('chat:join', ({ chatId }: { chatId: string }) => {
+    if (chatId) {
+      socket.join(chatId);
+      console.log(`[Socket] User ${userId} joined room ${chatId}`);
+    }
+  });
+
+  // 2. Leave Chat Room
+  socket.on('chat:leave', ({ chatId }: { chatId: string }) => {
+    if (chatId) {
+      socket.leave(chatId);
+      console.log(`[Socket] User ${userId} left room ${chatId}`);
+    }
+  });
+
+  // 3. Relay typing status
+  socket.on('typing:start', ({ chatId }: { chatId: string }) => {
+    if (chatId) {
+      socket.to(chatId).emit('typing:start', { chatId, userId });
+    }
+  });
+
+  socket.on('typing:stop', ({ chatId }: { chatId: string }) => {
+    if (chatId) {
+      socket.to(chatId).emit('typing:stop', { chatId, userId });
+    }
+  });
+
+  // 4. Typing status indicator
   socket.on('chat:typing', (payload: TypingPayload) => {
     const { targetUserId, isTyping } = payload;
     if (!targetUserId) {
@@ -42,7 +71,7 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     });
   });
 
-  // 2. Real-time location sharing
+  // 5. Real-time location sharing
   socket.on('chat:location', (payload: LocationPayload) => {
     const { targetUserId, latitude, longitude } = payload;
     if (!targetUserId || latitude === undefined || longitude === undefined) {
@@ -56,7 +85,7 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     });
   });
 
-  // 3. Transient Messaging (Real-time only, no database storage)
+  // 6. Transient Messaging (Real-time only, no database storage)
   socket.on('chat:transient_message', (payload: TransientMessagePayload) => {
     const { targetUserId, content } = payload;
     if (!targetUserId || !content) {
@@ -70,7 +99,7 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     });
   });
 
-  // 4. Persistent Messaging (Broadcasts instantly, persists in background to Supabase)
+  // 7. Persistent Messaging (Broadcasts instantly, persists in background to Supabase)
   socket.on('chat:persistent_message', async (payload: PersistentMessagePayload) => {
     const { targetUserId, content, roomId } = payload;
     if (!targetUserId || !content) {

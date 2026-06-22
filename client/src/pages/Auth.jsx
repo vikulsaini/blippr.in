@@ -227,7 +227,7 @@ export default function Auth() {
   }
 
   useEffect(() => {
-    if (!isSupabaseEnabled) return;
+    if (!isSupabaseEnabled || !supabase) return;
 
     // Handle PKCE code exchange if redirected with a code parameter
     const searchParams = new URLSearchParams(window.location.search);
