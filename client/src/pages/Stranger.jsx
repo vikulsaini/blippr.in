@@ -593,7 +593,14 @@ export default function Stranger() {
 
           <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-2.5 sm:p-3 bg-transparent">
             {!session && (
-              <EmptyRandom finding={finding} queueText={queueText} onStart={() => requestFindStranger(false)} activeUsers={activeUsers} />
+              <EmptyRandom 
+                finding={finding} 
+                queueText={queueText} 
+                activeUsers={activeUsers} 
+                viewMode={viewMode}
+                switchMode={switchMode}
+                handleRandomAction={handleRandomAction}
+              />
             )}
             <AnimatePresence initial={false}>
               {messages.map((message) => {
@@ -619,7 +626,7 @@ export default function Stranger() {
             <div ref={messagesEndRef} />
           </div>
 
-          {session ? (
+          {session && (
             <div className="grid grid-cols-2 gap-1.5 p-2 lg:gap-2 lg:p-3 bg-[#131b2e]/60 border-t border-white/10 backdrop-blur-md">
               <button
                 type="button"
@@ -638,26 +645,6 @@ export default function Stranger() {
               >
                 {friendSent ? <Check size={17} /> : <UserPlus size={17} />}
                 {friendGateLabel}
-              </button>
-            </div>
-          ) : (
-            <div className="p-2 lg:p-3 bg-[#131b2e]/60 border-t border-white/10 backdrop-blur-md">
-              <button
-                type="button"
-                onClick={handleRandomAction}
-                className="bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white shadow-[0_0_15px_rgba(124,58,237,0.45)] hover:scale-[1.01] active:scale-95 transition-all flex w-full min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold border border-[#d2bbff]/20"
-              >
-                {finding ? (
-                  <>
-                    <Loader2 className="animate-spin" size={18} />
-                    Cancel / Stop matching
-                  </>
-                ) : (
-                  <>
-                    <Shuffle size={18} />
-                    Start matching
-                  </>
-                )}
               </button>
             </div>
           )}
@@ -875,7 +862,7 @@ function ConnectionQualityIndicator({ state }) {
   );
 }
 
-function EmptyRandom({ finding, queueText, activeUsers }) {
+function EmptyRandom({ finding, queueText, activeUsers, viewMode, switchMode, handleRandomAction }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -891,21 +878,49 @@ function EmptyRandom({ finding, queueText, activeUsers }) {
           </>
         )}
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-24 h-24 rounded-full bg-[#7c3aed] flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.45)] border border-[#d2bbff]/20 animate-bounce duration-[2000ms]">
-            <Shuffle className="text-white text-5xl" size={40} />
+          <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center shadow-[0_0_40px_rgba(210,187,255,0.4)] animate-bounce duration-[2000ms]">
+            <span className="material-symbols-outlined text-[#0b1326] text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>shuffle</span>
           </div>
           <div className="mt-8 text-center">
-            <h2 className="text-xl font-semibold text-[#d2bbff] animate-pulse">
+            <h2 className="text-xl font-semibold text-primary animate-pulse">
               {finding ? 'Searching...' : 'Ready to Match'}
             </h2>
-            <p className="text-xs text-[#ccc3d8]/85 mt-2">
+            <p className="text-xs text-on-surface-variant mt-2">
               {finding ? queueText : 'Connecting you with someone electric'}
             </p>
           </div>
         </div>
       </div>
+
+      {/* Mode Toggles */}
+      <div className="glass-panel p-1.5 rounded-full flex justify-between items-center relative w-full max-w-xs z-20">
+        <button 
+          onClick={() => switchMode('chat')}
+          className={`mode-btn relative z-10 flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-label-md text-label-md ${viewMode === 'chat' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant/60'}`}
+        >
+          <span className="material-symbols-outlined text-[20px]">chat</span>
+          TEXT
+        </button>
+        <button 
+          onClick={() => switchMode('video')}
+          className={`mode-btn relative z-10 flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all font-label-md text-label-md ${viewMode === 'video' ? 'bg-secondary/10 text-secondary' : 'text-on-surface-variant/60'}`}
+        >
+          <span className="material-symbols-outlined text-[20px]">videocam</span>
+          VIDEO
+        </button>
+      </div>
+
+      {/* Matching Action */}
+      <button 
+        onClick={handleRandomAction}
+        className="w-full max-w-xs py-4 mt-6 rounded-full bg-primary-container text-white font-headline-sm text-headline-sm shadow-[0_8px_20px_rgba(124,58,237,0.3)] active:scale-[0.98] transition-transform flex items-center justify-center gap-3 z-20"
+      >
+        {finding ? 'Cancel Matching' : 'Find Next'}
+        <span className="material-symbols-outlined">arrow_forward</span>
+      </button>
+
       {activeUsers > 0 && !finding && (
-        <p className="mt-4 text-[11px] font-semibold text-[#d2bbff] bg-[#7c3aed]/20 border border-[#7c3aed]/30 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md">
+        <p className="mt-6 text-[11px] font-semibold text-[#d2bbff] bg-[#7c3aed]/20 border border-[#7c3aed]/30 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md z-20">
           <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4edea3] opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[#4edea3]"></span>

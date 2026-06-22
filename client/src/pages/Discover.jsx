@@ -14,7 +14,7 @@ export default function Discover() {
   const [suggested, setSuggested] = useState([]);
   const [profileUser, setProfileUser] = useState(null);
   const [searching, setSearching] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('All');
+  const [selectedFilter, setSelectedFilter] = useState('All Near Me');
   
   // Card index tracking
   const [cardIndex, setCardIndex] = useState(0);
@@ -23,7 +23,7 @@ export default function Discover() {
   const [sentRequestIds, setSentRequestIds] = useState(new Set());
   const [receivedRequestIds, setReceivedRequestIds] = useState(new Set());
 
-  const filters = ['All', 'Gamers', 'Artists', 'Techies', 'Music'];
+  const filters = ['All Near Me', 'Gamers', 'Artists', 'Techies', 'Music'];
 
   async function fetchRelations() {
     const myId = getTokenSubject();
@@ -162,7 +162,7 @@ export default function Discover() {
       // Exclude friends
       if (friendIds.has(u._id)) return false;
       if (u._id === me?._id) return false;
-      if (selectedFilter === 'All') return true;
+      if (selectedFilter === 'All Near Me') return true;
       
       const category = selectedFilter.toLowerCase();
       // Simple keyword matching against user's bio/hobbies
@@ -210,7 +210,7 @@ export default function Discover() {
         </section>
 
         {!query.trim() && (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-2 px-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-2 px-2 z-10">
             {filters.map((f) => (
               <button
                 key={f}
@@ -218,10 +218,10 @@ export default function Discover() {
                   setSelectedFilter(f);
                   setCardIndex(0);
                 }}
-                className={`flex-shrink-0 px-4 py-1.5 rounded-full font-semibold text-xs transition duration-200 border ${
+                className={`flex-shrink-0 px-4 py-2 rounded-full font-label-md text-label-md transition-colors ${
                   selectedFilter === f
-                    ? 'bg-[#7c3aed] text-white border-[#d2bbff]/30 shadow-[0_0_12px_rgba(124,58,237,0.4)]'
-                    : 'bg-[#171f33]/60 backdrop-blur-sm text-[#ccc3d8] hover:text-[#dbe2fd] border-white/5'
+                    ? 'bg-primary-container text-on-primary-container'
+                    : 'bg-surface-variant text-on-surface-variant border border-white/5'
                 }`}
               >
                 {f}
@@ -291,27 +291,32 @@ export default function Discover() {
       </div>
 
       {!query.trim() && activeUser && (
-        <div className="flex items-center justify-center gap-6 mt-2 z-20">
+        <div className="flex items-center justify-center gap-6 mt-10 z-30">
+          {/* Pass Button */}
           <button
             onClick={() => handleSwipe('left')}
-            className="w-16 h-16 rounded-full flex items-center justify-center bg-[#171f33]/70 border border-white/10 text-[#ccc3d8] hover:text-[#ff4f68] hover:bg-[#ff4f68]/15 hover:border-[#ff4f68]/40 active:scale-95 hover:scale-110 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all duration-200"
+            className="w-16 h-16 rounded-full flex items-center justify-center bg-white/5 backdrop-blur-md border border-white/10 text-on-surface-variant hover:text-error transition-all hover:bg-error/10 active:scale-90 duration-200"
             title="Pass"
+            id="btn-pass"
           >
-            <XIcon size={28} />
+            <span className="material-symbols-outlined text-4xl">close</span>
           </button>
+          {/* Super Blipp Button */}
           <button
             onClick={() => handleSwipe('right')}
-            className="w-12 h-12 rounded-full flex items-center justify-center bg-[#171f33]/70 border border-white/10 text-amber-400 hover:scale-110 hover:bg-amber-400/15 hover:border-amber-400/40 active:scale-95 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all duration-200"
+            className="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 backdrop-blur-md border border-white/10 text-tertiary hover:scale-110 transition-all active:scale-90 duration-200"
             title="Super Blipp"
           >
-            <Star size={20} className="fill-amber-400" />
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
           </button>
+          {/* Blipp Button */}
           <button
             onClick={() => handleSwipe('right')}
-            className="w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-[#7c3aed] to-[#5b21b6] border border-[#d2bbff]/30 text-white hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all duration-200"
+            className="w-16 h-16 rounded-full flex items-center justify-center bg-primary-container text-white blipp-shadow hover:scale-110 transition-all active:scale-90 duration-200"
             title="Blipp"
+            id="btn-blipp"
           >
-            <Heart size={28} className="fill-white" />
+            <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
           </button>
         </div>
       )}
@@ -405,34 +410,28 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
         
         {/* Presence Indicator */}
         {user.isOnline && (
-          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
-            <div className="w-2 h-2 rounded-full bg-[#4edea3] shadow-[0_0_8px_#4edea3] animate-pulse" />
-            <span className="text-[10px] font-bold text-white">Active</span>
+          <div className="absolute top-4 right-4 flex items-center gap-1 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+            <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></div>
+            <span className="font-label-md text-label-md text-on-surface">Active</span>
           </div>
         )}
  
         {/* Info Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 select-none">
-          <div className="flex items-baseline gap-2 mb-1">
-            <h2 className="text-2xl font-black text-white tracking-tight">{user.name || 'User'}</h2>
-            <span className="text-zinc-300 text-lg font-semibold">{user.age}</span>
+        <div className="absolute inset-0 glass-overlay flex flex-col justify-end p-6 select-none">
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="font-headline-md text-headline-md text-on-surface">{user.name || 'User'}</h2>
+            <span className="text-on-surface/80 text-body-lg font-body-lg">{user.age}</span>
           </div>
           
-          <div className="flex items-center gap-1 text-zinc-300 text-xs font-semibold mb-3">
-            <MapPin size={14} className="text-[#d2bbff]" />
+          <div className="flex items-center gap-1 text-on-surface-variant text-body-sm font-body-sm mb-4">
+            <span className="material-symbols-outlined text-[16px]">location_on</span>
             <span>{presenceText(user)}</span>
           </div>
 
-          {user.bio && (
-            <p className="text-xs text-zinc-200/90 font-medium italic mb-4 max-w-[240px] truncate">
-              "{user.bio}"
-            </p>
-          )}
-
           {/* Interests tags */}
-          <div className="flex flex-wrap gap-1.5 max-h-[64px] overflow-hidden">
+          <div className="flex flex-wrap gap-2">
             {(user.hobbies ? user.hobbies.split(',') : (user.interests || [])).slice(0, 3).map((tag, i) => (
-              <span key={i} className="px-3 py-1 rounded-full bg-[#d2bbff]/10 border border-[#d2bbff]/20 text-[10px] font-bold text-[#d2bbff] uppercase tracking-wide">
+              <span key={i} className="px-3 py-1 rounded-full bg-secondary/15 text-secondary text-label-md font-label-md">
                 {tag.trim()}
               </span>
             ))}
