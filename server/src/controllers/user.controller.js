@@ -100,7 +100,29 @@ export const updateProfile = asyncHandler(async (req, res) => {
       throw error;
     }
   }
-  Object.assign(req.user, req.body);
+
+  // Safe manual merge of permitted properties
+  const fields = ['name', 'username', 'age', 'dob', 'contact', 'gender', 'bio', 'avatar', 'interests'];
+  for (const field of fields) {
+    if (req.body[field] !== undefined) {
+      req.user[field] = req.body[field];
+    }
+  }
+
+  if (req.body.privacy !== undefined) {
+    req.user.privacy = {
+      ...(req.user.privacy || {}),
+      ...req.body.privacy
+    };
+  }
+
+  if (req.body.safety !== undefined) {
+    req.user.safety = {
+      ...(req.user.safety || {}),
+      ...req.body.safety
+    };
+  }
+
   await req.user.save();
   await syncToSupabaseDb(req.user);
   res.json({ user: req.user });

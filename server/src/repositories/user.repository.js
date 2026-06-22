@@ -50,13 +50,22 @@ export const userRepository = {
     return !!doc;
   },
 
-  /**
-   * Create a new user profile record in MongoDB.
-   */
   async create(profileData) {
     const pgPayload = mapUserToPostgres(profileData);
     pgPayload._id = toDbId(profileData.supabaseId || profileData._id || profileData.id || crypto.randomUUID());
     
+    if (pgPayload.interests === undefined) pgPayload.interests = [];
+    if (pgPayload.blocked_users === undefined) pgPayload.blocked_users = [];
+    if (pgPayload.push_tokens === undefined) pgPayload.push_tokens = [];
+    if (pgPayload.is_online === undefined) pgPayload.is_online = false;
+    if (pgPayload.is_guest === undefined) pgPayload.is_guest = false;
+    if (pgPayload.role === undefined) pgPayload.role = 'user';
+    if (pgPayload.is_verified === undefined) pgPayload.is_verified = false;
+    if (pgPayload.safety_violation_count === undefined) pgPayload.safety_violation_count = 0;
+    if (pgPayload.last_seen_at === undefined) pgPayload.last_seen_at = new Date();
+    if (pgPayload.ip_history === undefined) pgPayload.ip_history = [];
+    pgPayload.created_at = new Date();
+
     await db.collection('users').insertOne(pgPayload);
     return mapUserFromPostgres(fromDbDoc(pgPayload));
   },

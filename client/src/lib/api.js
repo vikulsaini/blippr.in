@@ -16,6 +16,12 @@ function handleUnauthorized(path) {
   localStorage.removeItem('blippr_token');
   localStorage.removeItem('blippr_is_guest');
   sessionStorage.removeItem(GUEST_EXPIRED_KEY);
+
+  const projectRef = (import.meta.env.VITE_SUPABASE_URL || 'https://ekkpkjgquiarufexfoiy.supabase.co')
+    .replace('https://', '')
+    .split('.')[0];
+  localStorage.removeItem(`sb-${projectRef}-auth-token`);
+
   window.dispatchEvent(new CustomEvent('blippr:auth-invalid'));
 }
 

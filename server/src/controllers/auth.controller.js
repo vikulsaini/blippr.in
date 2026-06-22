@@ -296,40 +296,41 @@ export const upgradeGuest = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  // 1. Create the user in Supabase Auth
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+  const username = req.user.username || (await createUniqueUsername(req.body.name));
+
+  // 1. Update the existing Supabase Auth user record (keeps the same ID)
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
     email: req.body.email.toLowerCase(),
     password: req.body.password,
-    email_confirm: true
+    email_confirm: true,
+    user_metadata: {
+      is_guest: false,
+      name: req.body.name,
+      username
+    }
   });
   if (authError) throw authError;
 
-  const oldId = req.user.id;
-  const newId = authData.user.id;
-  const username = req.user.username || (await createUniqueUsername(req.body.name));
+  // 2. Update the MongoDB user document
+  req.user.email = req.body.email.toLowerCase();
+  req.user.name = req.body.name;
+  req.user.username = username;
+  req.user.age = Number(req.body.age);
+  if (req.body.dob) req.user.dob = req.body.dob;
+  if (req.body.contact) req.user.contact = req.body.contact;
+  req.user.gender = req.body.gender;
+  if (!req.user.avatar) {
+    req.user.avatar = avatarForGender(req.body.gender, username);
+  }
+  if (req.body.bio) req.user.bio = req.body.bio;
+  if (req.body.interests) req.user.interests = req.body.interests;
+  req.user.isGuest = false;
+  req.user.emailVerifiedAt = new Date();
 
-  // 2. Create the new profile referencing the new Supabase Auth User ID
-  const user = await User.create({
-    _id: newId,
-    supabaseId: newId,
-    email: req.body.email.toLowerCase(),
-    username,
-    name: req.body.name,
-    age: Number(req.body.age),
-    dob: req.body.dob,
-    contact: req.body.contact || '',
-    gender: req.body.gender,
-    avatar: req.user.avatar || avatarForGender(req.body.gender, username),
-    bio: req.body.bio || req.user.bio || '',
-    interests: req.body.interests || req.user.interests || [],
-    isGuest: false,
-    emailVerifiedAt: new Date()
-  });
+  await req.user.save();
+  await syncToSupabaseDb(req.user);
 
-  // 3. Delete old guest auth user (which automatically cascades to delete the profile row)
-  await supabaseAdmin.auth.admin.deleteUser(oldId);
-
-  return sendAuth(res, signJwt(user), user);
+  return sendAuth(res, signJwt(req.user), req.user);
 });
 
 export const logout = asyncHandler(async (req, res) => {

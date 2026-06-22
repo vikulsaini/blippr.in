@@ -101,6 +101,36 @@
         }
       }, true);
     </script>
+    <script>
+      // Fast check for active user authentication to avoid flashing landing page LCP shell
+      (function() {
+        try {
+          var token = localStorage.getItem('blippr_token');
+          if (!token || token === 'null' || token === 'undefined') {
+            for (var i = 0; i < localStorage.length; i++) {
+              var key = localStorage.key(i);
+              if (key && key.indexOf('sb-') === 0 && key.indexOf('-auth-token') > -1) {
+                var sessionStr = localStorage.getItem(key);
+                if (sessionStr) {
+                  var session = JSON.parse(sessionStr);
+                  if (session && session.access_token) {
+                    token = session.access_token;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          if (token && token !== 'null' && token !== 'undefined') {
+            document.documentElement.classList.add('logged-in-state');
+          } else {
+            document.documentElement.classList.add('logged-out-state');
+          }
+        } catch (e) {
+          console.warn('LCP script error:', e);
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#F8FAFC" />
     <meta name="description" content="blippr.in — Random connections, authentic friendships. Meet people through live chat and video, send friend requests, and keep the good conversations going." />
@@ -288,25 +318,74 @@
           max-width: 280px;
         }
       }
+      
+      /* Logged in state customizations to prevent flashing landing content */
+      .logged-in-state .lcp-content-wrapper {
+        display: none !important;
+      }
+      .logged-in-state .lcp-app-loading {
+        display: flex !important;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        box-sizing: border-box;
+        padding: 24px;
+        background-color: #0b1326;
+      }
+      @keyframes lcp-shimmer {
+        0% { background-color: rgba(124, 58, 237, 0.08); }
+        50% { background-color: rgba(124, 58, 237, 0.25); }
+        100% { background-color: rgba(124, 58, 237, 0.08); }
+      }
+      .lcp-skeleton-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 16px;
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+        animation: lcp-shimmer 1.5s ease-in-out infinite;
+      }
+      .lcp-skeleton-text {
+        margin-top: 16px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #94a3b8;
+        letter-spacing: -0.01em;
+      }
     </style>
   </head>
   <body>
     <!-- Critical Pre-rendered LCP Shell -->
     <div id="lcp-shell" class="lcp-container">
       <div class="lcp-glow"></div>
-      <div class="lcp-badge" style="margin-bottom: 20px;">
-        ★ Random chats, real connections
+      
+      <!-- Landing content shown to logged-out users -->
+      <div class="lcp-content-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        <div class="lcp-badge" style="margin-bottom: 20px;">
+          ★ Random chats, real connections
+        </div>
+        <h1 class="lcp-heading">
+          Blipp faster than <br>
+          <span style="color: #7C3AED; font-style: italic;">you think.</span>
+        </h1>
+        <p class="lcp-paragraph">
+          The electric social engine for real-time digital sparks. Connect instantly, chat fluidly, and find your vibe in a heartbeat.
+        </p>
+        <div class="lcp-buttons">
+          <a href="/auth" class="lcp-btn-primary">Start Blipping</a>
+          <a href="/auth" class="lcp-btn-secondary">Stranger Match</a>
+        </div>
       </div>
-      <h1 class="lcp-heading">
-        Blipp faster than <br>
-        <span style="color: #7C3AED; font-style: italic;">you think.</span>
-      </h1>
-      <p class="lcp-paragraph">
-        The electric social engine for real-time digital sparks. Connect instantly, chat fluidly, and find your vibe in a heartbeat.
-      </p>
-      <div class="lcp-buttons">
-        <a href="/auth" class="lcp-btn-primary">Start Blipping</a>
-        <a href="/auth" class="lcp-btn-secondary">Stranger Match</a>
+
+      <!-- Clean loading state shown to logged-in users on refresh -->
+      <div class="lcp-app-loading" style="display: none;">
+        <div class="lcp-skeleton-logo"></div>
+        <p class="lcp-skeleton-text">Loading Blippr</p>
       </div>
     </div>
     

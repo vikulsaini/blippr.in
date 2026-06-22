@@ -446,6 +446,22 @@ export function registerSockets(io) {
       if (activeSockets.length === 0) {
         await User.findByIdAndUpdate(userId, { isOnline: false, lastSeenAt: new Date() });
         socket.broadcast.emit('presence:update', { userId, isOnline: false });
+        
+        // Notify active stranger chats that this user disconnected
+        try {
+          const strangerChats = await Chat.find({
+            type: 'stranger',
+            temporary: true,
+            members: socket.user._id
+          });
+          for (const chat of strangerChats) {
+            const roomId = `stranger:${chat._id}`;
+            io.to(roomId).emit('stranger:left', { chatId: chat._id, userId });
+          }
+        } catch (err) {
+          console.warn('Failed to notify active stranger chats on disconnect:', err.message);
+        }
+
         try {
           await redis.del(`user:presence:${userId}`);
         } catch (err) {

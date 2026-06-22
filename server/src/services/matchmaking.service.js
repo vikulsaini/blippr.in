@@ -81,7 +81,8 @@ export async function findOrQueueUser(user, interests = []) {
 
 async function canMatchUsers(user, candidateId) {
   const candidate = await User.findById(candidateId).select('blockedUsers age');
-  if (!candidate || candidate.age < 18) return false;
+  if (!candidate) return false;
+  if (candidate.age !== null && candidate.age !== undefined && candidate.age < 18) return false;
 
   const blockedByUser = (user.blockedUsers || []).some((userId) => userId.toString() === candidateId);
   const blockedByCandidate = (candidate.blockedUsers || []).some((userId) => userId.toString() === user._id.toString());

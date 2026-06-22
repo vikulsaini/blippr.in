@@ -40,14 +40,31 @@ function AdminRoute({ children }) {
   return <Navigate to="/app" replace />;
 }
 
+function PublicRoute({ children }) {
+  const token = getToken();
+  if (token) {
+    const isGuest = localStorage.getItem('blippr_is_guest') === 'true';
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (payload.role === 'admin') {
+        return <Navigate to="/blippr-control-center-secure-2026" replace />;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return <Navigate to={isGuest ? '/app/stranger' : '/app'} replace />;
+  }
+  return children;
+}
+
 export default function App() {
   useAuthInvalidRedirect();
 
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/auth" element={<Auth />} />
+        <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+        <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route

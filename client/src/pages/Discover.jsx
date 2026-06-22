@@ -34,14 +34,14 @@ export default function Discover() {
         api('/api/friends/requests'),
         api('/api/chats')
       ]);
-      setSentRequestIds(new Set(sentRes.requests?.map((r) => (r.to?._id || r.to)) || []));
-      setReceivedRequestIds(new Set(receivedRes.requests?.map((r) => (r.from?._id || r.from)) || []));
+      setSentRequestIds(new Set(sentRes?.requests?.map((r) => (r.to?._id || r.to)) || []));
+      setReceivedRequestIds(new Set(receivedRes?.requests?.map((r) => (r.from?._id || r.from)) || []));
       
       const fIds = new Set();
-      chatsRes.chats?.forEach((chat) => {
+      chatsRes?.chats?.forEach((chat) => {
         if (chat.type === 'direct' && !chat.temporary) {
           const otherMember = chat.members?.find((m) => {
-            const mId = (m._id || m).toString();
+            const mId = (m?._id || m || '').toString();
             return mId !== myId;
           });
           if (otherMember) {
@@ -58,7 +58,7 @@ export default function Discover() {
   useEffect(() => {
     if (!getTokenSubject()) return;
     api('/api/users/suggested')
-      .then(({ users }) => setSuggested(users))
+      .then((data) => setSuggested(data?.users || []))
       .catch(() => {});
     fetchRelations();
   }, []);
@@ -78,7 +78,7 @@ export default function Discover() {
           api(`/api/users/search?q=${encodeURIComponent(query.trim())}`),
           fetchRelations()
         ]);
-        setUsers(data.users);
+        setUsers(data?.users || []);
       } catch (err) {
         showToast(err.message, 'error');
       } finally {
@@ -462,7 +462,13 @@ function UserRow({ user, status, onProfile, onAction }) {
     >
       <div className="flex min-w-0 items-center gap-3">
         <button onClick={() => onProfile(user)} className="relative shrink-0 overflow-hidden rounded-full border border-[#d2bbff]/20" aria-label={`View ${user.name} profile`}>
-          <img src={user.avatar} alt="" className="h-12 w-12 rounded-full bg-bg object-cover transition-transform duration-300 hover:scale-105" />
+          {user.avatar ? (
+            <img src={user.avatar} alt="" className="h-12 w-12 rounded-full bg-bg object-cover transition-transform duration-300 hover:scale-105" />
+          ) : (
+            <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-accent to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm">
+              {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
           {user.isOnline && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#4edea3] border-2 border-[#171f33] shadow-[0_0_8px_#4edea3]" />}
         </button>
         <div className="min-w-0">

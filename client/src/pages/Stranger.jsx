@@ -557,11 +557,21 @@ export default function Stranger() {
               {peer ? (
                 <div className="flex min-w-0 items-center gap-3">
                   <button onClick={() => setProfileUser(peer)} className="relative shrink-0">
-                    <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl border border-white/10" />
+                    {peer.avatar ? (
+                      <img src={peer.avatar} alt="" className="h-10 w-10 rounded-[15px] object-cover sm:h-11 sm:w-11 sm:rounded-2xl border border-white/10" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-[15px] sm:h-11 sm:w-11 sm:rounded-2xl bg-gradient-to-tr from-accent to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm border border-white/10">
+                        {peer.name ? peer.name.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                    )}
                     <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#4edea3] border-2 border-[#171f33] shadow-[0_0_8px_#4edea3]" />
                   </button>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-white">{peer.name}</p>
+                    <p className="truncate font-semibold text-white flex items-center gap-1.5">
+                      <span>{peer.name}</span>
+                      <span className="inline-block h-2 w-2 rounded-full bg-[#4edea3] animate-pulse shadow-[0_0_8px_#4edea3]" />
+                      <span className="text-[10px] font-black text-[#4edea3] uppercase tracking-wider">Live</span>
+                    </p>
                     <p className="truncate text-xs text-[#ccc3d8]/80">{peer.gender} · {peer.age}</p>
                   </div>
                 </div>
@@ -692,6 +702,10 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
           <div>
             {peer?.avatar ? (
               <img src={peer.avatar} alt="" className="mx-auto h-20 w-20 rounded-[28px] object-cover shadow-glow" />
+            ) : peer ? (
+              <div className="mx-auto h-20 w-20 rounded-[28px] bg-gradient-to-tr from-accent to-[#7c3aed] flex items-center justify-center text-white font-bold text-2xl shadow-glow">
+                {peer.name ? peer.name.charAt(0).toUpperCase() : 'U'}
+              </div>
             ) : (
               <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/8 text-white/50">
                 {finding ? (
@@ -739,7 +753,15 @@ function MainVideoStage({ peer, finding, stream, videoRef, focused, expanded, ch
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-start gap-2">
             <div className="pointer-events-auto min-w-0 rounded-[15px] bg-black/50 border border-white/10 px-2.5 py-1.5 text-left backdrop-blur-md sm:rounded-2xl sm:px-3 sm:py-2">
-              <p className="truncate text-xs font-semibold text-white sm:text-base">{peer?.name || (finding ? 'Searching...' : 'Random live')}</p>
+              <p className="truncate text-xs font-semibold text-white sm:text-base flex items-center gap-1.5">
+                <span>{peer?.name || (finding ? 'Searching...' : 'Random live')}</span>
+                {peer && (
+                  <>
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#4edea3] animate-pulse" />
+                    <span className="text-[9px] font-black text-[#4edea3] uppercase tracking-wider">Live</span>
+                  </>
+                )}
+              </p>
               <p className="mt-0.5 text-[11px] font-semibold capitalize text-[#d2bbff]">{status || 'idle'}</p>
             </div>
             <div className="pointer-events-auto hidden sm:block">
