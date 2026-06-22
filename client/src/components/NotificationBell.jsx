@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, LogIn, ShieldCheck, UserCheck, UserPlus, X } from 'lucide-react';
+import { Bell, Check, LogIn, ShieldCheck, UserCheck, UserPlus, X, ArrowLeft, MessageCircle, Heart, Lock, Bolt } from 'lucide-react';
 import { api, getToken } from '../lib/api.js';
 import { showNativeNotification } from '../lib/native.js';
 import { getRealtimeSocket } from '../lib/realtime.js';
+import { showToast } from './Toast.jsx';
 
 const styles = {
-  'friend-request': { label: 'Friend request', icon: UserPlus, tone: 'text-accent', bg: 'bg-accent/10' },
-  'friend-request-accepted': { label: 'Request accepted', icon: UserCheck, tone: 'text-accent', bg: 'bg-accent/10' },
-  login: { label: 'Security', icon: LogIn, tone: 'text-gold', bg: 'bg-gold/10' },
-  system: { label: 'Update', icon: ShieldCheck, tone: 'text-text-primary border border-border-default', bg: 'bg-surface-hover' }
+  'friend-request': { label: 'Friend request', icon: UserPlus, badgeIcon: Heart, badgeBg: 'bg-rose-500', tone: 'text-rose-400', bg: 'bg-rose-500/10' },
+  'friend-request-accepted': { label: 'Request accepted', icon: UserCheck, badgeIcon: Check, badgeBg: 'bg-success', tone: 'text-success', bg: 'bg-success/10' },
+  login: { label: 'Security', icon: LogIn, badgeIcon: Lock, badgeBg: 'bg-amber-500', tone: 'text-amber-400', bg: 'bg-amber-500/10' },
+  system: { label: 'Update', icon: ShieldCheck, badgeIcon: Bolt, badgeBg: 'bg-primary', tone: 'text-primary', bg: 'bg-primary/10' }
 };
 
 const importantTypes = new Set(['friend-request', 'friend-request-accepted', 'login', 'system']);
@@ -119,6 +120,28 @@ export default function NotificationBell() {
       .slice(0, 60);
   }, [notifications, requests]);
 
+  const groupedFeed = useMemo(() => {
+    const today = [];
+    const yesterday = [];
+    const older = [];
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
+
+    feed.forEach((item) => {
+      const time = new Date(item.createdAt).getTime();
+      if (time >= todayStart) {
+        today.push(item);
+      } else if (time >= yesterdayStart) {
+        yesterday.push(item);
+      } else {
+        older.push(item);
+      }
+    });
+
+    return { today, yesterday, older };
+  }, [feed]);
+
   async function respond(requestId, status) {
     try {
       await api(`/api/friends/requests/${requestId}`, {
@@ -167,34 +190,93 @@ export default function NotificationBell() {
             >
               <div className="border-b border-border-default pb-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex flex-col min-w-0">
-                    <h2 className="text-xl font-bold md:text-2xl text-text-primary leading-tight">Notifications</h2>
-                    <p className="mt-1 text-xs text-text-secondary font-medium leading-relaxed">
-                      Friend requests, login alerts and updates
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setOpen(false)} 
+                      className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary/5 transition-colors active:scale-95 duration-100 text-primary shrink-0" 
+                      aria-label="Close notifications"
+                    >
+                      <ArrowLeft size={22} />
+                    </button>
+                    <h2 className="text-lg font-bold text-primary">Notifications</h2>
                   </div>
                   <button 
-                    onClick={() => setOpen(false)} 
-                    className="h-10 w-10 rounded-full bg-surface-hover border border-border-default text-text-primary flex items-center justify-center transition-all duration-300 ease-out hover:scale-110 hover:bg-border-default active:scale-95 shrink-0" 
-                    aria-label="Close notifications"
+                    onClick={async () => {
+                      try {
+                        await api('/api/notifications/read', { method: 'PATCH' });
+                        setUnreadCount(0);
+                        setNotifications((current) => current.map((n) => ({ ...n, readAt: new Date().toISOString() })));
+                        showToast('All notifications marked as read', 'success');
+                      } catch {}
+                    }}
+                    className="font-label-md text-xs text-primary font-bold hover:bg-primary/5 px-2.5 py-1.5 rounded-lg transition-colors active:scale-95 duration-100 shrink-0"
                   >
-                    <X size={17} />
+                    Mark all read
                   </button>
                 </div>
               </div>
               {message && <p className="mt-2 text-sm font-semibold text-accent">{message}</p>}
-              <div className="mx-auto mt-4 flex w-full flex-1 flex-col space-y-2.5 overflow-y-auto overscroll-contain scrollbar-thin pr-1">
+              <div className="mx-auto mt-4 flex w-full flex-1 flex-col space-y-2.5 overflow-y-auto overscroll-contain scrollbar-none pr-1">
                 {loading && <NotificationSkeleton />}
-                {!loading && feed.map((item, index) => (
-                  <motion.div
-                    key={item._id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.04, duration: 0.2 }}
-                  >
-                    <NotificationItem item={item} onRespond={respond} />
-                  </motion.div>
-                ))}
+                
+                {!loading && (
+                  <>
+                    {groupedFeed.today.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div className="px-2 pb-1 pt-2">
+                          <h3 className="text-[10px] font-black uppercase tracking-wider text-text-muted">Today</h3>
+                        </div>
+                        {groupedFeed.today.map((item, index) => (
+                          <motion.div
+                            key={item._id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.04, duration: 0.2 }}
+                          >
+                            <NotificationItem item={item} onRespond={respond} />
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+
+                    {groupedFeed.yesterday.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div className="px-2 pb-1 pt-4">
+                          <h3 className="text-[10px] font-black uppercase tracking-wider text-text-muted">Yesterday</h3>
+                        </div>
+                        {groupedFeed.yesterday.map((item, index) => (
+                          <motion.div
+                            key={item._id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.04, duration: 0.2 }}
+                          >
+                            <NotificationItem item={item} onRespond={respond} />
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+
+                    {groupedFeed.older.length > 0 && (
+                      <div className="space-y-2.5">
+                        <div className="px-2 pb-1 pt-4">
+                          <h3 className="text-[10px] font-black uppercase tracking-wider text-text-muted">Older</h3>
+                        </div>
+                        {groupedFeed.older.map((item, index) => (
+                          <motion.div
+                            key={item._id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.04, duration: 0.2 }}
+                          >
+                            <NotificationItem item={item} onRespond={respond} />
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
                 {!loading && !feed.length && (
                   <div className="py-20 flex-1 flex flex-col items-center justify-center text-center">
                     <div className="relative mb-4">
@@ -239,29 +321,54 @@ function NotificationSkeleton() {
 function NotificationItem({ item, onRespond }) {
   const style = styles[item.type] || styles.system;
   const Icon = style.icon;
+  const BadgeIcon = style.badgeIcon || Bolt;
   const actor = item.actor || item.request?.from;
 
   return (
-    <article className="rounded-2xl border border-border-default bg-surface p-3 shadow-card transition-all duration-200 hover:shadow-card-hover">
-      <div className="flex gap-3">
-        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${style.bg} ${style.tone}`}>
-          {actor?.avatar ? <img src={actor.avatar} alt="" className="h-10 w-10 rounded-2xl object-cover" /> : <Icon size={18} />}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.bg} ${style.tone}`}>{style.label}</span>
-            <span className="text-[10px] text-text-faint">{formatTime(item.createdAt)}</span>
-          </div>
-          <p className="mt-1 truncate text-sm font-semibold text-text-primary">{item.title}</p>
-          <p className="line-clamp-2 text-xs leading-relaxed text-text-secondary font-medium mt-0.5">{item.body}</p>
+    <article className="glass-card rounded-2xl p-4 flex gap-4 transition-all hover:border-primary/30 border border-white/10 shadow-sm relative overflow-hidden group">
+      <div className="relative shrink-0">
+        <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10 bg-[#171f33]">
+          {actor?.avatar ? (
+            <img src={actor.avatar} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary">
+              <Icon size={20} />
+            </div>
+          )}
+        </div>
+        <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-[#171f33] flex items-center justify-center ${style.badgeBg || 'bg-primary'}`}>
+          <span className="text-[10px] text-white flex items-center justify-center">
+            <BadgeIcon size={10} className="text-white" />
+          </span>
         </div>
       </div>
-      {item.request && (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button onClick={() => onRespond(item.request._id, 'rejected')} className="btn-secondary rounded-[14px] py-2.5 text-sm min-h-[44px]" aria-label="Reject"><X className="mx-auto" size={18} /></button>
-          <button onClick={() => onRespond(item.request._id, 'accepted')} className="btn-primary rounded-[14px] py-2.5 text-sm font-semibold min-h-[44px]" aria-label="Accept"><Check className="mx-auto" size={18} /></button>
+      <div className="min-w-0 flex-1 space-y-2">
+        <div>
+          <p className="text-sm font-semibold text-text-primary leading-snug">
+            {item.title}
+          </p>
+          <p className="text-xs text-text-secondary font-medium mt-0.5 leading-relaxed">
+            {item.body}
+          </p>
+          <span className="text-[10px] text-text-faint mt-1 block">{formatTime(item.createdAt)}</span>
         </div>
-      )}
+        {item.request && (
+          <div className="flex gap-2">
+            <button 
+              onClick={() => onRespond(item.request._id, 'accepted')} 
+              className="bg-[#7c3aed] text-white px-4 py-1.5 rounded-full font-semibold text-xs active:scale-95 transition-transform"
+            >
+              Accept
+            </button>
+            <button 
+              onClick={() => onRespond(item.request._id, 'rejected')} 
+              className="border border-white/10 hover:bg-white/5 text-[#ccc3d8] px-4 py-1.5 rounded-full font-semibold text-xs active:scale-95 transition-transform"
+            >
+              Decline
+            </button>
+          </div>
+        )}
+      </div>
     </article>
   );
 }
@@ -271,8 +378,9 @@ function formatTime(value) {
   const seconds = Math.max(1, Math.round((Date.now() - new Date(value).getTime()) / 1000));
   if (seconds < 60) return 'now';
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.round(hours / 24)}d`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
 }
+
