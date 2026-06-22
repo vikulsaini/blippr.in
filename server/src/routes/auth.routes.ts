@@ -179,8 +179,9 @@ router.post('/supabase', async (req, res) => {
     }
 
     res.status(200).json({ token: accessToken });
-  } catch (err) {
-    res.status(401).json({ error: 'Invalid or expired Supabase access token.' });
+  } catch (err: any) {
+    console.error('[Auth Sync] JWT verification failed:', err?.message || err);
+    res.status(401).json({ error: 'Invalid or expired Supabase access token.', details: err?.message });
   }
 });
 
