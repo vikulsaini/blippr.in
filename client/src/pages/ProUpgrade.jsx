@@ -39,7 +39,7 @@ export default function ProUpgrade() {
   }
 
   return (
-    <div className="chat-dark-theme mx-auto w-full max-w-lg py-6 px-4 bg-bg text-text-primary pb-32 scrollbar-none min-h-screen">
+    <div className="mx-auto w-full max-w-lg py-6 px-4 bg-bg text-text-primary pb-32 scrollbar-none min-h-screen">
       
       {/* Header */}
       <header className="flex items-center gap-3.5 mb-8">

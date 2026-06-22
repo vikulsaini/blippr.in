@@ -87,7 +87,7 @@ export default function PrivacySettings() {
   }
 
   return (
-    <div className="chat-dark-theme mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+    <div className="mx-auto w-full max-w-lg md:max-w-xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
       
       {/* Header */}
       <header className="flex items-center gap-3.5 mb-8">

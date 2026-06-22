@@ -14,7 +14,7 @@ import { useUserProfile } from '../hooks/useUserProfile.js';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { me, setMe } = useOutletContext() || {};
+  const { me, setMe, theme, toggleTheme } = useOutletContext() || {};
   const [user, setUser] = useState(me);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [message, setMessage] = useState('');
@@ -175,7 +175,7 @@ export default function SettingsPage() {
   if (!user && !message) return <ProfileSkeleton />;
 
   return (
-    <div className="chat-dark-theme mx-auto w-full max-w-lg md:max-w-2xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
+    <div className="mx-auto w-full max-w-lg md:max-w-2xl py-6 px-4 bg-bg text-text-primary pb-24 scrollbar-none">
       
       {/* Settings Header */}
       <header className="flex items-center gap-3.5 mb-8">
@@ -216,22 +216,12 @@ export default function SettingsPage() {
                 <p className="text-[10px] font-black uppercase tracking-wider text-primary px-3.5 py-2">Account &amp; Preferences</p>
                 <MenuRow icon={UserRound} iconColor="bg-primary/10 text-primary" title="Profile Settings" subtitle="Photo, name, username, age, gender and bio" onClick={() => setActiveSection('profile')} />
                 <MenuRow icon={Bell} iconColor="bg-success/10 text-success" title="Notifications &amp; Sound" subtitle="Push, ringtone, chat tone and quiet mode" onClick={() => setActiveSection('notifications')} />
-                <div 
-                  className="flex w-full items-center justify-between p-3.5 rounded-2xl opacity-60"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-accent/15 text-accent">
-                      <Sparkles size={18} />
-                    </div>
-                    <div className="text-left min-w-0">
-                      <span className="block text-sm font-semibold text-text-primary truncate">Theme Appearance</span>
-                      <span className="block text-xs text-text-muted mt-0.5 truncate">Stitch Core Light theme (Always Active)</span>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-accent/10 border border-accent/20 px-3.5 py-1 text-[10px] font-extrabold text-accent uppercase tracking-wide shrink-0">
-                    LIGHT
-                  </span>
-                </div>
+                <ToggleRow 
+                  title="Dark Theme Appearance" 
+                  subtitle="Switch between light and dark modes" 
+                  checked={theme === 'dark'} 
+                  onChange={toggleTheme} 
+                />
               </div>
 
               {/* Safety & Security */}

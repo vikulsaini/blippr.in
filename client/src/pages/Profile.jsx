@@ -29,7 +29,7 @@ export default function Profile() {
   if (!user) return <ProfileSkeleton />;
 
   return (
-    <div className="chat-dark-theme mx-auto w-full max-w-lg md:max-w-4xl min-h-[calc(100vh-6rem)] overflow-y-auto bg-bg text-text-primary px-4 pb-24 md:pb-6 scrollbar-none">
+    <div className="mx-auto w-full max-w-lg md:max-w-4xl min-h-[calc(100vh-6rem)] overflow-y-auto bg-bg text-text-primary px-4 pb-24 md:pb-6 scrollbar-none">
       
       {/* Top Navigation Bar */}
       <header className="flex items-center justify-between w-full py-4 mb-4">
