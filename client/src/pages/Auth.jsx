@@ -23,16 +23,19 @@ import {
   MessageCircle
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
-import { api, setToken, loginWithSupabase, getToken } from '../lib/api.js';
+import { api, setToken, getToken } from '../lib/api.js';
 import { getAnonymousPushSubscription } from '../lib/notifications.js';
-import { supabase } from '../lib/supabase.js';
 
 const initialProfile = { name: '', username: '', age: '', dob: '', contact: '', gender: 'female', bio: '', hobbies: '' };
 
 const SOCIAL_PROFILES = [];
 
+const loginWithSupabase = () => {
+  throw new Error('Supabase Auth is disabled');
+};
+
 export default function Auth() {
-  const isSupabaseEnabled = Boolean(supabase);
+  const isSupabaseEnabled = false;
   const navigate = useNavigate();
   
   const canvasRef = useRef(null);

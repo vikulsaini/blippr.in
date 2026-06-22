@@ -9,7 +9,6 @@ export default function LegalCenter() {
 
   const openSourceLibraries = [
     { name: 'Socket.io', license: 'MIT License', url: 'https://socket.io/' },
-    { name: 'Supabase', license: 'Apache 2.0', url: 'https://supabase.com/' },
     { name: 'Mongoose', license: 'MIT License', url: 'https://mongoosejs.com/' }
   ];
 

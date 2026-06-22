@@ -44,9 +44,9 @@ export default function Privacy() {
             <div className="w-12 h-12 rounded-xl bg-accent/15 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform text-accent">
               <LockKeyhole size={22} />
             </div>
-            <h3 className="text-base font-black text-accent mb-2">Supabase Auth</h3>
+            <h3 className="text-base font-black text-accent mb-2">Secure Authentication</h3>
             <p className="text-xs text-text-muted leading-relaxed">
-              We utilize enterprise-grade authentication via Supabase. Your credentials are encrypted and managed in a dedicated vault.
+              We utilize enterprise-grade encryption. Your credentials are encrypted and managed in a dedicated vault.
             </p>
           </div>
 
@@ -91,7 +91,7 @@ export default function Privacy() {
                 <li className="flex gap-3">
                   <CheckCircle2 size={16} className="text-accent flex-shrink-0 mt-0.5" />
                   <span>
-                    <strong className="text-text-primary">Account Information:</strong> Email and identity tokens managed via Supabase Auth.
+                    <strong className="text-text-primary">Account Information:</strong> Email and identity tokens managed securely.
                   </span>
                 </li>
                 <li className="flex gap-3">
