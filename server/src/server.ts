@@ -10,10 +10,21 @@ import { registerChatHandlers } from './modules/chat/chat.handlers.js';
 
 const httpServer = createServer(app);
 
+// Allowed origins for Socket.IO CORS
+const ALLOWED_ORIGINS = [
+  'https://blippr.in',
+  'https://www.blippr.in',
+];
+
 const io = new Server(httpServer, {
   cors: {
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      callback(null, true);
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`[Socket.IO CORS] Blocked connection from origin: ${origin}`);
+        callback(null, false);
+      }
     },
     methods: ['GET', 'POST'],
     credentials: true,

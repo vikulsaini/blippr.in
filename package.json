@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace client",
-    "build": "npm run build --workspace client",
+    "build": "npm run build --workspace client && npm run build --workspace server",
     "lint": "npm run lint --workspace client"
   },
   "overrides": {
