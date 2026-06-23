@@ -114,8 +114,9 @@ export default function Stranger() {
       setMessages((current) => (current.some((item) => item._id === message._id) ? current : [...current, message]));
     }
 
-    function handleLeft({ chatId }) {
-      if (chatId !== sessionRef.current?.chat?._id) return;
+    function handleLeft(data) {
+      const { chatId } = data || {};
+      if (chatId && chatId !== sessionRef.current?.chat?._id) return;
       setStatus('The stranger skipped. Tap Next to meet someone new.');
       cleanupCall(false);
       setSession(null);
