@@ -8,6 +8,7 @@ import chatsRouter from './routes/chats.routes.js';
 import friendsRouter from './routes/friends.routes.js';
 import safetyRouter from './routes/safety.routes.js';
 import usersRouter from './routes/users.routes.js';
+import notificationsRouter from './routes/notifications.routes.js';
 
 const app = express();
 
@@ -80,6 +81,9 @@ app.use('/api/safety', safetyRouter);
 
 // Users routes
 app.use('/api/users', usersRouter);
+
+// Notifications routes
+app.use('/api/notifications', notificationsRouter);
 
 // Register global error handler
 app.use(errorHandler);

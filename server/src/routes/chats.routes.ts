@@ -8,9 +8,11 @@ const router = Router();
 // Helper: verify user is a member of a room
 async function isRoomMember(roomId: string, userId: string): Promise<boolean> {
   try {
+    console.log(`[Chats] isRoomMember check: roomId=${roomId}, userId=${userId}`);
+    
     const { data, error } = await supabase
       .from('room_members')
-      .select('room_id')
+      .select('room_id, user_id')
       .eq('room_id', roomId)
       .eq('user_id', userId)
       .maybeSingle();
@@ -19,7 +21,25 @@ async function isRoomMember(roomId: string, userId: string): Promise<boolean> {
       console.error('[Chats] isRoomMember query error:', JSON.stringify(error, null, 2));
       return false;
     }
-    return !!data;
+    
+    if (!data) {
+      // Log all members of this room for debugging
+      const { data: allMembers, error: allMembersError } = await supabase
+        .from('room_members')
+        .select('user_id')
+        .eq('room_id', roomId);
+      
+      console.warn(`[Chats] isRoomMember: user ${userId} NOT found in room ${roomId}`);
+      if (allMembersError) {
+        console.error('[Chats] isRoomMember: error fetching all members:', JSON.stringify(allMembersError, null, 2));
+      } else {
+        console.log(`[Chats] isRoomMember: room ${roomId} has ${allMembers?.length || 0} members:`, allMembers?.map(m => m.user_id) || []);
+      }
+      return false;
+    }
+    
+    console.log(`[Chats] isRoomMember: user ${userId} IS a member of room ${roomId}`);
+    return true;
   } catch (err: any) {
     console.error('[Chats] isRoomMember exception:', err?.message || err);
     return false;
