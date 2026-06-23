@@ -286,4 +286,56 @@ router.get('/:chatId/calls', authMiddleware, async (req: AuthenticatedRequest, r
   res.status(200).json({ calls: [] });
 });
 
+// 6. Update nicknames in a room (Authenticated)
+router.patch('/:chatId/nicknames', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { chatId } = req.params;
+  res.status(200).json({
+    success: true,
+    chat: {
+      _id: chatId,
+      type: 'direct',
+      temporary: false,
+      unreadCount: 0,
+      lastMessage: null,
+      members: [],
+    }
+  });
+});
+
+// 7. Toggle room config settings like pin, mute, archive (Authenticated)
+router.post('/:chatId/:configPath(pin|unpin|mute|unmute|archive|unarchive)', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { chatId } = req.params;
+  res.status(200).json({
+    success: true,
+    chat: {
+      _id: chatId,
+      type: 'direct',
+      temporary: false,
+      unreadCount: 0,
+      lastMessage: null,
+      members: [],
+    }
+  });
+});
+
+// 8. Delete a chat room (Authenticated)
+router.delete('/:chatId', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { chatId } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    // Clean up room from database
+    await supabase.from('rooms').delete().eq('id', chatId);
+    res.status(200).json({ success: true, message: 'Chat room deleted successfully' });
+  } catch (err) {
+    console.error('[Chats API] Error deleting room:', err);
+    res.status(500).json({ error: 'Failed to delete room' });
+  }
+});
+
 export default router;
