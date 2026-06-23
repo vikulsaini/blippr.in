@@ -433,8 +433,8 @@ export default function Stranger() {
 
   async function addRemoteIceCandidate(candidate) {
     const nextPeer = peerRef.current;
-    if (!nextPeer || !candidate) return;
-    if (!nextPeer.remoteDescription) {
+    if (!candidate) return;
+    if (!nextPeer || !nextPeer.remoteDescription) {
       remoteIceQueueRef.current.push(candidate);
       return;
     }

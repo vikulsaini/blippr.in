@@ -69,18 +69,23 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
 
     const blockedIds = blockedRecords.map((b) => b.blocked_id);
 
-    const { data: profiles, error: profilesError } = await supabase
+    let { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, name, username, avatar_url')
       .in('id', blockedIds);
 
     if (profilesError) {
-      if (profilesError.code === 'PGRST205' || profilesError.code === '42P01') {
-        console.warn('[Safety API] profiles table does not exist. Returning empty blocked list.');
-        res.status(200).json({ users: [] });
-        return;
+      if (profilesError.code === '42703') {
+        console.warn('[Safety API] avatar_url column does not exist. Running fallback.');
+        const fallback = await supabase
+          .from('profiles')
+          .select('id, name, username')
+          .in('id', blockedIds);
+        if (fallback.error) throw fallback.error;
+        profiles = (fallback.data || []).map((p) => ({ ...p, avatar_url: '' }));
+      } else if (profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
+        throw profilesError;
       }
-      throw profilesError;
     }
 
     const formattedUsers = (profiles || []).map((p) => ({

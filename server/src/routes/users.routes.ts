@@ -5,7 +5,7 @@ import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 const router = Router();
 
 // Public profile fields that can be returned to other users
-const PUBLIC_PROFILE_FIELDS = 'id, username, name, avatar_url, age, gender, bio, created_at';
+const PUBLIC_PROFILE_FIELDS = 'id, username, name, avatar_url, age, gender, bio, location, hobbies, created_at';
 
 // Helper to check if a string is a valid UUID
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -270,16 +270,46 @@ router.get('/me/export', authMiddleware, async (req: AuthenticatedRequest, res) 
   }
 });
 
+// Haversine distance formula helper
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 // 7. Get suggested users to discover (returns only public fields)
 router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userId = req.user?.id;
 
   try {
+    // 1. Fetch own location
+    let myLocation: { latitude: number; longitude: number } | null = null;
+    if (isUuid(userId)) {
+      const { data: myProfile } = await supabase
+        .from('profiles')
+        .select('location')
+        .eq('id', userId)
+        .maybeSingle();
+      if (myProfile?.location && typeof myProfile.location === 'object') {
+        const loc = myProfile.location as any;
+        if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
+          myLocation = { latitude: loc.latitude, longitude: loc.longitude };
+        }
+      }
+    }
+
+    // 2. Fetch candidate users (limit to 100 so we have a good pool for sorting)
     let { data: users, error } = await supabase
       .from('profiles')
       .select(PUBLIC_PROFILE_FIELDS)
       .neq('id', isUuid(userId) ? userId : '')
-      .limit(10);
+      .limit(100);
 
     if (error) {
       if (error.code === 'PGRST205' || error.code === '42P01') {
@@ -289,12 +319,12 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
       }
       if (error.code === '42703') {
         console.warn('[Users API] avatar_url column does not exist on profiles. Running fallback query.');
-        const fallbackFields = 'id, username, name, age, gender, bio, created_at';
+        const fallbackFields = 'id, username, name, age, gender, bio, location, hobbies, created_at';
         const { data: fallbackUsers, error: fallbackError } = await supabase
           .from('profiles')
           .select(fallbackFields)
           .neq('id', isUuid(userId) ? userId : '')
-          .limit(10);
+          .limit(100);
 
         if (fallbackError) throw fallbackError;
         users = (fallbackUsers || []).map((u) => ({ ...u, avatar_url: '' }));
@@ -303,7 +333,36 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
       }
     }
 
-    res.status(200).json({ users: users || [] });
+    let resultUsers = (users || []).map((u: any) => {
+      let distance: number | null = null;
+      if (
+        myLocation &&
+        u.location &&
+        typeof u.location === 'object' &&
+        typeof (u.location as any).latitude === 'number' &&
+        typeof (u.location as any).longitude === 'number'
+      ) {
+        distance = getDistance(
+          myLocation.latitude,
+          myLocation.longitude,
+          (u.location as any).latitude,
+          (u.location as any).longitude
+        );
+      }
+      return { ...u, distance };
+    });
+
+    // Sort: users with closest distance first, then users without location/distance
+    resultUsers.sort((a, b) => {
+      if (a.distance !== null && b.distance !== null) {
+        return a.distance - b.distance;
+      }
+      if (a.distance !== null) return -1;
+      if (b.distance !== null) return 1;
+      return 0;
+    });
+
+    res.status(200).json({ users: resultUsers });
   } catch (err) {
     console.error('[Users API] Error fetching suggested users:', err);
     res.status(500).json({ error: 'Failed to fetch suggested users' });
@@ -331,7 +390,7 @@ router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res) => 
     if (error) {
       if (error.code === '42703') {
         console.warn('[Users API] avatar_url column does not exist on profiles. Running fallback search query.');
-        const fallbackFields = 'id, username, name, age, gender, bio, created_at';
+        const fallbackFields = 'id, username, name, age, gender, bio, location, hobbies, created_at';
         const { data: fallbackUsers, error: fallbackError } = await supabase
           .from('profiles')
           .select(fallbackFields)
@@ -339,7 +398,7 @@ router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res) => 
           .limit(20);
 
         if (fallbackError) throw fallbackError;
-        users = (fallbackUsers || []).map((u) => ({ ...u, avatar_url: '' }));
+        users = (fallbackUsers || []).map((u) => ({ ...u, avatar_url: '', location: u.location, hobbies: u.hobbies }));
       } else {
         throw error;
       }

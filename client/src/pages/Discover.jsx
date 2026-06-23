@@ -57,9 +57,38 @@ export default function Discover() {
 
   useEffect(() => {
     if (!getTokenSubject()) return;
-    api('/api/users/suggested')
-      .then((data) => setSuggested(data?.users || []))
-      .catch(() => {});
+
+    const loadSuggestions = () => {
+      api('/api/users/suggested')
+        .then((data) => setSuggested(data?.users || []))
+        .catch(() => {});
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          try {
+            await api('/api/users/me/location', {
+              method: 'POST',
+              body: JSON.stringify({ latitude, longitude, accuracy })
+            });
+          } catch (err) {
+            console.warn('Failed to sync location:', err);
+          } finally {
+            loadSuggestions();
+          }
+        },
+        (error) => {
+          console.warn('Geolocation denied or failed:', error);
+          loadSuggestions();
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      loadSuggestions();
+    }
+
     fetchRelations();
   }, []);
 
@@ -425,7 +454,7 @@ function SwipeCard({ user, isTop, status, onSwipe, onProfile, depthIndex }) {
           
           <div className="flex items-center gap-1 text-on-surface-variant text-body-sm font-body-sm mb-4">
             <span className="material-symbols-outlined text-[16px]">location_on</span>
-            <span>{presenceText(user)}</span>
+            <span>{presenceText(user)}{user.distance !== undefined && user.distance !== null ? ` · ${user.distance.toFixed(1)} km away` : ''}</span>
           </div>
 
           {/* Interests tags */}

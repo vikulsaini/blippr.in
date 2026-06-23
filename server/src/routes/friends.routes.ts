@@ -39,9 +39,16 @@ router.get('/requests', authMiddleware, async (req: AuthenticatedRequest, res) =
     }
     if (!requests || requests.length === 0) { res.status(200).json({ requests: [] }); return; }
     const senderIds = requests.map((r) => r.sender_id);
-    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, name, avatar_url').in('id', senderIds);
-    if (profilesError && profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
-      throw profilesError;
+    let { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, name, avatar_url').in('id', senderIds);
+    if (profilesError) {
+      if (profilesError.code === '42703') {
+        console.warn('[Friends API] avatar_url column does not exist. Running fallback.');
+        const fallback = await supabase.from('profiles').select('id, username, name').in('id', senderIds);
+        if (fallback.error) throw fallback.error;
+        profiles = (fallback.data || []).map((p) => ({ ...p, avatar_url: '' }));
+      } else if (profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
+        throw profilesError;
+      }
     }
     const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
     const formatted = requests.map((r) => {
@@ -70,9 +77,16 @@ router.get('/requests/sent', authMiddleware, async (req: AuthenticatedRequest, r
     }
     if (!requests || requests.length === 0) { res.status(200).json({ requests: [] }); return; }
     const receiverIds = requests.map((r) => r.receiver_id);
-    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, name, avatar_url').in('id', receiverIds);
-    if (profilesError && profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
-      throw profilesError;
+    let { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, name, avatar_url').in('id', receiverIds);
+    if (profilesError) {
+      if (profilesError.code === '42703') {
+        console.warn('[Friends API] avatar_url column does not exist. Running fallback.');
+        const fallback = await supabase.from('profiles').select('id, username, name').in('id', receiverIds);
+        if (fallback.error) throw fallback.error;
+        profiles = (fallback.data || []).map((p) => ({ ...p, avatar_url: '' }));
+      } else if (profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
+        throw profilesError;
+      }
     }
     const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
     const formatted = requests.map((r) => {
