@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
+import { supabase } from '../config/supabase.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -16,11 +17,11 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   const authHeader = req.headers.authorization;
   
   // Also check for token in cookies as a fallback
@@ -44,6 +45,7 @@ export const authMiddleware = (
   }
 
   try {
+    // 1. Try local verify (works for guests and legacy HS256 tokens)
     const payload = jwt.verify(token, env.SUPABASE_JWT_SECRET) as {
       sub?: string;
       email?: string;
@@ -69,6 +71,22 @@ export const authMiddleware = (
     };
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid or expired authentication token' });
+    // 2. Fallback to Supabase remote/asymmetric verification (for RS256 signing keys)
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        res.status(401).json({ error: 'Invalid or expired authentication token', details: authError?.message });
+        return;
+      }
+      req.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        user_metadata: user.user_metadata as any,
+      };
+      next();
+    } catch (err: any) {
+      res.status(401).json({ error: 'Invalid or expired authentication token', details: err?.message });
+    }
   }
 };

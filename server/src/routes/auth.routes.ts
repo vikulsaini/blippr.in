@@ -75,13 +75,13 @@ router.post('/supabase', async (req, res) => {
   }
 
   try {
-    const payload = jwt.verify(accessToken, env.SUPABASE_JWT_SECRET) as any;
-    const userId = payload.sub;
-
-    if (!userId) {
-      res.status(401).json({ error: 'Invalid token: missing user identifier' });
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    if (authError || !user) {
+      console.error('[Auth Sync] Supabase auth.getUser failed:', authError?.message || 'No user found');
+      res.status(401).json({ error: 'Invalid or expired Supabase access token.', details: authError?.message });
       return;
     }
+    const userId = user.id;
 
     // Validate username if provided
     if (username && (typeof username !== 'string' || username.length < 3 || username.length > 30)) {
