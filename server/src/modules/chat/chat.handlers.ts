@@ -136,4 +136,46 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
       }
     }
   });
+
+  // 8. General/Stranger messaging (client emits 'message:send', expects ack with { ok, message })
+  socket.on('message:send', async (payload: { chatId: string; text: string }, ack?: (response: any) => void) => {
+    const { chatId, text } = payload;
+    if (!chatId || !text) {
+      if (ack) ack({ ok: false, message: 'Invalid message payload' });
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+    const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+
+    const message = {
+      _id: msgId,
+      chat: chatId,
+      sender: userId,
+      text,
+      reactions: [],
+      status: 'sent',
+      createdAt: timestamp,
+    };
+
+    // Broadcast message to other peer in the room
+    socket.to(chatId).emit('message:new', { message });
+
+    // Store in Supabase in background (fail silently)
+    try {
+      await supabase.from('messages').insert({
+        id: msgId,
+        room_id: chatId,
+        sender_id: userId,
+        content: text,
+        created_at: timestamp,
+      });
+    } catch (dbErr) {
+      console.error('[Chat Sockets] Failed to persist message:', dbErr);
+    }
+
+    if (ack) {
+      ack({ ok: true, message });
+    }
+  });
 };
