@@ -190,6 +190,8 @@ export default function Discover() {
     return suggested.filter((u) => {
       // Exclude friends
       if (friendIds.has(u._id)) return false;
+      if (sentRequestIds.has(u._id)) return false;
+      if (receivedRequestIds.has(u._id)) return false;
       if (u._id === me?._id) return false;
       if (selectedFilter === 'All Near Me') return true;
       
@@ -201,7 +203,7 @@ export default function Discover() {
 
       return bio.includes(category) || hobbies.includes(category) || interestsStr.includes(category);
     });
-  }, [suggested, friendIds, selectedFilter, me?._id]);
+  }, [suggested, friendIds, sentRequestIds, receivedRequestIds, selectedFilter, me?._id]);
 
   const activeUser = filteredSuggested[cardIndex];
 

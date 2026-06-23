@@ -275,8 +275,9 @@ router.post('/guest/upgrade', async (req, res) => {
     if (data.session) {
       res.status(200).json({ token: data.session.access_token });
     } else {
-      res.status(400).json({ 
-        error: 'Registration successful! Please check your email to verify your account before logging in.' 
+      res.status(200).json({ 
+        token: null,
+        message: 'Registration successful! Please check your email to verify your account before logging in.' 
       });
     }
   } catch (err: any) {

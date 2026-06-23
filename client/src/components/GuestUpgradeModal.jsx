@@ -52,7 +52,7 @@ export default function GuestUpgradeModal({ me }) {
     setLoading(true);
     setMessage('');
     try {
-      const { token } = await api('/api/auth/guest/upgrade', {
+      const res = await api('/api/auth/guest/upgrade', {
         method: 'POST',
         body: JSON.stringify({
           name: form.name,
@@ -66,10 +66,14 @@ export default function GuestUpgradeModal({ me }) {
           interests: form.hobbies.split(',').map((item) => item.trim()).filter(Boolean)
         })
       });
-      setToken(token);
-      localStorage.removeItem('blippr_is_guest');
-      setOpen(false);
-      window.location.reload();
+      if (res.token) {
+        setToken(res.token);
+        localStorage.removeItem('blippr_is_guest');
+        setOpen(false);
+        window.location.reload();
+      } else {
+        setMessage(res.message || 'Registration successful! Please check your email to verify your account.');
+      }
     } catch (err) {
       setMessage(err.message);
     } finally {
