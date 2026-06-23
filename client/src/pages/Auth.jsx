@@ -125,6 +125,7 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [guestTermsAccepted, setGuestTermsAccepted] = useState(false);
   const [signupTermsAccepted, setSignupTermsAccepted] = useState(false);
+  const [googleConsentAccepted, setGoogleConsentAccepted] = useState(false);
 
   // Username status: 'idle' | 'checking' | 'available' | 'taken'
   const [usernameStatus, setUsernameStatus] = useState('idle');
@@ -280,6 +281,10 @@ export default function Auth() {
   }, [isSupabaseEnabled]);
 
   async function signInWithGoogle() {
+    if (!googleConsentAccepted) {
+      setError('You must accept the terms, privacy policy, and data access consent to login with Google.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
@@ -545,9 +550,23 @@ export default function Auth() {
                 {/* Google OAuth Button */}
                 {mode === 'login' && !otpSent && (
                   <div className="flex flex-col gap-4">
+                    {/* Google Consent Checkbox */}
+                    <div className="flex items-start gap-2.5 pt-1 pb-1 select-none text-left">
+                      <input
+                        id="google-consent"
+                        type="checkbox"
+                        checked={googleConsentAccepted}
+                        onChange={(e) => setGoogleConsentAccepted(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-white/10 text-primary focus:ring-primary/25 bg-[#171f33]/60 cursor-pointer"
+                      />
+                      <label htmlFor="google-consent" className="text-xs text-text-secondary leading-normal font-semibold cursor-pointer">
+                        I consent to the <a href="/app/legal" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms & Conditions</a>, Privacy Policy, and authorize data access.
+                      </label>
+                    </div>
+
                     <button
                       type="button"
-                      disabled={loading}
+                      disabled={loading || !googleConsentAccepted}
                       onClick={signInWithGoogle}
                       className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-3.5 rounded-full font-bold text-sm active:scale-95 transition-all shadow-md hover:bg-slate-50 disabled:opacity-50 border border-white/10"
                     >

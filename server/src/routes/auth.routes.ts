@@ -66,6 +66,36 @@ router.post('/guest', (req, res) => {
   res.status(200).json({ token });
 });
 
+async function generateUniqueUsername(email: string | undefined, fullName: string | undefined): Promise<string> {
+  let base = 'user';
+  if (email) {
+    base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+  } else if (fullName) {
+    base = fullName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  }
+  
+  if (base.length < 3) {
+    base = 'user_' + base;
+  }
+  base = base.substring(0, 20);
+
+  let username = base;
+  let exists = await Profile.findOne({ username });
+  let counter = 1;
+  
+  while (exists && counter < 1000) {
+    username = `${base}${counter}`;
+    exists = await Profile.findOne({ username });
+    counter++;
+  }
+  
+  if (exists) {
+    username = `${base}${Math.floor(Math.random() * 10000)}`;
+  }
+  
+  return username;
+}
+
 // 2. Supabase Session Sync Endpoint (Public)
 router.post('/supabase', async (req, res) => {
   const { accessToken, username, name, age, gender, bio } = req.body;
@@ -99,37 +129,48 @@ router.post('/supabase', async (req, res) => {
     }
 
     if (!profile) {
-      // If there is no existing profile and the user is not completing signup (no username sent)
       if (!username) {
-        res.status(400).json({
-          code: 'PROFILE_REQUIRED',
-          message: 'No account found. Please sign up first!'
-        });
-        return;
-      }
+        // Auto-create profile (e.g. Google OAuth login)
+        const metadata = user.user_metadata || {};
+        const generatedUsername = await generateUniqueUsername(user.email, metadata.full_name || metadata.name);
+        try {
+          profile = await Profile.create({
+            _id: userId,
+            username: generatedUsername,
+            name: metadata.full_name || metadata.name || generatedUsername,
+            age: 18,
+            gender: 'other',
+            bio: '',
+          });
+        } catch (insertErr) {
+          console.error('[Auth Sync] Database profile insert failed during auto-create:', insertErr);
+          res.status(500).json({ error: 'Database connection failed during signup.' });
+          return;
+        }
+      } else {
+        // Check username uniqueness before inserting
+        const existingUser = await Profile.findOne({ username: username.toLowerCase() });
 
-      // Check username uniqueness before inserting
-      const existingUser = await Profile.findOne({ username: username.toLowerCase() });
+        if (existingUser) {
+          res.status(409).json({ error: 'Username is already taken' });
+          return;
+        }
 
-      if (existingUser) {
-        res.status(409).json({ error: 'Username is already taken' });
-        return;
-      }
-
-      // User is completing signup, insert a new profile record
-      try {
-        await Profile.create({
-          _id: userId,
-          username: username.toLowerCase(),
-          name: name || username,
-          age: age || 18,
-          gender: gender || 'other',
-          bio: bio || '',
-        });
-      } catch (insertErr) {
-        console.error('[Auth Sync] Database profile insert failed:', insertErr);
-        res.status(500).json({ error: 'Database connection failed during signup.' });
-        return;
+        // User is completing signup, insert a new profile record
+        try {
+          profile = await Profile.create({
+            _id: userId,
+            username: username.toLowerCase(),
+            name: name || username,
+            age: age || 18,
+            gender: gender || 'other',
+            bio: bio || '',
+          });
+        } catch (insertErr) {
+          console.error('[Auth Sync] Database profile insert failed:', insertErr);
+          res.status(500).json({ error: 'Database connection failed during signup.' });
+          return;
+        }
       }
     } else {
       // Profile exists, perform updates if new metadata values are supplied
