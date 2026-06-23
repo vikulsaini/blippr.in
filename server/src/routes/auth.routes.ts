@@ -229,7 +229,63 @@ router.get('/username-check', async (req, res) => {
   }
 });
 
-// 4. Logout Endpoint
+// 4. Guest Upgrade Endpoint
+router.post('/guest/upgrade', async (req, res) => {
+  const { name, email, password, age, gender, bio, interests } = req.body;
+
+  if (!email || !password) {
+    res.status(400).json({ error: 'Email and password are required for upgrade.' });
+    return;
+  }
+
+  try {
+    // 1. Register user with Supabase
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: email.toLowerCase(),
+      password: password,
+    });
+
+    if (signUpError || !data.user) {
+      console.error('[Guest Upgrade] Supabase signUp failed:', signUpError?.message);
+      res.status(400).json({ error: signUpError?.message || 'Failed to register with Supabase.' });
+      return;
+    }
+
+    const userId = data.user.id;
+
+    // 2. Create profile in MongoDB
+    try {
+      const generatedUsername = await generateUniqueUsername(email, name);
+      await Profile.create({
+        _id: userId,
+        username: generatedUsername,
+        name: name || generatedUsername,
+        age: age || 18,
+        gender: gender || 'other',
+        bio: bio || '',
+        interests: interests || [],
+      });
+    } catch (dbErr) {
+      console.error('[Guest Upgrade] Database profile creation failed:', dbErr);
+      res.status(500).json({ error: 'Database profile creation failed.' });
+      return;
+    }
+
+    // 3. Return session token if session exists
+    if (data.session) {
+      res.status(200).json({ token: data.session.access_token });
+    } else {
+      res.status(400).json({ 
+        error: 'Registration successful! Please check your email to verify your account before logging in.' 
+      });
+    }
+  } catch (err: any) {
+    console.error('[Guest Upgrade] Upgrade failed:', err?.message || err);
+    res.status(500).json({ error: err?.message || 'An error occurred during upgrade.' });
+  }
+});
+
+// 5. Logout Endpoint
 router.post('/logout', (req, res) => {
   res.status(200).json({ success: true });
 });
