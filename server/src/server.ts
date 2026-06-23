@@ -74,18 +74,23 @@ io.on('connection', (socket) => {
   });
 });
 
+import { initDb } from './config/db.js';
+
 const startServer = async (): Promise<void> => {
   try {
+    // Initialize PostgreSQL Database
+    await initDb();
+
     connectRedis()
       .then(() => console.log('[Bootstrap] Redis connection established successfully'))
       .catch((redisErr) => console.error('[Bootstrap] WARNING: Redis client failed to connect in background.', redisErr));
 
     httpServer.listen(env.PORT, () => {
       console.log('==================================================');
-      console.log(`\u{1F680} Varta Server running in ${env.NODE_ENV} mode`);
-      console.log(`\u{1F50A} Listening on http://localhost:${env.PORT}`);
+      console.log(`🚀 Varta Server running in ${env.NODE_ENV} mode`);
+      console.log(`🔊 Listening on http://localhost:${env.PORT}`);
       if (env.RAILWAY_PUBLIC_DOMAIN) {
-        console.log(`\u{1F310} Railway public URL: https://${env.RAILWAY_PUBLIC_DOMAIN}`);
+        console.log(`🌐 Railway public URL: https://${env.RAILWAY_PUBLIC_DOMAIN}`);
       }
       console.log('==================================================');
     });

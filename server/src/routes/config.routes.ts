@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { env } from '../config/env.js';
 import { redisClient } from '../config/redis.js';
 import { supabase } from '../config/supabase.js';
+import { query } from '../config/db.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
@@ -56,6 +57,7 @@ router.get('/rtc', authMiddleware, (req, res) => {
 // 3. Database & Cache Connectivity Status (Public Health check)
 router.get('/status', async (req, res) => {
   let redisConnected = false;
+  let postgresConnected = false;
   let supabaseConnected = false;
 
   try {
@@ -70,6 +72,16 @@ router.get('/status', async (req, res) => {
   }
 
   try {
+    // Ping PostgreSQL
+    const resDb = await query('SELECT 1');
+    if (resDb.rows.length > 0) {
+      postgresConnected = true;
+    }
+  } catch (err) {
+    console.error('[Status API] PostgreSQL check failed:', err);
+  }
+
+  try {
     const { error } = await supabase.auth.getSession();
     if (!error) {
       supabaseConnected = true;
@@ -78,12 +90,13 @@ router.get('/status', async (req, res) => {
     console.error('[Status API] Supabase check failed:', err);
   }
 
-  const overallHealthy = redisConnected && supabaseConnected;
+  const overallHealthy = redisConnected && postgresConnected && supabaseConnected;
 
   res.status(overallHealthy ? 200 : 503).json({
     status: overallHealthy ? 'healthy' : 'degraded',
     services: {
       redis: redisConnected ? 'connected' : 'disconnected',
+      postgres: postgresConnected ? 'connected' : 'disconnected',
       supabase: supabaseConnected ? 'connected' : 'disconnected',
     },
     timestamp: new Date().toISOString(),

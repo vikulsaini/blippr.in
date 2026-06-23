@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { supabase } from '../../config/supabase.js';
+import { query } from '../../config/db.js';
 
 interface TypingPayload {
   targetUserId: string;
@@ -99,7 +99,7 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     });
   });
 
-  // 7. Persistent Messaging (Broadcasts instantly, persists in background to Supabase)
+  // 7. Persistent Messaging (Broadcasts instantly, persists in background)
   socket.on('chat:persistent_message', async (payload: PersistentMessagePayload) => {
     const { targetUserId, content, roomId } = payload;
     if (!targetUserId || !content) {
@@ -116,21 +116,14 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
       timestamp,
     });
 
-    // Persist to Supabase Database
+    // Persist to Database
     if (roomId) {
       try {
-        const { error } = await supabase
-          .from('messages')
-          .insert({
-            room_id: roomId,
-            sender_id: userId,
-            content,
-            created_at: timestamp,
-          });
-
-        if (error) {
-          console.error(`[Chat] Supabase insert error: ${error.message}`);
-        }
+        const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+        await query(
+          'INSERT INTO messages (id, room_id, sender_id, content, created_at) VALUES ($1, $2, $3, $4, $5)',
+          [msgId, roomId, userId, content, timestamp]
+        );
       } catch (err) {
         console.error('[Chat] Database connection error during message sync:', err);
       }
@@ -161,15 +154,12 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     // Broadcast message to other peer in the room
     socket.to(chatId).emit('message:new', { message });
 
-    // Store in Supabase in background (fail silently)
+    // Store in Database in background (fail silently)
     try {
-      await supabase.from('messages').insert({
-        id: msgId,
-        room_id: chatId,
-        sender_id: userId,
-        content: text,
-        created_at: timestamp,
-      });
+      await query(
+        'INSERT INTO messages (id, room_id, sender_id, content, created_at) VALUES ($1, $2, $3, $4, $5)',
+        [msgId, chatId, userId, text, timestamp]
+      );
     } catch (dbErr) {
       console.error('[Chat Sockets] Failed to persist message:', dbErr);
     }

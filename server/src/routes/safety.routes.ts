@@ -1,42 +1,27 @@
 import { Router } from 'express';
-import { supabase } from '../config/supabase.js';
+import { query } from '../config/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
 // Helper: find shared room IDs between two users
 async function findSharedRoomIds(userId1: string, userId2: string): Promise<string[]> {
-  const { data: userRooms } = await supabase
-    .from('room_members')
-    .select('room_id')
-    .eq('user_id', userId1);
-
-  const { data: targetRooms } = await supabase
-    .from('room_members')
-    .select('room_id')
-    .eq('user_id', userId2);
-
-  if (!userRooms || !targetRooms) return [];
-
-  const userRoomIds = new Set(userRooms.map((rm) => rm.room_id));
-  return targetRooms
-    .map((rm) => rm.room_id)
-    .filter((id) => userRoomIds.has(id));
+  const res = await query(
+    `SELECT rm1.room_id 
+     FROM room_members rm1 
+     JOIN room_members rm2 ON rm1.room_id = rm2.room_id 
+     WHERE rm1.user_id = $1 AND rm2.user_id = $2`,
+    [userId1, userId2]
+  );
+  return res.rows.map((row: any) => row.room_id);
 }
 
 // Helper: delete mutual friend requests (safe separate queries)
 async function deleteMutualFriendRequests(userId1: string, userId2: string) {
-  await supabase
-    .from('friend_requests')
-    .delete()
-    .eq('sender_id', userId1)
-    .eq('receiver_id', userId2);
-
-  await supabase
-    .from('friend_requests')
-    .delete()
-    .eq('sender_id', userId2)
-    .eq('receiver_id', userId1);
+  await query(
+    'DELETE FROM friend_requests WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)',
+    [userId1, userId2]
+  );
 }
 
 // 1. Get blocked users (Authenticated)
@@ -48,19 +33,8 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
   }
 
   try {
-    const { data: blockedRecords, error } = await supabase
-      .from('blocks')
-      .select('blocked_id')
-      .eq('blocker_id', userId);
-
-    if (error) {
-      if (error.code === 'PGRST205' || error.code === '42P01') {
-        console.warn('[Safety API] blocks table does not exist. Returning empty blocked list.');
-        res.status(200).json({ users: [] });
-        return;
-      }
-      throw error;
-    }
+    const result = await query('SELECT blocked_id FROM blocks WHERE blocker_id = $1', [userId]);
+    const blockedRecords = result.rows;
 
     if (!blockedRecords || blockedRecords.length === 0) {
       res.status(200).json({ users: [] });
@@ -69,26 +43,13 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
 
     const blockedIds = blockedRecords.map((b) => b.blocked_id);
 
-    let { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, name, username, avatar_url')
-      .in('id', blockedIds);
+    const profilesRes = await query(
+      'SELECT id, name, username, avatar_url FROM profiles WHERE id = ANY($1)',
+      [blockedIds]
+    );
+    const profiles = profilesRes.rows || [];
 
-    if (profilesError) {
-      if (profilesError.code === '42703') {
-        console.warn('[Safety API] avatar_url column does not exist. Running fallback.');
-        const fallback = await supabase
-          .from('profiles')
-          .select('id, name, username')
-          .in('id', blockedIds);
-        if (fallback.error) throw fallback.error;
-        profiles = (fallback.data || []).map((p) => ({ ...p, avatar_url: '' }));
-      } else if (profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
-        throw profilesError;
-      }
-    }
-
-    const formattedUsers = (profiles || []).map((p) => ({
+    const formattedUsers = profiles.map((p) => ({
       _id: p.id,
       name: p.name,
       username: p.username,
@@ -122,13 +83,12 @@ router.post('/block', authMiddleware, async (req: AuthenticatedRequest, res) => 
 
   try {
     // Upsert block record
-    const { error: blockError } = await supabase
-      .from('blocks')
-      .upsert({ blocker_id: blockerId, blocked_id: blockedId }, { onConflict: 'blocker_id,blocked_id' });
-
-    if (blockError) {
-      throw blockError;
-    }
+    await query(
+      `INSERT INTO blocks (blocker_id, blocked_id, created_at) 
+       VALUES ($1, $2, NOW()) 
+       ON CONFLICT (blocker_id, blocked_id) DO NOTHING`,
+      [blockerId, blockedId]
+    );
 
     // Automatically clean up friend request relation if exists (safe separate queries)
     await deleteMutualFriendRequests(blockerId, blockedId);
@@ -137,10 +97,7 @@ router.post('/block', authMiddleware, async (req: AuthenticatedRequest, res) => 
     const sharedRoomIds = await findSharedRoomIds(blockerId, blockedId);
 
     if (sharedRoomIds.length > 0) {
-      await supabase
-        .from('rooms')
-        .delete()
-        .in('id', sharedRoomIds);
+      await query('DELETE FROM rooms WHERE id = ANY($1)', [sharedRoomIds]);
     }
 
     res.status(200).json({ success: true, message: 'User blocked successfully' });
@@ -165,16 +122,7 @@ router.post('/unblock', authMiddleware, async (req: AuthenticatedRequest, res) =
   }
 
   try {
-    const { error } = await supabase
-      .from('blocks')
-      .delete()
-      .eq('blocker_id', blockerId)
-      .eq('blocked_id', blockedId);
-
-    if (error) {
-      throw error;
-    }
-
+    await query('DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2', [blockerId, blockedId]);
     res.status(200).json({ success: true, message: 'User unblocked successfully' });
   } catch (err) {
     console.error('[Safety API] Error unblocking user:', err);
@@ -207,19 +155,10 @@ router.post('/report', authMiddleware, async (req: AuthenticatedRequest, res) =>
   }
 
   try {
-    const { error } = await supabase
-      .from('reports')
-      .insert({
-        reporter_id: reporterId,
-        reported_id: reportedId,
-        reason: reason || 'unspecified',
-        notes: notes || '',
-        created_at: new Date().toISOString(),
-      });
-
-    if (error) {
-      throw error;
-    }
+    await query(
+      'INSERT INTO reports (reporter_id, reported_id, reason, notes, created_at) VALUES ($1, $2, $3, $4, NOW())',
+      [reporterId, reportedId, reason || 'unspecified', notes || '']
+    );
 
     res.status(201).json({ success: true, message: 'Report submitted successfully' });
   } catch (err) {

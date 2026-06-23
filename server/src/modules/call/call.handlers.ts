@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { supabase } from '../../config/supabase.js';
+import { query } from '../../config/db.js';
 
 interface CallOfferPayload {
   to: string;
@@ -49,23 +49,23 @@ export const registerCallHandlers = (io: Server, socket: Socket): void => {
     const callId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     console.log(`[Call] Relaying call offer from ${userId} -> ${to} (ID: ${callId}, Type: ${callType})`);
 
-    // Fetch caller name and avatar details from Supabase
+    // Fetch caller name and avatar details from Database
     let callerName = 'Blippr User';
     let callerAvatar = '';
 
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('name, avatar_url')
-        .eq('id', userId)
-        .maybeSingle();
+      const result = await query(
+        'SELECT name, avatar_url FROM profiles WHERE id = $1 LIMIT 1',
+        [userId]
+      );
+      const data = result.rows[0];
 
-      if (data && !error) {
+      if (data) {
         callerName = data.name || callerName;
         callerAvatar = data.avatar_url || '';
       }
     } catch (err) {
-      console.error('[Call Handlers] Supabase profile fetch failed:', err);
+      console.error('[Call Handlers] Profile fetch failed:', err);
     }
 
     // Forward incoming call to recipient

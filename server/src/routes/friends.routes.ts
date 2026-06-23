@@ -1,59 +1,60 @@
 import { Router } from 'express';
-import { supabase } from '../config/supabase.js';
+import { query } from '../config/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
 async function findMutualFriendRequest(userId1: string, userId2: string) {
-  const { data: direct } = await supabase.from('friend_requests').select('*').eq('sender_id', userId1).eq('receiver_id', userId2).maybeSingle();
-  if (direct) return direct;
-  const { data: reverse } = await supabase.from('friend_requests').select('*').eq('sender_id', userId2).eq('receiver_id', userId1).maybeSingle();
-  return reverse || null;
+  const res = await query(
+    'SELECT * FROM friend_requests WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1) LIMIT 1',
+    [userId1, userId2]
+  );
+  return res.rows[0] || null;
 }
 
 async function deleteMutualFriendRequests(userId1: string, userId2: string) {
-  await supabase.from('friend_requests').delete().eq('sender_id', userId1).eq('receiver_id', userId2);
-  await supabase.from('friend_requests').delete().eq('sender_id', userId2).eq('receiver_id', userId1);
+  await query(
+    'DELETE FROM friend_requests WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)',
+    [userId1, userId2]
+  );
 }
 
 async function findSharedRoomIds(userId1: string, userId2: string) {
-  const userRooms = (await supabase.from('room_members').select('room_id').eq('user_id', userId1)).data;
-  const targetRooms = (await supabase.from('room_members').select('room_id').eq('user_id', userId2)).data;
-  if (!userRooms || !targetRooms) return [];
-  const userRoomIds = new Set(userRooms.map((rm) => rm.room_id));
-  return targetRooms.map((rm) => rm.room_id).filter((id) => userRoomIds.has(id));
+  const res = await query(
+    `SELECT rm1.room_id 
+     FROM room_members rm1 
+     JOIN room_members rm2 ON rm1.room_id = rm2.room_id 
+     WHERE rm1.user_id = $1 AND rm2.user_id = $2`,
+    [userId1, userId2]
+  );
+  return res.rows.map((row: any) => row.room_id);
 }
 
 router.get('/requests', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userId = req.user?.id;
   if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
   try {
-    const { data: requests, error: requestsError } = await supabase.from('friend_requests').select('*').eq('receiver_id', userId).eq('status', 'pending');
-    if (requestsError) {
-      if (requestsError.code === 'PGRST205' || requestsError.code === '42P01') {
-        console.warn('[Friends API] friend_requests table does not exist. Returning empty requests.');
-        res.status(200).json({ requests: [] });
-        return;
-      }
-      throw requestsError;
-    }
+    const requestsRes = await query('SELECT * FROM friend_requests WHERE receiver_id = $1 AND status = $2', [userId, 'pending']);
+    const requests = requestsRes.rows;
     if (!requests || requests.length === 0) { res.status(200).json({ requests: [] }); return; }
+    
     const senderIds = requests.map((r) => r.sender_id);
-    let { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, name, avatar_url').in('id', senderIds);
-    if (profilesError) {
-      if (profilesError.code === '42703') {
-        console.warn('[Friends API] avatar_url column does not exist. Running fallback.');
-        const fallback = await supabase.from('profiles').select('id, username, name').in('id', senderIds);
-        if (fallback.error) throw fallback.error;
-        profiles = (fallback.data || []).map((p) => ({ ...p, avatar_url: '' }));
-      } else if (profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
-        throw profilesError;
-      }
-    }
+    const profilesRes = await query(
+      'SELECT id, username, name, avatar_url FROM profiles WHERE id = ANY($1)',
+      [senderIds]
+    );
+    const profiles = profilesRes.rows;
+
     const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
     const formatted = requests.map((r) => {
       const p = profileMap.get(r.sender_id);
-      return { _id: r.id, from: p ? { _id: p.id, username: p.username, name: p.name, avatar_url: p.avatar_url } : { _id: r.sender_id }, to: r.receiver_id, status: r.status, createdAt: r.created_at || new Date().toISOString() };
+      return { 
+        _id: r.id, 
+        from: p ? { _id: p.id, username: p.username, name: p.name, avatar_url: p.avatar_url } : { _id: r.sender_id }, 
+        to: r.receiver_id, 
+        status: r.status, 
+        createdAt: r.created_at || new Date().toISOString() 
+      };
     });
     res.status(200).json({ requests: formatted });
   } catch (err) {
@@ -66,32 +67,27 @@ router.get('/requests/sent', authMiddleware, async (req: AuthenticatedRequest, r
   const userId = req.user?.id;
   if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
   try {
-    const { data: requests, error: requestsError } = await supabase.from('friend_requests').select('*').eq('sender_id', userId).eq('status', 'pending');
-    if (requestsError) {
-      if (requestsError.code === 'PGRST205' || requestsError.code === '42P01') {
-        console.warn('[Friends API] friend_requests table does not exist. Returning empty sent requests.');
-        res.status(200).json({ requests: [] });
-        return;
-      }
-      throw requestsError;
-    }
+    const requestsRes = await query('SELECT * FROM friend_requests WHERE sender_id = $1 AND status = $2', [userId, 'pending']);
+    const requests = requestsRes.rows;
     if (!requests || requests.length === 0) { res.status(200).json({ requests: [] }); return; }
+    
     const receiverIds = requests.map((r) => r.receiver_id);
-    let { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, username, name, avatar_url').in('id', receiverIds);
-    if (profilesError) {
-      if (profilesError.code === '42703') {
-        console.warn('[Friends API] avatar_url column does not exist. Running fallback.');
-        const fallback = await supabase.from('profiles').select('id, username, name').in('id', receiverIds);
-        if (fallback.error) throw fallback.error;
-        profiles = (fallback.data || []).map((p) => ({ ...p, avatar_url: '' }));
-      } else if (profilesError.code !== 'PGRST205' && profilesError.code !== '42P01') {
-        throw profilesError;
-      }
-    }
+    const profilesRes = await query(
+      'SELECT id, username, name, avatar_url FROM profiles WHERE id = ANY($1)',
+      [receiverIds]
+    );
+    const profiles = profilesRes.rows;
+
     const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
     const formatted = requests.map((r) => {
       const p = profileMap.get(r.receiver_id);
-      return { _id: r.id, to: p ? { _id: p.id, username: p.username, name: p.name, avatar_url: p.avatar_url } : { _id: r.receiver_id }, from: r.sender_id, status: r.status, createdAt: r.created_at || new Date().toISOString() };
+      return { 
+        _id: r.id, 
+        to: p ? { _id: p.id, username: p.username, name: p.name, avatar_url: p.avatar_url } : { _id: r.receiver_id }, 
+        from: r.sender_id, 
+        status: r.status, 
+        createdAt: r.created_at || new Date().toISOString() 
+      };
     });
     res.status(200).json({ requests: formatted });
   } catch (err) {
@@ -111,9 +107,13 @@ router.post('/requests', authMiddleware, async (req: AuthenticatedRequest, res) 
     if (existing) {
       if (existing.status === 'accepted') { res.status(400).json({ error: 'You are already friends.' }); return; }
       if (existing.status === 'pending') { res.status(400).json({ error: 'A friend request is already pending.' }); return; }
-      await supabase.from('friend_requests').delete().eq('id', existing.id);
+      await query('DELETE FROM friend_requests WHERE id = $1', [existing.id]);
     }
-    const newRequest = (await supabase.from('friend_requests').insert({ sender_id: senderId, receiver_id: userId, status: 'pending', created_at: new Date().toISOString() }).select().single()).data;
+    const insertRes = await query(
+      'INSERT INTO friend_requests (sender_id, receiver_id, status, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *',
+      [senderId, userId, 'pending']
+    );
+    const newRequest = insertRes.rows[0];
     res.status(201).json({ success: true, request: newRequest });
   } catch (err) {
     console.error('[Friends API] Error:', err);
@@ -126,7 +126,7 @@ router.delete('/requests/sent/:userId', authMiddleware, async (req: Authenticate
   const { userId } = req.params;
   if (!senderId) { res.status(401).json({ error: 'Unauthorized' }); return; }
   try {
-    await supabase.from('friend_requests').delete().eq('sender_id', senderId).eq('receiver_id', userId).eq('status', 'pending');
+    await query('DELETE FROM friend_requests WHERE sender_id = $1 AND receiver_id = $2 AND status = $3', [senderId, userId, 'pending']);
     res.status(200).json({ success: true, message: 'Friend request cancelled' });
   } catch (err) {
     console.error('[Friends API] Error:', err);
@@ -141,13 +141,21 @@ router.patch('/requests/:id', authMiddleware, async (req: AuthenticatedRequest, 
   if (!receiverId) { res.status(401).json({ error: 'Unauthorized' }); return; }
   if (status !== 'accepted' && status !== 'rejected') { res.status(400).json({ error: 'Invalid status.' }); return; }
   try {
-    const request = (await supabase.from('friend_requests').select('*').eq('id', id).eq('receiver_id', receiverId).maybeSingle()).data;
+    const reqRes = await query('SELECT * FROM friend_requests WHERE id = $1 AND receiver_id = $2 LIMIT 1', [id, receiverId]);
+    const request = reqRes.rows[0];
     if (!request) { res.status(404).json({ error: 'Friend request not found.' }); return; }
-    await supabase.from('friend_requests').update({ status }).eq('id', id);
+    
+    await query('UPDATE friend_requests SET status = $1 WHERE id = $2', [status, id]);
+    
     if (status === 'accepted') {
-      const room = (await supabase.from('rooms').insert({ updated_at: new Date().toISOString() }).select().single()).data;
+      const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      const roomRes = await query('INSERT INTO rooms (id, updated_at) VALUES ($1, NOW()) RETURNING *', [roomId]);
+      const room = roomRes.rows[0];
       if (room) {
-        await supabase.from('room_members').insert([{ room_id: room.id, user_id: request.sender_id }, { room_id: room.id, user_id: receiverId }]);
+        await query(
+          'INSERT INTO room_members (room_id, user_id) VALUES ($1, $2), ($3, $4)',
+          [room.id, request.sender_id, room.id, receiverId]
+        );
       }
     }
     res.status(200).json({ success: true, status });
@@ -165,7 +173,7 @@ router.delete('/:userId', authMiddleware, async (req: AuthenticatedRequest, res)
     await deleteMutualFriendRequests(userId, targetId);
     const sharedRoomIds = await findSharedRoomIds(userId, targetId);
     if (sharedRoomIds.length > 0) {
-      await supabase.from('rooms').delete().in('id', sharedRoomIds);
+      await query('DELETE FROM rooms WHERE id = ANY($1)', [sharedRoomIds]);
     }
     res.status(200).json({ success: true, message: 'Unfriended successfully' });
   } catch (err) {
