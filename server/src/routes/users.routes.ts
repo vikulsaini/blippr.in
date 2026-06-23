@@ -282,6 +282,11 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
       .limit(10);
 
     if (error) {
+      if (error.code === 'PGRST205' || error.code === '42P01') {
+        console.warn('[Users API] profiles table does not exist. Returning empty users.');
+        res.status(200).json({ users: [] });
+        return;
+      }
       throw error;
     }
 

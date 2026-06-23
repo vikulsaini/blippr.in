@@ -23,12 +23,21 @@ async function isRoomMember(roomId: string, userId: string): Promise<boolean> {
     }
     
     if (!data) {
-      // Log all members of this room for debugging
+      // Check if room exists and has no members (legacy room)
       const { data: allMembers, error: allMembersError } = await supabase
         .from('room_members')
         .select('user_id')
         .eq('room_id', roomId);
       
+      if (!allMembersError && allMembers && allMembers.length === 0) {
+        // Legacy room with no members — auto-enroll this user
+        console.log(`[Chats] Auto-enrolling user ${userId} into legacy room ${roomId}`);
+        await supabase
+          .from('room_members')
+          .insert({ room_id: roomId, user_id: userId });
+        return true;
+      }
+
       console.warn(`[Chats] isRoomMember: user ${userId} NOT found in room ${roomId}`);
       if (allMembersError) {
         console.error('[Chats] isRoomMember: error fetching all members:', JSON.stringify(allMembersError, null, 2));
