@@ -275,7 +275,7 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
   const userId = req.user?.id;
 
   try {
-    const { data: users, error } = await supabase
+    let { data: users, error } = await supabase
       .from('profiles')
       .select(PUBLIC_PROFILE_FIELDS)
       .neq('id', isUuid(userId) ? userId : '')
@@ -287,7 +287,20 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
         res.status(200).json({ users: [] });
         return;
       }
-      throw error;
+      if (error.code === '42703') {
+        console.warn('[Users API] avatar_url column does not exist on profiles. Running fallback query.');
+        const fallbackFields = 'id, username, name, age, gender, bio, created_at';
+        const { data: fallbackUsers, error: fallbackError } = await supabase
+          .from('profiles')
+          .select(fallbackFields)
+          .neq('id', isUuid(userId) ? userId : '')
+          .limit(10);
+
+        if (fallbackError) throw fallbackError;
+        users = (fallbackUsers || []).map((u) => ({ ...u, avatar_url: '' }));
+      } else {
+        throw error;
+      }
     }
 
     res.status(200).json({ users: users || [] });
@@ -309,14 +322,27 @@ router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res) => 
   const sanitizedQuery = q.trim().substring(0, 100);
 
   try {
-    const { data: users, error } = await supabase
+    let { data: users, error } = await supabase
       .from('profiles')
       .select(PUBLIC_PROFILE_FIELDS)
       .or(`username.ilike.%${sanitizedQuery}%,name.ilike.%${sanitizedQuery}%`)
       .limit(20);
 
     if (error) {
-      throw error;
+      if (error.code === '42703') {
+        console.warn('[Users API] avatar_url column does not exist on profiles. Running fallback search query.');
+        const fallbackFields = 'id, username, name, age, gender, bio, created_at';
+        const { data: fallbackUsers, error: fallbackError } = await supabase
+          .from('profiles')
+          .select(fallbackFields)
+          .or(`username.ilike.%${sanitizedQuery}%,name.ilike.%${sanitizedQuery}%`)
+          .limit(20);
+
+        if (fallbackError) throw fallbackError;
+        users = (fallbackUsers || []).map((u) => ({ ...u, avatar_url: '' }));
+      } else {
+        throw error;
+      }
     }
 
     res.status(200).json({ users: users || [] });
