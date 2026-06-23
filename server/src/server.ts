@@ -16,6 +16,8 @@ const ALLOWED_ORIGINS = [
   'https://www.blippr.in',
   // Railway dynamic domain
   ...(env.RAILWAY_PUBLIC_DOMAIN ? [`https://${env.RAILWAY_PUBLIC_DOMAIN}`] : []),
+  // Render dynamic domain (already includes protocol)
+  ...(env.RENDER_EXTERNAL_URL ? [env.RENDER_EXTERNAL_URL] : []),
   // Explicit client URL override
   ...(env.CLIENT_URL ? [env.CLIENT_URL] : []),
 ];

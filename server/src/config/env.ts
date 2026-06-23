@@ -48,5 +48,6 @@ export const env = {
   REDIS_URL: process.env.REDIS_URL as string,
   NODE_ENV: process.env.NODE_ENV || 'development',
   RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN || '',
+  RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL || '',
   CLIENT_URL: process.env.CLIENT_URL || '',
 };
