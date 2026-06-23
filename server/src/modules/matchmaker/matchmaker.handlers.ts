@@ -1,5 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { redisClient } from '../../config/redis.js';
+import { supabase } from '../../config/supabase.js';
 
 const QUEUE_KEY = 'varta:matchmaking:queue';
 
@@ -52,10 +53,44 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
 
       if (matchedPeerId) {
         console.log(`[Matchmaker] MATCH CREATED: ${userId} <-> ${matchedPeerId}`);
-        
-        // Notify both parties of the match
-        socket.emit('stranger:matched', { peerId: matchedPeerId });
-        socket.to(matchedPeerId).emit('stranger:matched', { peerId: userId });
+
+        // Create a room and add both users as members
+        const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+        const timestamp = new Date().toISOString();
+        let roomCreated = false;
+
+        try {
+          // Insert room
+          const { error: roomError } = await supabase
+            .from('rooms')
+            .insert({ id: roomId, updated_at: timestamp });
+
+          if (roomError) {
+            console.error('[Matchmaker] Failed to create room:', JSON.stringify(roomError));
+          } else {
+            // Add both users as room members
+            const { error: membersError } = await supabase
+              .from('room_members')
+              .insert([
+                { room_id: roomId, user_id: userId },
+                { room_id: roomId, user_id: matchedPeerId },
+              ]);
+
+            if (membersError) {
+              console.error('[Matchmaker] Failed to add room members:', JSON.stringify(membersError));
+            } else {
+              roomCreated = true;
+              console.log(`[Matchmaker] Room ${roomId} created with members ${userId} <-> ${matchedPeerId}`);
+            }
+          }
+        } catch (err) {
+          console.error('[Matchmaker] Error creating room:', err);
+        }
+
+        // Notify both parties of the match (include roomId only if room was created)
+        const matchPayload = roomCreated ? { peerId: matchedPeerId, roomId } : { peerId: matchedPeerId };
+        socket.emit('stranger:matched', matchPayload);
+        socket.to(matchedPeerId).emit('stranger:matched', roomCreated ? { peerId: userId, roomId } : { peerId: userId });
       } else {
         // Enqueue user
         await redisClient.rPush(QUEUE_KEY, userId);
