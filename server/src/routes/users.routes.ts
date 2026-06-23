@@ -318,8 +318,8 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
         return;
       }
       if (error.code === '42703') {
-        console.warn('[Users API] avatar_url column does not exist on profiles. Running fallback query.');
-        const fallbackFields = 'id, username, name, age, gender, bio, location, hobbies, created_at';
+        console.warn('[Users API] undefined column on profiles. Running absolute safe fallback query.');
+        const fallbackFields = 'id, username, name, age, gender, bio, created_at';
         const { data: fallbackUsers, error: fallbackError } = await supabase
           .from('profiles')
           .select(fallbackFields)
@@ -327,7 +327,12 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
           .limit(100);
 
         if (fallbackError) throw fallbackError;
-        users = (fallbackUsers || []).map((u) => ({ ...u, avatar_url: '' }));
+        users = (fallbackUsers || []).map((u) => ({
+          ...u,
+          avatar_url: '',
+          location: null,
+          hobbies: ''
+        })) as any;
       } else {
         throw error;
       }
@@ -389,8 +394,8 @@ router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res) => 
 
     if (error) {
       if (error.code === '42703') {
-        console.warn('[Users API] avatar_url column does not exist on profiles. Running fallback search query.');
-        const fallbackFields = 'id, username, name, age, gender, bio, location, hobbies, created_at';
+        console.warn('[Users API] undefined column on profiles. Running absolute safe fallback search query.');
+        const fallbackFields = 'id, username, name, age, gender, bio, created_at';
         const { data: fallbackUsers, error: fallbackError } = await supabase
           .from('profiles')
           .select(fallbackFields)
@@ -398,7 +403,12 @@ router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res) => 
           .limit(20);
 
         if (fallbackError) throw fallbackError;
-        users = (fallbackUsers || []).map((u) => ({ ...u, avatar_url: '', location: u.location, hobbies: u.hobbies }));
+        users = (fallbackUsers || []).map((u) => ({
+          ...u,
+          avatar_url: '',
+          location: null,
+          hobbies: ''
+        })) as any;
       } else {
         throw error;
       }
