@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { query } from '../config/db.js';
+import { Room, RoomMember, Message } from '../config/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { Server } from 'socket.io';
 
@@ -10,24 +10,20 @@ async function isRoomMember(roomId: string, userId: string): Promise<boolean> {
   try {
     console.log(`[Chats] isRoomMember check: roomId=${roomId}, userId=${userId}`);
     
-    const result = await query(
-      'SELECT room_id, user_id FROM room_members WHERE room_id = $1 AND user_id = $2 LIMIT 1',
-      [roomId, userId]
-    );
+    const member = await RoomMember.findOne({ room_id: roomId, user_id: userId });
     
-    if (result.rows.length > 0) {
+    if (member) {
       console.log(`[Chats] isRoomMember: user ${userId} IS a member of room ${roomId}`);
       return true;
     }
     
     // Check if room exists and has no members (legacy room)
-    const allMembersRes = await query('SELECT user_id FROM room_members WHERE room_id = $1', [roomId]);
-    const allMembers = allMembersRes.rows;
+    const allMembers = await RoomMember.find({ room_id: roomId });
     
     if (allMembers.length === 0) {
       // Legacy room with no members — auto-enroll this user
       console.log(`[Chats] Auto-enrolling user ${userId} into legacy room ${roomId}`);
-      await query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
+      await RoomMember.create({ room_id: roomId, user_id: userId });
       return true;
     }
 
@@ -50,8 +46,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
 
   try {
     // First, get the rooms the user is a member of
-    const membershipsRes = await query('SELECT room_id FROM room_members WHERE user_id = $1', [userId]);
-    const memberships = membershipsRes.rows;
+    const memberships = await RoomMember.find({ user_id: userId }).lean();
 
     if (!memberships || memberships.length === 0) {
       res.status(200).json({
@@ -66,17 +61,8 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
 
     const roomIds = memberships.map((m) => m.room_id);
 
-    const roomsRes = await query(
-      'SELECT id, updated_at FROM rooms WHERE id = ANY($1)',
-      [roomIds]
-    );
-    const rooms = roomsRes.rows;
-
-    const membersRes = await query(
-      'SELECT room_id, user_id FROM room_members WHERE room_id = ANY($1)',
-      [roomIds]
-    );
-    const members = membersRes.rows;
+    const rooms = await Room.find({ _id: { $in: roomIds } }).lean();
+    const members = await RoomMember.find({ room_id: { $in: roomIds } }).lean();
 
     const membersMap: Record<string, Array<{ _id: string }>> = {};
     for (const member of members) {
@@ -87,13 +73,13 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
     }
 
     const chats = rooms.map((room) => ({
-      _id: room.id,
+      _id: room._id,
       type: 'direct',
       temporary: false,
       updatedAt: room.updated_at,
       unreadCount: 0,
       lastMessage: null,
-      members: membersMap[room.id] || [],
+      members: membersMap[room._id] || [],
     }));
 
     res.status(200).json({
@@ -127,14 +113,10 @@ router.get('/:chatId/messages', authMiddleware, async (req: AuthenticatedRequest
   }
 
   try {
-    const msgRes = await query(
-      'SELECT * FROM messages WHERE room_id = $1 ORDER BY created_at ASC',
-      [chatId]
-    );
-    const messages = msgRes.rows;
+    const messages = await Message.find({ room_id: chatId }).sort({ created_at: 1 }).lean();
 
     const formattedMessages = messages.map((msg) => ({
-      _id: msg.id,
+      _id: msg._id,
       chat: msg.room_id,
       sender: msg.sender_id,
       text: msg.content,
@@ -180,10 +162,13 @@ router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedReques
     const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
     // Persist to messages table
-    await query(
-      'INSERT INTO messages (id, room_id, sender_id, content, created_at) VALUES ($1, $2, $3, $4, $5)',
-      [msgId, chatId, userId, sanitizedText, timestamp]
-    );
+    await Message.create({
+      _id: msgId,
+      room_id: chatId,
+      sender_id: userId,
+      content: sanitizedText,
+      created_at: timestamp,
+    });
 
     const message = {
       _id: msgId,
@@ -277,8 +262,11 @@ router.delete('/:chatId', authMiddleware, async (req: AuthenticatedRequest, res)
   }
 
   try {
-    // Clean up room from database
-    await query('DELETE FROM rooms WHERE id = $1', [chatId]);
+    // Clean up room and associated members/messages from database
+    await Room.findByIdAndDelete(chatId);
+    await RoomMember.deleteMany({ room_id: chatId });
+    await Message.deleteMany({ room_id: chatId });
+    
     res.status(200).json({ success: true, message: 'Chat room deleted successfully' });
   } catch (err) {
     console.error('[Chats API] Error deleting room:', err);

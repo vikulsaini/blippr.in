@@ -2,7 +2,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { supabase } from '../config/supabase.js';
-import { query } from '../config/db.js';
+import { Profile } from '../config/db.js';
 
 const router = Router();
 
@@ -93,8 +93,7 @@ router.post('/supabase', async (req, res) => {
     // Check if a profile already exists for this user ID
     let profile = null;
     try {
-      const result = await query('SELECT * FROM profiles WHERE id = $1', [userId]);
-      profile = result.rows[0] || null;
+      profile = await Profile.findById(userId);
     } catch (dbErr) {
       console.error('[Auth Sync] Database profile fetch failed:', dbErr);
     }
@@ -110,8 +109,7 @@ router.post('/supabase', async (req, res) => {
       }
 
       // Check username uniqueness before inserting
-      const existingCheck = await query('SELECT id FROM profiles WHERE username = $1', [username.toLowerCase()]);
-      const existingUser = existingCheck.rows[0];
+      const existingUser = await Profile.findOne({ username: username.toLowerCase() });
 
       if (existingUser) {
         res.status(409).json({ error: 'Username is already taken' });
@@ -120,10 +118,14 @@ router.post('/supabase', async (req, res) => {
 
       // User is completing signup, insert a new profile record
       try {
-        await query(
-          'INSERT INTO profiles (id, username, name, age, gender, bio, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())',
-          [userId, username.toLowerCase(), name || username, age || 18, gender || 'other', bio || '']
-        );
+        await Profile.create({
+          _id: userId,
+          username: username.toLowerCase(),
+          name: name || username,
+          age: age || 18,
+          gender: gender || 'other',
+          bio: bio || '',
+        });
       } catch (insertErr) {
         console.error('[Auth Sync] Database profile insert failed:', insertErr);
         res.status(500).json({ error: 'Database connection failed during signup.' });
@@ -133,18 +135,14 @@ router.post('/supabase', async (req, res) => {
       // Profile exists, perform updates if new metadata values are supplied
       if (username || name || age || gender || bio) {
         try {
-          const fields: string[] = [];
-          const values: any[] = [];
-          let idx = 1;
-          if (username) { fields.push(`username = $${idx++}`); values.push(username.toLowerCase()); }
-          if (name) { fields.push(`name = $${idx++}`); values.push(name); }
-          if (age) { fields.push(`age = $${idx++}`); values.push(age); }
-          if (gender) { fields.push(`gender = $${idx++}`); values.push(gender); }
-          if (bio) { fields.push(`bio = $${idx++}`); values.push(bio); }
-          fields.push(`updated_at = NOW()`);
-          values.push(userId);
-
-          await query(`UPDATE profiles SET ${fields.join(', ')} WHERE id = $${idx}`, values);
+          const updates: any = {};
+          if (username) updates.username = username.toLowerCase();
+          if (name) updates.name = name;
+          if (age) updates.age = age;
+          if (gender) updates.gender = gender;
+          if (bio) updates.bio = bio;
+          
+          await Profile.findByIdAndUpdate(userId, updates);
         } catch (updateErr) {
           console.error('[Auth Sync] Database profile update failed:', updateErr);
         }
@@ -181,8 +179,7 @@ router.get('/username-check', async (req, res) => {
   }
 
   try {
-    const checkResult = await query('SELECT username FROM profiles WHERE username = $1', [sanitizedUsername]);
-    const data = checkResult.rows[0];
+    const data = await Profile.findOne({ username: sanitizedUsername });
 
     res.status(200).json({ available: !data });
   } catch (err) {

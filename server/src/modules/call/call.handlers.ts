@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { query } from '../../config/db.js';
+import { Profile } from '../../config/db.js';
 
 interface CallOfferPayload {
   to: string;
@@ -54,11 +54,7 @@ export const registerCallHandlers = (io: Server, socket: Socket): void => {
     let callerAvatar = '';
 
     try {
-      const result = await query(
-        'SELECT name, avatar_url FROM profiles WHERE id = $1 LIMIT 1',
-        [userId]
-      );
-      const data = result.rows[0];
+      const data = await Profile.findById(userId).select('name avatar_url').lean();
 
       if (data) {
         callerName = data.name || callerName;

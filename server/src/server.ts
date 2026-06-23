@@ -74,12 +74,12 @@ io.on('connection', (socket) => {
   });
 });
 
-import { initDb } from './config/db.js';
+import { connectDb } from './config/db.js';
 
 const startServer = async (): Promise<void> => {
   try {
-    // Initialize PostgreSQL Database
-    await initDb();
+    // Initialize MongoDB Database
+    await connectDb();
 
     connectRedis()
       .then(() => console.log('[Bootstrap] Redis connection established successfully'))

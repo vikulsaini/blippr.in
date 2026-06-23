@@ -1,27 +1,27 @@
 import { Router } from 'express';
-import { query } from '../config/db.js';
+import { Block, Profile, Room, RoomMember, Report, FriendRequest } from '../config/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
 // Helper: find shared room IDs between two users
 async function findSharedRoomIds(userId1: string, userId2: string): Promise<string[]> {
-  const res = await query(
-    `SELECT rm1.room_id 
-     FROM room_members rm1 
-     JOIN room_members rm2 ON rm1.room_id = rm2.room_id 
-     WHERE rm1.user_id = $1 AND rm2.user_id = $2`,
-    [userId1, userId2]
-  );
-  return res.rows.map((row: any) => row.room_id);
+  const rm1 = await RoomMember.find({ user_id: userId1 }).lean();
+  const rm2 = await RoomMember.find({ user_id: userId2 }).lean();
+  
+  if (!rm1 || !rm2) return [];
+  const userRoomIds = new Set(rm1.map((rm) => rm.room_id));
+  return rm2.map((rm) => rm.room_id).filter((id) => userRoomIds.has(id));
 }
 
 // Helper: delete mutual friend requests (safe separate queries)
 async function deleteMutualFriendRequests(userId1: string, userId2: string) {
-  await query(
-    'DELETE FROM friend_requests WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)',
-    [userId1, userId2]
-  );
+  await FriendRequest.deleteMany({
+    $or: [
+      { sender_id: userId1, receiver_id: userId2 },
+      { sender_id: userId2, receiver_id: userId1 },
+    ]
+  });
 }
 
 // 1. Get blocked users (Authenticated)
@@ -33,8 +33,7 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
   }
 
   try {
-    const result = await query('SELECT blocked_id FROM blocks WHERE blocker_id = $1', [userId]);
-    const blockedRecords = result.rows;
+    const blockedRecords = await Block.find({ blocker_id: userId }).lean();
 
     if (!blockedRecords || blockedRecords.length === 0) {
       res.status(200).json({ users: [] });
@@ -43,17 +42,13 @@ router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) =>
 
     const blockedIds = blockedRecords.map((b) => b.blocked_id);
 
-    const profilesRes = await query(
-      'SELECT id, name, username, avatar_url FROM profiles WHERE id = ANY($1)',
-      [blockedIds]
-    );
-    const profiles = profilesRes.rows || [];
+    const profiles = await Profile.find({ _id: { $in: blockedIds } }).lean();
 
     const formattedUsers = profiles.map((p) => ({
-      _id: p.id,
+      _id: p._id,
       name: p.name,
       username: p.username,
-      avatar_url: p.avatar_url,
+      avatar_url: p.avatar_url || '',
     }));
 
     res.status(200).json({ users: formattedUsers });
@@ -83,11 +78,10 @@ router.post('/block', authMiddleware, async (req: AuthenticatedRequest, res) => 
 
   try {
     // Upsert block record
-    await query(
-      `INSERT INTO blocks (blocker_id, blocked_id, created_at) 
-       VALUES ($1, $2, NOW()) 
-       ON CONFLICT (blocker_id, blocked_id) DO NOTHING`,
-      [blockerId, blockedId]
+    await Block.findOneAndUpdate(
+      { blocker_id: blockerId, blocked_id: blockedId },
+      {},
+      { upsert: true, new: true }
     );
 
     // Automatically clean up friend request relation if exists (safe separate queries)
@@ -97,7 +91,8 @@ router.post('/block', authMiddleware, async (req: AuthenticatedRequest, res) => 
     const sharedRoomIds = await findSharedRoomIds(blockerId, blockedId);
 
     if (sharedRoomIds.length > 0) {
-      await query('DELETE FROM rooms WHERE id = ANY($1)', [sharedRoomIds]);
+      await Room.deleteMany({ _id: { $in: sharedRoomIds } });
+      await RoomMember.deleteMany({ room_id: { $in: sharedRoomIds } });
     }
 
     res.status(200).json({ success: true, message: 'User blocked successfully' });
@@ -122,7 +117,7 @@ router.post('/unblock', authMiddleware, async (req: AuthenticatedRequest, res) =
   }
 
   try {
-    await query('DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2', [blockerId, blockedId]);
+    await Block.deleteMany({ blocker_id: blockerId, blocked_id: blockedId });
     res.status(200).json({ success: true, message: 'User unblocked successfully' });
   } catch (err) {
     console.error('[Safety API] Error unblocking user:', err);
@@ -155,10 +150,12 @@ router.post('/report', authMiddleware, async (req: AuthenticatedRequest, res) =>
   }
 
   try {
-    await query(
-      'INSERT INTO reports (reporter_id, reported_id, reason, notes, created_at) VALUES ($1, $2, $3, $4, NOW())',
-      [reporterId, reportedId, reason || 'unspecified', notes || '']
-    );
+    await Report.create({
+      reporter_id: reporterId,
+      reported_id: reportedId,
+      reason: reason || 'unspecified',
+      notes: notes || '',
+    });
 
     res.status(201).json({ success: true, message: 'Report submitted successfully' });
   } catch (err) {

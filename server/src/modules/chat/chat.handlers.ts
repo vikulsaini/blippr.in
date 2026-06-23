@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { query } from '../../config/db.js';
+import { Message } from '../../config/db.js';
 
 interface TypingPayload {
   targetUserId: string;
@@ -120,10 +120,13 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     if (roomId) {
       try {
         const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-        await query(
-          'INSERT INTO messages (id, room_id, sender_id, content, created_at) VALUES ($1, $2, $3, $4, $5)',
-          [msgId, roomId, userId, content, timestamp]
-        );
+        await Message.create({
+          _id: msgId,
+          room_id: roomId,
+          sender_id: userId,
+          content,
+          created_at: timestamp,
+        });
       } catch (err) {
         console.error('[Chat] Database connection error during message sync:', err);
       }
@@ -156,10 +159,13 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
 
     // Store in Database in background (fail silently)
     try {
-      await query(
-        'INSERT INTO messages (id, room_id, sender_id, content, created_at) VALUES ($1, $2, $3, $4, $5)',
-        [msgId, chatId, userId, text, timestamp]
-      );
+      await Message.create({
+        _id: msgId,
+        room_id: chatId,
+        sender_id: userId,
+        content: text,
+        created_at: timestamp,
+      });
     } catch (dbErr) {
       console.error('[Chat Sockets] Failed to persist message:', dbErr);
     }

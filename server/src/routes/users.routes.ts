@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { query } from '../config/db.js';
+import { Profile } from '../config/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
@@ -7,6 +7,25 @@ const router = Router();
 // Helper to check if a string is a valid UUID
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (id?: string): boolean => !!id && UUID_REGEX.test(id);
+
+const serializeProfile = (p: any) => {
+  if (!p) return null;
+  return {
+    id: p._id,
+    username: p.username,
+    name: p.name,
+    avatar_url: p.avatar_url || '',
+    bio: p.bio || '',
+    age: p.age || null,
+    dob: p.dob || null,
+    gender: p.gender || 'other',
+    contact: p.contact || '',
+    hobbies: p.hobbies || '',
+    location: p.location || null,
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  };
+};
 
 // 1. Get current authenticated user profile
 router.get('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
@@ -34,15 +53,14 @@ router.get('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
   }
 
   try {
-    const result = await query('SELECT * FROM profiles WHERE id = $1', [userId]);
-    const profile = result.rows[0] || null;
+    const profile = await Profile.findById(userId).lean();
 
     if (!profile) {
       res.status(404).json({ code: 'PROFILE_REQUIRED', error: 'Profile not found' });
       return;
     }
 
-    res.status(200).json({ user: profile });
+    res.status(200).json({ user: serializeProfile(profile) });
   } catch (err) {
     console.error('[Users API] Error fetching self profile:', err);
     res.status(500).json({ error: 'Failed to retrieve profile' });
@@ -96,8 +114,7 @@ router.patch('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
 
   // Check username uniqueness if updating
   if (username) {
-    const existingCheck = await query('SELECT id FROM profiles WHERE username = $1 AND id <> $2', [username.toLowerCase(), userId]);
-    const existingUser = existingCheck.rows[0];
+    const existingUser = await Profile.findOne({ username: username.toLowerCase(), _id: { $ne: userId } });
 
     if (existingUser) {
       res.status(409).json({ error: 'Username is already taken' });
@@ -106,24 +123,19 @@ router.patch('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
   }
 
   try {
-    const fields: string[] = [];
-    const values: any[] = [];
-    let idx = 1;
-    if (name) { fields.push(`name = $${idx++}`); values.push(name); }
-    if (username) { fields.push(`username = $${idx++}`); values.push(username.toLowerCase()); }
-    if (gender) { fields.push(`gender = $${idx++}`); values.push(gender); }
-    if (bio !== undefined) { fields.push(`bio = $${idx++}`); values.push(bio); }
-    if (age) { fields.push(`age = $${idx++}`); values.push(Number(age)); }
-    if (dob) { fields.push(`dob = $${idx++}`); values.push(dob); }
-    if (contact) { fields.push(`contact = $${idx++}`); values.push(contact); }
-    if (hobbies !== undefined) { fields.push(`hobbies = $${idx++}`); values.push(hobbies); }
-    fields.push(`updated_at = NOW()`);
-    values.push(userId);
+    const updates: any = {};
+    if (name !== undefined) updates.name = name;
+    if (username !== undefined) updates.username = username.toLowerCase();
+    if (gender !== undefined) updates.gender = gender;
+    if (bio !== undefined) updates.bio = bio;
+    if (age !== undefined) updates.age = Number(age);
+    if (dob !== undefined) updates.dob = dob;
+    if (contact !== undefined) updates.contact = contact;
+    if (hobbies !== undefined) updates.hobbies = hobbies;
 
-    const updateResult = await query(`UPDATE profiles SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
-    const data = updateResult.rows[0];
+    const data = await Profile.findByIdAndUpdate(userId, updates, { new: true }).lean();
 
-    res.status(200).json({ user: data });
+    res.status(200).json({ user: serializeProfile(data) });
   } catch (err) {
     console.error('[Users API] Error updating profile:', err);
     res.status(500).json({ error: 'Failed to update profile' });
@@ -144,7 +156,7 @@ router.delete('/me', authMiddleware, async (req: AuthenticatedRequest, res) => {
   }
 
   try {
-    await query('DELETE FROM profiles WHERE id = $1', [userId]);
+    await Profile.findByIdAndDelete(userId);
     res.status(200).json({ success: true, message: 'Account deleted successfully' });
   } catch (err) {
     console.error('[Users API] Error deleting account:', err);
@@ -184,13 +196,13 @@ router.post('/me/location', authMiddleware, async (req: AuthenticatedRequest, re
   }
 
   try {
-    const updateResult = await query(
-      'UPDATE profiles SET location = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [JSON.stringify({ latitude, longitude, accuracy: accuracy || null }), userId]
-    );
-    const data = updateResult.rows[0];
+    const data = await Profile.findByIdAndUpdate(
+      userId,
+      { location: { latitude, longitude, accuracy: accuracy || null } },
+      { new: true }
+    ).lean();
 
-    res.status(200).json({ user: data });
+    res.status(200).json({ user: serializeProfile(data) });
   } catch (err) {
     console.error('[Users API] Error updating location:', err);
     res.status(500).json({ error: 'Failed to update location' });
@@ -228,9 +240,8 @@ router.get('/me/export', authMiddleware, async (req: AuthenticatedRequest, res) 
   }
 
   try {
-    const result = await query('SELECT * FROM profiles WHERE id = $1', [userId]);
-    const profile = result.rows[0] || null;
-    res.status(200).json({ profile, exportedAt: new Date().toISOString() });
+    const profile = await Profile.findById(userId).lean();
+    res.status(200).json({ profile: serializeProfile(profile), exportedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[Users API] Error exporting data:', err);
     res.status(500).json({ error: 'Failed to export user data' });
@@ -258,8 +269,7 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
     // 1. Fetch own location
     let myLocation: { latitude: number; longitude: number } | null = null;
     if (isUuid(userId)) {
-      const myResult = await query('SELECT location FROM profiles WHERE id = $1', [userId]);
-      const myProfile = myResult.rows[0];
+      const myProfile = await Profile.findById(userId).select('location').lean();
       if (myProfile?.location && typeof myProfile.location === 'object') {
         const loc = myProfile.location as any;
         if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
@@ -270,14 +280,7 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
 
     // 2. Fetch candidate users (limit to 100 so we have a good pool for sorting)
     const targetUserId = isUuid(userId) ? userId : '';
-    const queryText = `
-      SELECT id, username, name, avatar_url, age, gender, bio, location, hobbies, created_at 
-      FROM profiles 
-      WHERE id <> $1 
-      LIMIT 100
-    `;
-    const usersResult = await query(queryText, [targetUserId]);
-    const users = usersResult.rows || [];
+    const users = await Profile.find({ _id: { $ne: targetUserId } }).limit(100).lean();
 
     const resultUsers = users.map((u: any) => {
       let distance: number | null = null;
@@ -295,7 +298,7 @@ router.get('/suggested', authMiddleware, async (req: AuthenticatedRequest, res) 
           (u.location as any).longitude
         );
       }
-      return { ...u, distance };
+      return { ...serializeProfile(u), distance };
     });
 
     // Sort: users with closest distance first, then users without location/distance
@@ -327,16 +330,14 @@ router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res) => 
   const sanitizedQuery = q.trim().substring(0, 100);
 
   try {
-    const searchResult = await query(
-      `SELECT id, username, name, avatar_url, age, gender, bio, location, hobbies, created_at 
-       FROM profiles 
-       WHERE username ILIKE $1 OR name ILIKE $1 
-       LIMIT 20`,
-      [`%${sanitizedQuery}%`]
-    );
-    const users = searchResult.rows;
+    const users = await Profile.find({
+      $or: [
+        { username: { $regex: sanitizedQuery, $options: 'i' } },
+        { name: { $regex: sanitizedQuery, $options: 'i' } },
+      ],
+    }).limit(20).lean();
 
-    res.status(200).json({ users: users || [] });
+    res.status(200).json({ users: (users || []).map(u => serializeProfile(u)) });
   } catch (err) {
     console.error('[Users API] Error searching users:', err);
     res.status(500).json({ error: 'Failed to search users' });

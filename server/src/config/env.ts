@@ -7,8 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 const requiredEnv = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
-  'REDIS_URL',
-  'DATABASE_URL'
+  'REDIS_URL'
 ] as const;
 
 const missing: string[] = [];
@@ -17,6 +16,11 @@ for (const key of requiredEnv) {
   if (!process.env[key]) {
     missing.push(key);
   }
+}
+
+const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || '';
+if (!mongoUri) {
+  missing.push('MONGO_URI or MONGODB_URI');
 }
 
 const rawJwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET;
@@ -47,7 +51,7 @@ export const env = {
   SUPABASE_SERVICE_ROLE_KEY: resolveServiceRoleKey(),
   SUPABASE_JWT_SECRET: supabaseJwtSecret as string,
   REDIS_URL: process.env.REDIS_URL as string,
-  DATABASE_URL: process.env.DATABASE_URL as string,
+  MONGO_URI: mongoUri,
   NODE_ENV: process.env.NODE_ENV || 'development',
   RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN || '',
   RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL || '',

@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { redisClient } from '../../config/redis.js';
-import { query } from '../../config/db.js';
+import { Room, RoomMember, Profile } from '../../config/db.js';
 
 const QUEUE_KEY = 'varta:matchmaking:queue';
 
@@ -66,11 +66,11 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
 
         // 1. Create Room and Members in Database
         try {
-          await query('INSERT INTO rooms (id, updated_at) VALUES ($1, $2)', [roomId, timestamp]);
-          await query(
-            'INSERT INTO room_members (room_id, user_id) VALUES ($1, $2), ($3, $4)',
-            [roomId, userId, roomId, matchedPeerId]
-          );
+          await Room.create({ _id: roomId, updated_at: timestamp });
+          await RoomMember.create([
+            { room_id: roomId, user_id: userId },
+            { room_id: roomId, user_id: matchedPeerId }
+          ]);
         } catch (dbErr) {
           console.error('[Matchmaker] Room insertion failed:', dbErr);
         }
@@ -80,20 +80,16 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
         let peerProfile: any = { id: matchedPeerId, name: 'Guest User', username: 'guest', avatar_url: '', gender: 'other', bio: '' };
 
         try {
-          const profilesRes = await query(
-            'SELECT id, name, username, gender, bio FROM profiles WHERE id = ANY($1)',
-            [[userId, matchedPeerId]]
-          );
-          const profiles = profilesRes.rows || [];
+          const profiles = await Profile.find({ _id: { $in: [userId, matchedPeerId] } }).lean();
 
-          const userDb = profiles.find((p) => p.id === userId);
-          const peerDb = profiles.find((p) => p.id === matchedPeerId);
+          const userDb = profiles.find((p) => p._id === userId);
+          const peerDb = profiles.find((p) => p._id === matchedPeerId);
 
           if (userDb) {
-            userProfile = { ...userProfile, ...userDb, _id: userDb.id };
+            userProfile = { ...userProfile, ...userDb, id: userDb._id, _id: userDb._id };
           }
           if (peerDb) {
-            peerProfile = { ...peerProfile, ...peerDb, _id: peerDb.id };
+            peerProfile = { ...peerProfile, ...peerDb, id: peerDb._id, _id: peerDb._id };
           }
         } catch (profileFetchErr) {
           console.error('[Matchmaker] Profiles fetch failed:', profileFetchErr);
