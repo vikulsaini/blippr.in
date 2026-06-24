@@ -170,7 +170,35 @@ router.patch('/:chatId/read', authMiddleware, (_req: AuthenticatedRequest, res) 
   res.status(200).json({ success: true });
 });
 
-// 5. Delete a chat room
+// 5. Get calls history for a room (client depends on this)
+router.get('/:chatId/calls', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  const { chatId } = req.params;
+  const userId = req.user?.id;
+  if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+  const isMember = await isRoomMember(chatId, userId);
+  if (!isMember) { res.status(403).json({ error: 'Access denied' }); return; }
+
+  res.status(200).json({ calls: [] });
+});
+
+// 6. Update nicknames in a room (client depends on this)
+router.patch('/:chatId/nicknames', authMiddleware, (req: AuthenticatedRequest, res) => {
+  const { chatId } = req.params;
+  res.status(200).json({
+    success: true,
+    chat: {
+      _id: chatId,
+      type: 'direct',
+      temporary: false,
+      unreadCount: 0,
+      lastMessage: null,
+      members: [],
+    },
+  });
+});
+
+// 7. Delete a chat room
 router.delete('/:chatId', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const { chatId } = req.params;
   const userId = req.user?.id;
