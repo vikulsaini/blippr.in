@@ -11,6 +11,7 @@ const isUuid = (id?: string): boolean => !!id && UUID_REGEX.test(id);
 const serializeProfile = (p: any) => {
   if (!p) return null;
   return {
+    _id: p._id,
     id: p._id,
     username: p.username,
     name: p.name,

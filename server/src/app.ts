@@ -13,16 +13,23 @@ import notificationsRouter from './routes/notifications.routes.js';
 
 const app = express();
 
-// Secure server by setting various HTTP headers
-app.use(helmet({
-  contentSecurityPolicy: false, // Disabled for Socket.IO and Google Fonts compatibility
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-}));
-
 // Allowed origins for CORS — from env var or default to production domains
 const ALLOWED_ORIGINS: string[] = env.CORS_ORIGINS
   ? env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
   : ['https://blippr.in', 'https://www.blippr.in'];
+
+// Secure server by setting various HTTP headers
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
+// Allow geolocation for frontend domains (Discover page uses location features)
+app.use((req, res, next) => {
+  const allowed = ["'self'", ...ALLOWED_ORIGINS.map(o => `"${o}"`)].join(' ');
+  res.setHeader('Permissions-Policy', `geolocation=(${allowed})`);
+  next();
+});
 
 // Enable CORS with strict origin matching and credentials true for credentials 'include' requests
 app.use(cors({
