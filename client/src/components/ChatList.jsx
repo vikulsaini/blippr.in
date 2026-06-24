@@ -105,7 +105,7 @@ export default function ChatList({
   }, [chats, currentUserId]);
 
   useEffect(() => {
-    if (query.trim().length < 3) return;
+    if (query.trim().length < 3 || tab !== 'vault') return;
     const timer = setTimeout(async () => {
       try {
         const { valid } = await api('/api/users/me/vault/verify', {
@@ -122,7 +122,7 @@ export default function ChatList({
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, tab]);
 
   const personalChats = useMemo(() => {
     return visibleChats;

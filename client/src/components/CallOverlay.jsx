@@ -96,6 +96,10 @@ export default function CallOverlay({
       <CallButton label="Reject" icon={PhoneOff} onClick={onReject} tone="danger" />
       <CallButton label="Accept" icon={Phone} onClick={onAccept} tone="mint" />
     </div>
+  ) : call?.status === "calling" ? (
+    <div className="grid w-full max-w-sm mx-auto">
+      <CallButton label="End" icon={PhoneOff} onClick={onEnd} tone="danger" />
+    </div>
   ) : (
     <div className={`grid w-full gap-1.5 sm:gap-2 ${isVideo ? 'max-w-md grid-cols-3 sm:max-w-3xl sm:grid-cols-6' : 'max-w-lg grid-cols-5'}`}>
       <CallButton label={call?.muted ? 'Unmute' : 'Mute'} icon={call?.muted ? MicOff : Mic} onClick={onToggleMute} />
