@@ -1,8 +1,9 @@
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { app } from './app.js';
-import { env } from './config/env.js';
+import { connectDb } from './config/db.js';
 import { connectRedis } from './config/redis.js';
+import { env } from './config/env.js';
 import { socketAuthMiddleware } from './middleware/socketAuth.js';
 import { registerCallHandlers } from './modules/call/call.handlers.js';
 import { registerMatchmakerHandlers } from './modules/matchmaker/matchmaker.handlers.js';
@@ -11,9 +12,9 @@ import { registerChatHandlers } from './modules/chat/chat.handlers.js';
 const httpServer = createServer(app);
 
 // Allowed origins for Socket.IO CORS
-const ALLOWED_ORIGINS = [
-  'https://blippr.in',
-  'https://www.blippr.in',
+const ALLOWED_ORIGINS: string[] = [
+  // Comma-separated CORS_ORIGINS env var takes precedence
+  ...(env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean) : []),
   // Railway dynamic domain
   ...(env.RAILWAY_PUBLIC_DOMAIN ? [`https://${env.RAILWAY_PUBLIC_DOMAIN}`] : []),
   // Render dynamic domain (already includes protocol)
@@ -21,6 +22,11 @@ const ALLOWED_ORIGINS = [
   // Explicit client URL override
   ...(env.CLIENT_URL ? [env.CLIENT_URL] : []),
 ];
+
+// Fallback to default production origins if none configured
+if (ALLOWED_ORIGINS.length === 0) {
+  ALLOWED_ORIGINS.push('https://blippr.in', 'https://www.blippr.in');
+}
 
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
@@ -73,8 +79,6 @@ io.on('connection', (socket) => {
     console.log(`[Socket] Client disconnected: socketId=${socket.id}, userId=${userId}, reason=${reason}`);
   });
 });
-
-import { connectDb } from './config/db.js';
 
 const startServer = async (): Promise<void> => {
   try {

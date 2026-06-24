@@ -14,8 +14,29 @@ export const connectDb = async (): Promise<void> => {
 };
 
 // 1. Profile Schema
-const ProfileSchema = new mongoose.Schema({
-  _id: { type: String, required: true }, // Custom string ID (UUID or guest ID)
+export interface IProfile {
+  _id: string;
+  username?: string;
+  name?: string;
+  avatar_url?: string;
+  bio?: string;
+  age?: number;
+  dob?: string;
+  gender?: string;
+  contact?: string;
+  hobbies?: string;
+  interests?: string[];
+  location?: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  };
+  created_at: Date;
+  updated_at: Date;
+}
+
+const ProfileSchema = new mongoose.Schema<IProfile>({
+  _id: { type: String, required: true },
   username: { type: String, unique: true, sparse: true },
   name: { type: String },
   avatar_url: { type: String },
@@ -25,6 +46,7 @@ const ProfileSchema = new mongoose.Schema({
   gender: { type: String },
   contact: { type: String },
   hobbies: { type: String },
+  interests: { type: [String], default: [] },
   location: {
     latitude: { type: Number },
     longitude: { type: Number },
@@ -34,7 +56,7 @@ const ProfileSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now },
 }, { _id: false, timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-export const Profile = mongoose.model('Profile', ProfileSchema);
+export const Profile = mongoose.model<IProfile>('Profile', ProfileSchema);
 
 // 2. Room Schema
 const RoomSchema = new mongoose.Schema({

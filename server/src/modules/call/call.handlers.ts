@@ -3,13 +3,13 @@ import { Profile } from '../../config/db.js';
 
 interface CallOfferPayload {
   to: string;
-  offer: any;
+  offer: unknown;
   callType: 'audio' | 'video';
 }
 
 interface CallAnswerPayload {
   to: string;
-  answer: any;
+  answer: unknown;
   callId: string;
 }
 
@@ -25,7 +25,7 @@ interface CallEndPayload {
 
 interface CallIceCandidatePayload {
   to: string;
-  candidate: any;
+  candidate: unknown;
   callId: string;
 }
 
@@ -35,11 +35,11 @@ export const registerCallHandlers = (io: Server, socket: Socket): void => {
     return;
   }
 
-  // Join the user's private signaling room
+  // Join the user's private signaling room for incoming calls
   socket.join(userId);
 
   // 1. Client initiates call (SDP Offer)
-  socket.on('call:offer', async (payload: CallOfferPayload, ack?: (response: any) => void) => {
+  socket.on('call:offer', async (payload: CallOfferPayload, ack?: (response: unknown) => void) => {
     const { to, offer, callType } = payload;
     if (!to || !offer) {
       if (ack) ack({ error: 'Invalid offer parameters' });
@@ -49,13 +49,12 @@ export const registerCallHandlers = (io: Server, socket: Socket): void => {
     const callId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     console.log(`[Call] Relaying call offer from ${userId} -> ${to} (ID: ${callId}, Type: ${callType})`);
 
-    // Fetch caller name and avatar details from Database
+    // Fetch caller name and avatar from Database
     let callerName = 'Blippr User';
     let callerAvatar = '';
 
     try {
       const data = await Profile.findById(userId).select('name avatar_url').lean();
-
       if (data) {
         callerName = data.name || callerName;
         callerAvatar = data.avatar_url || '';
@@ -80,7 +79,7 @@ export const registerCallHandlers = (io: Server, socket: Socket): void => {
   });
 
   // 2. Client answers call (SDP Answer)
-  socket.on('call:answer', (payload: CallAnswerPayload, ack?: (response: any) => void) => {
+  socket.on('call:answer', (payload: CallAnswerPayload, ack?: (response: unknown) => void) => {
     const { to, answer, callId } = payload;
     if (!to || !answer || !callId) {
       if (ack) ack({ error: 'Invalid answer parameters' });
@@ -102,39 +101,28 @@ export const registerCallHandlers = (io: Server, socket: Socket): void => {
   // 3. Client rejects call
   socket.on('call:reject', (payload: CallRejectPayload) => {
     const { to, callId } = payload;
-    if (!to || !callId) {
-      return;
-    }
+    if (!to || !callId) return;
 
     console.log(`[Call] Relaying reject from ${userId} -> ${to} (CallID: ${callId})`);
 
-    socket.to(to).emit('call:reject', {
-      callId,
-    });
+    socket.to(to).emit('call:reject', { callId });
   });
 
   // 4. Client ends active call
   socket.on('call:end', (payload: CallEndPayload) => {
     const { to, callId } = payload;
-    if (!to || !callId) {
-      return;
-    }
+    if (!to || !callId) return;
 
     console.log(`[Call] Relaying end from ${userId} -> ${to} (CallID: ${callId})`);
 
-    socket.to(to).emit('call:end', {
-      callId,
-    });
+    socket.to(to).emit('call:end', { callId });
   });
 
-  // 5. Relaying ICE Candidates
+  // 5. Relay ICE Candidates
   socket.on('call:ice-candidate', (payload: CallIceCandidatePayload) => {
     const { to, candidate, callId } = payload;
-    if (!to || !candidate || !callId) {
-      return;
-    }
+    if (!to || !candidate || !callId) return;
 
-    // Relay candidates directly to peer
     socket.to(to).emit('call:ice-candidate', {
       candidate,
       callId,

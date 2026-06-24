@@ -238,6 +238,13 @@ router.post('/guest/upgrade', async (req, res) => {
     return;
   }
 
+  // Rate limit guest upgrades per IP (5 per hour)
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  if (!checkRateLimit(`upgrade:${ip}`, 5, 60 * 60 * 1000)) {
+    res.status(429).json({ error: 'Too many upgrade attempts. Please try again later.' });
+    return;
+  }
+
   try {
     // 1. Register user with Supabase
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -280,9 +287,10 @@ router.post('/guest/upgrade', async (req, res) => {
         message: 'Registration successful! Please check your email to verify your account before logging in.' 
       });
     }
-  } catch (err: any) {
-    console.error('[Guest Upgrade] Upgrade failed:', err?.message || err);
-    res.status(500).json({ error: err?.message || 'An error occurred during upgrade.' });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    console.error('[Guest Upgrade] Upgrade failed:', message);
+    res.status(500).json({ error: 'An error occurred during upgrade.' });
   }
 });
 

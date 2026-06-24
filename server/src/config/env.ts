@@ -44,4 +44,5 @@ export const env = {
   RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN || '',
   RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL || '',
   CLIENT_URL: process.env.CLIENT_URL || '',
+  CORS_ORIGINS: process.env.CORS_ORIGINS || '', // Comma-separated list of allowed origins
 };

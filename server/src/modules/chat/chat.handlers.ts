@@ -2,7 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { Message } from '../../config/db.js';
 
 interface TypingPayload {
-  targetUserId: string;
+  chatId: string;
   isTyping: boolean;
 }
 
@@ -12,15 +12,9 @@ interface LocationPayload {
   longitude: number;
 }
 
-interface TransientMessagePayload {
-  targetUserId: string;
-  content: string;
-}
-
-interface PersistentMessagePayload {
-  targetUserId: string;
-  content: string;
-  roomId?: string;
+interface MessageSendPayload {
+  chatId: string;
+  text: string;
 }
 
 export const registerChatHandlers = (io: Server, socket: Socket): void => {
@@ -29,7 +23,7 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     return;
   }
 
-  // 1. Join Chat Room
+  // 1. Join/Leave Chat Room
   socket.on('chat:join', ({ chatId }: { chatId: string }) => {
     if (chatId) {
       socket.join(chatId);
@@ -37,7 +31,6 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     }
   });
 
-  // 2. Leave Chat Room
   socket.on('chat:leave', ({ chatId }: { chatId: string }) => {
     if (chatId) {
       socket.leave(chatId);
@@ -45,7 +38,7 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     }
   });
 
-  // 3. Relay typing status
+  // 2. Unified typing indicators (room-based)
   socket.on('typing:start', ({ chatId }: { chatId: string }) => {
     if (chatId) {
       socket.to(chatId).emit('typing:start', { chatId, userId });
@@ -58,20 +51,55 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
     }
   });
 
-  // 4. Typing status indicator
-  socket.on('chat:typing', (payload: TypingPayload) => {
-    const { targetUserId, isTyping } = payload;
-    if (!targetUserId) {
+  // 3. Send message (persisted to DB and broadcast to room)
+  socket.on('message:send', async (payload: MessageSendPayload, ack?: (response: any) => void) => {
+    const { chatId, text } = payload;
+    if (!chatId || !text) {
+      if (ack) ack({ ok: false, message: 'Invalid message payload' });
       return;
     }
 
-    socket.to(targetUserId).emit('chat:typing', {
-      senderId: userId,
-      isTyping,
-    });
+    const sanitizedText = text.trim().substring(0, 10000);
+    if (!sanitizedText) {
+      if (ack) ack({ ok: false, message: 'Message cannot be empty' });
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+    const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+
+    const message = {
+      _id: msgId,
+      chat: chatId,
+      sender: userId,
+      text: sanitizedText,
+      reactions: [] as string[],
+      status: 'sent',
+      createdAt: timestamp,
+    };
+
+    // Broadcast to other peers in the room
+    socket.to(chatId).emit('message:new', { message });
+
+    // Persist to database (non-blocking)
+    try {
+      await Message.create({
+        _id: msgId,
+        room_id: chatId,
+        sender_id: userId,
+        content: sanitizedText,
+        created_at: timestamp,
+      });
+    } catch (dbErr) {
+      console.error('[Chat Sockets] Failed to persist message:', dbErr);
+    }
+
+    if (ack) {
+      ack({ ok: true, message });
+    }
   });
 
-  // 5. Real-time location sharing
+  // 4. Real-time location sharing
   socket.on('chat:location', (payload: LocationPayload) => {
     const { targetUserId, latitude, longitude } = payload;
     if (!targetUserId || latitude === undefined || longitude === undefined) {
@@ -83,95 +111,5 @@ export const registerChatHandlers = (io: Server, socket: Socket): void => {
       latitude,
       longitude,
     });
-  });
-
-  // 6. Transient Messaging (Real-time only, no database storage)
-  socket.on('chat:transient_message', (payload: TransientMessagePayload) => {
-    const { targetUserId, content } = payload;
-    if (!targetUserId || !content) {
-      return;
-    }
-
-    socket.to(targetUserId).emit('chat:transient_message', {
-      senderId: userId,
-      content,
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  // 7. Persistent Messaging (Broadcasts instantly, persists in background)
-  socket.on('chat:persistent_message', async (payload: PersistentMessagePayload) => {
-    const { targetUserId, content, roomId } = payload;
-    if (!targetUserId || !content) {
-      return;
-    }
-
-    const timestamp = new Date().toISOString();
-
-    // Broadcast instantly to peer for low-latency response
-    socket.to(targetUserId).emit('chat:persistent_message', {
-      senderId: userId,
-      content,
-      roomId,
-      timestamp,
-    });
-
-    // Persist to Database
-    if (roomId) {
-      try {
-        const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-        await Message.create({
-          _id: msgId,
-          room_id: roomId,
-          sender_id: userId,
-          content,
-          created_at: timestamp,
-        });
-      } catch (err) {
-        console.error('[Chat] Database connection error during message sync:', err);
-      }
-    }
-  });
-
-  // 8. General/Stranger messaging (client emits 'message:send', expects ack with { ok, message })
-  socket.on('message:send', async (payload: { chatId: string; text: string }, ack?: (response: any) => void) => {
-    const { chatId, text } = payload;
-    if (!chatId || !text) {
-      if (ack) ack({ ok: false, message: 'Invalid message payload' });
-      return;
-    }
-
-    const timestamp = new Date().toISOString();
-    const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-
-    const message = {
-      _id: msgId,
-      chat: chatId,
-      sender: userId,
-      text,
-      reactions: [],
-      status: 'sent',
-      createdAt: timestamp,
-    };
-
-    // Broadcast message to other peer in the room
-    socket.to(chatId).emit('message:new', { message });
-
-    // Store in Database in background (fail silently)
-    try {
-      await Message.create({
-        _id: msgId,
-        room_id: chatId,
-        sender_id: userId,
-        content: text,
-        created_at: timestamp,
-      });
-    } catch (dbErr) {
-      console.error('[Chat Sockets] Failed to persist message:', dbErr);
-    }
-
-    if (ack) {
-      ack({ ok: true, message });
-    }
   });
 };

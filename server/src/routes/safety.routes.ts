@@ -1,28 +1,9 @@
 import { Router } from 'express';
-import { Block, Profile, Room, RoomMember, Report, FriendRequest } from '../config/db.js';
+import { Block, Profile, Report } from '../config/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { deleteMutualFriendRequests, cleanupSharedRooms } from '../utils/helpers.js';
 
 const router = Router();
-
-// Helper: find shared room IDs between two users
-async function findSharedRoomIds(userId1: string, userId2: string): Promise<string[]> {
-  const rm1 = await RoomMember.find({ user_id: userId1 }).lean();
-  const rm2 = await RoomMember.find({ user_id: userId2 }).lean();
-  
-  if (!rm1 || !rm2) return [];
-  const userRoomIds = new Set(rm1.map((rm) => rm.room_id));
-  return rm2.map((rm) => rm.room_id).filter((id) => userRoomIds.has(id));
-}
-
-// Helper: delete mutual friend requests (safe separate queries)
-async function deleteMutualFriendRequests(userId1: string, userId2: string) {
-  await FriendRequest.deleteMany({
-    $or: [
-      { sender_id: userId1, receiver_id: userId2 },
-      { sender_id: userId2, receiver_id: userId1 },
-    ]
-  });
-}
 
 // 1. Get blocked users (Authenticated)
 router.get('/blocked', authMiddleware, async (req: AuthenticatedRequest, res) => {
@@ -84,16 +65,11 @@ router.post('/block', authMiddleware, async (req: AuthenticatedRequest, res) => 
       { upsert: true, new: true }
     );
 
-    // Automatically clean up friend request relation if exists (safe separate queries)
+    // Automatically clean up friend request relation if exists
     await deleteMutualFriendRequests(blockerId, blockedId);
 
     // Clean up direct rooms shared by both users
-    const sharedRoomIds = await findSharedRoomIds(blockerId, blockedId);
-
-    if (sharedRoomIds.length > 0) {
-      await Room.deleteMany({ _id: { $in: sharedRoomIds } });
-      await RoomMember.deleteMany({ room_id: { $in: sharedRoomIds } });
-    }
+    await cleanupSharedRooms(blockerId, blockedId);
 
     res.status(200).json({ success: true, message: 'User blocked successfully' });
   } catch (err) {

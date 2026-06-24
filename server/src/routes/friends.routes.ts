@@ -1,35 +1,9 @@
 import { Router } from 'express';
 import { FriendRequest, Profile, Room, RoomMember } from '../config/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { findMutualFriendRequest, deleteMutualFriendRequests, cleanupSharedRooms } from '../utils/helpers.js';
 
 const router = Router();
-
-async function findMutualFriendRequest(userId1: string, userId2: string) {
-  return await FriendRequest.findOne({
-    $or: [
-      { sender_id: userId1, receiver_id: userId2 },
-      { sender_id: userId2, receiver_id: userId1 },
-    ]
-  }).lean();
-}
-
-async function deleteMutualFriendRequests(userId1: string, userId2: string) {
-  await FriendRequest.deleteMany({
-    $or: [
-      { sender_id: userId1, receiver_id: userId2 },
-      { sender_id: userId2, receiver_id: userId1 },
-    ]
-  });
-}
-
-async function findSharedRoomIds(userId1: string, userId2: string) {
-  const rm1 = await RoomMember.find({ user_id: userId1 }).lean();
-  const rm2 = await RoomMember.find({ user_id: userId2 }).lean();
-  
-  if (!rm1 || !rm2) return [];
-  const userRoomIds = new Set(rm1.map((rm) => rm.room_id));
-  return rm2.map((rm) => rm.room_id).filter((id) => userRoomIds.has(id));
-}
 
 router.get('/requests', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userId = req.user?.id;
@@ -156,11 +130,7 @@ router.delete('/:userId', authMiddleware, async (req: AuthenticatedRequest, res)
   if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
   try {
     await deleteMutualFriendRequests(userId, targetId);
-    const sharedRoomIds = await findSharedRoomIds(userId, targetId);
-    if (sharedRoomIds.length > 0) {
-      await Room.deleteMany({ _id: { $in: sharedRoomIds } });
-      await RoomMember.deleteMany({ room_id: { $in: sharedRoomIds } });
-    }
+    await cleanupSharedRooms(userId, targetId);
     res.status(200).json({ success: true, message: 'Unfriended successfully' });
   } catch (err) {
     console.error('[Friends API] Error:', err);

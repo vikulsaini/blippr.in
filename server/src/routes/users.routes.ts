@@ -209,12 +209,7 @@ router.post('/me/location', authMiddleware, async (req: AuthenticatedRequest, re
   }
 });
 
-// 5. Update user vault/private files
-router.post('/me/vault', authMiddleware, (req: AuthenticatedRequest, res) => {
-  res.status(200).json({ success: true, message: 'Vault files updated successfully' });
-});
-
-// 6. Export user data payload
+// 5. Export user data payload
 router.get('/me/export', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const userId = req.user?.id;
   if (!userId) {

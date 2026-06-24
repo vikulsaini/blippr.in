@@ -1,17 +1,31 @@
 import { Server, Socket } from 'socket.io';
 import { redisClient } from '../../config/redis.js';
-import { Room, RoomMember, Profile } from '../../config/db.js';
+import { Room, RoomMember, Profile, IProfile } from '../../config/db.js';
 
 const QUEUE_KEY = 'varta:matchmaking:queue';
+
+interface ProfilePayload {
+  id: string;
+  _id: string;
+  name: string;
+  username: string;
+  avatar_url: string;
+  gender: string;
+  bio: string;
+}
+
+interface StrangerSignalPayload {
+  chatId: string;
+  to: string;
+  type: string;
+  payload: unknown;
+}
 
 export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => {
   const userId = socket.data.userId;
   if (!userId) {
     return;
   }
-
-  // Join the user's private signaling room if they haven't already
-  socket.join(userId);
 
   const leaveQueue = async (): Promise<void> => {
     try {
@@ -22,7 +36,20 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
     }
   };
 
-  const handleJoin = async (ack?: (response: any) => void) => {
+  const buildProfilePayload = (profile: IProfile | undefined, fallbackId: string): ProfilePayload => {
+    const id = profile?._id || fallbackId;
+    return {
+      id,
+      _id: id,
+      name: profile?.name || 'Guest User',
+      username: profile?.username || 'guest',
+      avatar_url: profile?.avatar_url || '',
+      gender: profile?.gender || 'other',
+      bio: profile?.bio || '',
+    };
+  };
+
+  const handleJoin = async (ack?: (response: unknown) => void) => {
     try {
       console.log(`[Matchmaker] User ${userId} requested to join matchmaking queue`);
 
@@ -35,13 +62,8 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
       // Pop users from the queue until we find an active online peer or empty the queue
       while (!foundActivePeer) {
         const peerId = await redisClient.lPop(QUEUE_KEY);
-        if (!peerId) {
-          break; // Queue is empty
-        }
-
-        if (peerId === userId) {
-          continue; // Avoid matching with oneself
-        }
+        if (!peerId) break; // Queue is empty
+        if (peerId === userId) continue; // Avoid matching with oneself
 
         // Verify that the peer is actually still online and connected
         const activeSockets = await io.in(peerId).fetchSockets();
@@ -60,44 +82,36 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
       if (matchedPeerId) {
         console.log(`[Matchmaker] MATCH CREATED: ${userId} <-> ${matchedPeerId}`);
 
-        // Create a room and add both users as members
         const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
         const timestamp = new Date().toISOString();
 
-        // 1. Create Room and Members in Database
+        // Create Room and Members in Database
         try {
           await Room.create({ _id: roomId, updated_at: timestamp });
           await RoomMember.create([
             { room_id: roomId, user_id: userId },
-            { room_id: roomId, user_id: matchedPeerId }
+            { room_id: roomId, user_id: matchedPeerId },
           ]);
         } catch (dbErr) {
           console.error('[Matchmaker] Room insertion failed:', dbErr);
         }
 
-        // 2. Load User Profiles to construct client payload
-        let userProfile: any = { id: userId, name: 'Guest User', username: 'guest', avatar_url: '', gender: 'other', bio: '' };
-        let peerProfile: any = { id: matchedPeerId, name: 'Guest User', username: 'guest', avatar_url: '', gender: 'other', bio: '' };
+        // Load User Profiles
+        let userProfile: ProfilePayload;
+        let peerProfile: ProfilePayload;
 
         try {
           const profiles = await Profile.find({ _id: { $in: [userId, matchedPeerId] } }).lean();
-
           const userDb = profiles.find((p) => p._id === userId);
           const peerDb = profiles.find((p) => p._id === matchedPeerId);
 
-          if (userDb) {
-            userProfile = { ...userProfile, ...userDb, id: userDb._id, _id: userDb._id };
-          }
-          if (peerDb) {
-            peerProfile = { ...peerProfile, ...peerDb, id: peerDb._id, _id: peerDb._id };
-          }
+          userProfile = buildProfilePayload(userDb, userId);
+          peerProfile = buildProfilePayload(peerDb, matchedPeerId);
         } catch (profileFetchErr) {
           console.error('[Matchmaker] Profiles fetch failed:', profileFetchErr);
+          userProfile = buildProfilePayload(undefined, userId);
+          peerProfile = buildProfilePayload(undefined, matchedPeerId);
         }
-
-        // Add client-expected _id to profile objects
-        const formattedUser = { ...userProfile, _id: userProfile.id };
-        const formattedPeer = { ...peerProfile, _id: peerProfile.id };
 
         const chatPayload = {
           _id: roomId,
@@ -106,16 +120,16 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
           createdAt: timestamp,
         };
 
-        // Notify both parties of the match with client-expected properties (chat, peer, initiator)
+        // Notify both parties of the match
         io.to(userId).emit('stranger:matched', {
           chat: chatPayload,
-          peer: formattedPeer,
+          peer: peerProfile,
           initiator: true,
         });
 
         io.to(matchedPeerId).emit('stranger:matched', {
           chat: chatPayload,
-          peer: formattedUser,
+          peer: userProfile,
           initiator: false,
         });
       } else {
@@ -130,49 +144,44 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
     }
   };
 
-  // 1. Listen for client requests to search for stranger
-  socket.on('stranger:find', async (data: any, ack?: (response: any) => void) => {
-    await handleJoin(ack);
+  // 1. Search for stranger
+  socket.on('stranger:find', (_data: unknown, ack?: (response: unknown) => void) => {
+    handleJoin(ack);
   });
 
-  // 2. Listen for client requests to skip/next to next stranger
-  socket.on('stranger:next', async (payload: { chatId?: string }, ack?: (response: any) => void) => {
+  // 2. Skip/next to next stranger
+  socket.on('stranger:next', async (payload: { chatId?: string }, ack?: (response: unknown) => void) => {
     const { chatId } = payload;
-    
+
     // Notify the other stranger that this user skipped
     if (chatId) {
       socket.to(chatId).emit('stranger:left', { chatId });
       console.log(`[Matchmaker] User ${userId} skipped room ${chatId}`);
-    }
-
-    // Leave the socket room
-    if (chatId) {
       socket.leave(chatId);
     }
 
-    // Remove from queue and find another match
     await leaveQueue();
     await handleJoin(ack);
   });
 
-  // 3. User cancels/leaves the matchmaking queue
+  // 3. Cancel/leave matchmaking queue
   socket.on('stranger:leave', async () => {
     await leaveQueue();
     socket.emit('stranger:left');
   });
 
-  // 4. Return count of active users on stranger matching page
+  // 4. Return count of active users
   socket.on('stranger:stats', (ack: (result: { ok: boolean; activeUsers: number }) => void) => {
     try {
       const activeUsers = io.engine.clientsCount || 1;
       ack({ ok: true, activeUsers });
-    } catch (err) {
+    } catch {
       ack({ ok: false, activeUsers: 1 });
     }
   });
 
-  // 5. Relaying WebRTC signal candidates
-  socket.on('stranger:signal', (payload: { chatId: string; to: string; type: string; payload: any }, ack?: (response: any) => void) => {
+  // 5. Relay WebRTC signal candidates
+  socket.on('stranger:signal', (payload: StrangerSignalPayload, ack?: (response: unknown) => void) => {
     const { chatId, to, type, payload: signalPayload } = payload;
     if (!to || !type) {
       if (ack) ack({ ok: false, message: 'Invalid signal parameters' });
@@ -181,7 +190,6 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
 
     console.log(`[Matchmaker] Relaying stranger signal (${type}) from ${userId} -> ${to}`);
 
-    // Relay signal directly to the recipient's private socket room
     socket.to(to).emit('stranger:signal', {
       chatId,
       from: userId,
@@ -194,7 +202,7 @@ export const registerMatchmakerHandlers = (io: Server, socket: Socket): void => 
     }
   });
 
-  // 6. Cleanup queue position upon websocket disconnection
+  // 6. Cleanup queue position on websocket disconnection
   socket.on('disconnect', async () => {
     await leaveQueue();
   });

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { env } from './config/env.js';
 import { errorHandler } from './middleware/error.js';
 import configRouter from './routes/config.routes.js';
 import authRouter from './routes/auth.routes.js';
@@ -18,11 +19,10 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
-// Allowed origins for CORS — restrict to known frontend URLs
-const ALLOWED_ORIGINS = [
-  'https://blippr.in',
-  'https://www.blippr.in',
-];
+// Allowed origins for CORS — from env var or default to production domains
+const ALLOWED_ORIGINS: string[] = env.CORS_ORIGINS
+  ? env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+  : ['https://blippr.in', 'https://www.blippr.in'];
 
 // Enable CORS with strict origin matching and credentials true for credentials 'include' requests
 app.use(cors({
@@ -56,8 +56,9 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Parse JSON and URL-encoded bodies with reasonable size limits
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Liveness check end point
 app.get('/health', (req, res) => {
