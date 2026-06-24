@@ -100,7 +100,7 @@ export const registerCallHandlers = (io: Server, socket: Socket): void => {
     });
 
     if (ack) {
-      ack({ callId, sent });
+      ack({ ok: true, callId, sent });
     }
 
     // Schedule a timeout - if no answer/reject within 45 seconds, notify caller
@@ -127,7 +127,7 @@ export const registerCallHandlers = (io: Server, socket: Socket): void => {
     });
 
     if (ack) {
-      ack({ success: true });
+      ack({ ok: true, success: true });
     }
   });
 
