@@ -17,6 +17,7 @@ export interface AuthenticatedRequest extends Request {
     role?: string;
     user_metadata?: UserMetadata;
   };
+  file?: Express.Multer.File;
 }
 
 interface JwtPayload {

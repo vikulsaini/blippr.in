@@ -47,7 +47,7 @@ export interface UploadedFile {
 
 // POST /api/upload — Upload a file (image, voice note, document)
 router.post('/', authMiddleware, (req: AuthenticatedRequest, res) => {
-  upload.single('file')(req, res, (err) => {
+  upload.single('file')(req, res, (err: any) => {
     if (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
