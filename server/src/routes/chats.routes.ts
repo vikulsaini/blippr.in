@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Room, RoomMember, Message } from '../config/db.js';
+import { Room, RoomMember, Message, Profile } from '../config/db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { Server } from 'socket.io';
 
@@ -14,7 +14,6 @@ async function isRoomMember(roomId: string, userId: string): Promise<boolean> {
     // Check if room exists and has no members (legacy room)
     const allMembers = await RoomMember.find({ room_id: roomId });
     if (allMembers.length === 0) {
-      // Legacy room with no members — auto-enroll this user
       await RoomMember.create({ room_id: roomId, user_id: userId });
       return true;
     }
@@ -22,6 +21,36 @@ async function isRoomMember(roomId: string, userId: string): Promise<boolean> {
     return false;
   } catch {
     return false;
+  }
+}
+
+// Helper: fetch profile data for a list of user IDs
+async function getMemberProfiles(userIds: string[]): Promise<Map<string, { _id: string; name?: string; username?: string; avatar_url: string }>> {
+  const profiles = await Profile.find({ _id: { $in: userIds } }).lean();
+  const map = new Map<string, { _id: string; name?: string; username?: string; avatar_url: string }>();
+  for (const p of profiles) {
+    map.set(p._id, {
+      _id: p._id,
+      name: p.name,
+      username: p.username,
+      avatar_url: p.avatar_url || '',
+    });
+  }
+  return map;
+}
+
+// Helper: broadcast a message to a room excluding the sender's sockets
+function broadcastMessage(io: Server, chatId: string, message: unknown, senderUserId: string): void {
+  // Get all sockets in the room
+  const room = io.sockets.adapter.rooms.get(chatId);
+  if (!room) return;
+
+  // Emit to all sockets in the room except those belonging to the sender
+  for (const socketId of room) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket && socket.data.userId !== senderUserId) {
+      socket.emit('message:new', { message });
+    }
   }
 }
 
@@ -42,25 +71,37 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
     }
 
     const roomIds = memberships.map((m) => m.room_id);
-    const rooms = await Room.find({ _id: { $in: roomIds } }).lean();
-    const members = await RoomMember.find({ room_id: { $in: roomIds } }).lean();
+    const [rooms, members] = await Promise.all([
+      Room.find({ _id: { $in: roomIds } }).lean(),
+      RoomMember.find({ room_id: { $in: roomIds } }).lean(),
+    ]);
 
-    const membersMap: Record<string, Array<{ _id: string }>> = {};
+    // Build map of room members and collect all member user IDs for profile lookup
+    const membersMap: Record<string, string[]> = {};
+    const allMemberIds = new Set<string>();
+
     for (const member of members) {
       if (!membersMap[member.room_id]) {
         membersMap[member.room_id] = [];
       }
-      membersMap[member.room_id].push({ _id: member.user_id });
+      membersMap[member.room_id].push(member.user_id);
+      allMemberIds.add(member.user_id);
     }
+
+    // Fetch profile data for all members in one query
+    const profileMap = await getMemberProfiles([...allMemberIds]);
 
     const chats = rooms.map((room) => ({
       _id: room._id,
-      type: 'direct',
+      type: 'direct' as const,
       temporary: false,
       updatedAt: room.updated_at,
       unreadCount: 0,
       lastMessage: null,
-      members: membersMap[room._id] || [],
+      members: (membersMap[room._id] || []).map((uid) => {
+        const profile = profileMap.get(uid);
+        return profile || { _id: uid, name: uid, username: uid, avatar_url: '' };
+      }),
     }));
 
     res.status(200).json({ chats, pageInfo: { hasMore: false, nextCursor: null } });
@@ -90,13 +131,18 @@ router.get('/:chatId/messages', authMiddleware, async (req: AuthenticatedRequest
   try {
     const messages = await Message.find({ room_id: chatId }).sort({ created_at: 1 }).lean();
 
+    // Collect unique sender IDs to fetch their profiles
+    const senderIds = [...new Set(messages.map((msg) => msg.sender_id))];
+    const profileMap = await getMemberProfiles(senderIds);
+
     const formattedMessages = messages.map((msg) => ({
       _id: msg._id,
       chat: msg.room_id,
       sender: msg.sender_id,
+      senderProfile: profileMap.get(msg.sender_id) || null,
       text: msg.content,
       reactions: [] as string[],
-      status: 'seen',
+      status: 'seen' as const,
       createdAt: msg.created_at,
     }));
 
@@ -148,14 +194,14 @@ router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedReques
       sender: userId,
       text: sanitizedText,
       reactions: [] as string[],
-      status: 'sent',
+      status: 'sent' as const,
       createdAt: timestamp,
     };
 
-    // Relay the message via WebSockets
+    // Relay the message via WebSockets — exclude the sender to avoid duplicates
     const io: Server = req.app.get('io');
     if (io) {
-      io.to(chatId).emit('message:new', { message });
+      broadcastMessage(io, chatId, message, userId);
     }
 
     res.status(201).json({ message });
