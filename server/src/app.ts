@@ -94,8 +94,8 @@ app.use('/api/users', usersRouter);
 // Notifications routes
 app.use('/api/notifications', notificationsRouter);
 
-// File upload routes
-app.use('/api/upload', uploadRouter);
+// File upload routes (client expects /api/media/upload)
+app.use('/api/media', uploadRouter);
 
 // Register global error handler
 app.use(errorHandler);

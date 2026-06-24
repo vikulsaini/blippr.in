@@ -39,6 +39,15 @@ async function getMemberProfiles(userIds: string[]): Promise<Map<string, { _id: 
   return map;
 }
 
+// Helper: map MIME type to allowed media_type enum value
+function mimeToMediaType(mime?: string): string | undefined {
+  if (!mime) return undefined;
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('audio/')) return 'audio';
+  if (mime.startsWith('video/')) return 'video';
+  return 'document';
+}
+
 // Helper: broadcast a message to a room excluding the sender's sockets
 function broadcastMessage(io: Server, chatId: string, message: unknown, senderUserId: string): void {
   // Get all sockets in the room
@@ -172,9 +181,10 @@ router.get('/:chatId/messages', authMiddleware, async (req: AuthenticatedRequest
 });
 
 // 3. Post a new message in a room (supports text, media, location)
+// Accepts both flat format (mediaUrl, mediaType) and client's nested format ({ media: { url, mimeType } })
 router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const { chatId } = req.params;
-  const { text, mediaUrl, mediaType, mediaName, mediaSize, location } = req.body;
+  const { text, mediaUrl, mediaType, mediaName, mediaSize, location, media } = req.body;
   const userId = req.user?.id;
 
   if (!userId) {
@@ -183,9 +193,15 @@ router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedReques
   }
 
   const sanitizedText = typeof text === 'string' ? text.trim().substring(0, 10000) : '';
-  
+
+  // Handle nested media object (client format: { media: { url, mimeType, ... } })
+  const resolvedMediaUrl = mediaUrl || media?.url || undefined;
+  const resolvedMediaType = mediaType || mimeToMediaType(media?.mimeType) || (media?.url ? 'image' : undefined);
+  const resolvedMediaName = mediaName || media?.name || undefined;
+  const resolvedMediaSize = mediaSize || media?.size || undefined;
+
   // Must have either text, media, or location
-  if (!sanitizedText && !mediaUrl && !location) {
+  if (!sanitizedText && !resolvedMediaUrl && !location) {
     res.status(400).json({ error: 'Message must contain text, media, or location.' });
     return;
   }
@@ -200,17 +216,22 @@ router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedReques
     const timestamp = new Date().toISOString();
     const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
-    // Validate location data if provided
+    // Validate location data - handle both flat format and client format (coordinates array)
     let locationData = undefined;
     if (location) {
-      if (typeof location.latitude !== 'number' || typeof location.longitude !== 'number') {
+      if (typeof location.latitude === 'number' && typeof location.longitude === 'number') {
+        // Flat format: { latitude, longitude }
+        locationData = { latitude: location.latitude, longitude: location.longitude };
+      } else if (Array.isArray(location.coordinates) && location.coordinates.length === 2) {
+        // Client format: { coordinates: [longitude, latitude], type, accuracy }
+        locationData = {
+          latitude: location.coordinates[1],
+          longitude: location.coordinates[0],
+        };
+      } else {
         res.status(400).json({ error: 'Location must have valid latitude and longitude.' });
         return;
       }
-      locationData = {
-        latitude: location.latitude,
-        longitude: location.longitude,
-      };
     }
 
     await Message.create({
@@ -218,8 +239,8 @@ router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedReques
       room_id: chatId,
       sender_id: userId,
       content: sanitizedText || undefined,
-      media_url: mediaUrl || undefined,
-      media_type: mediaType || undefined,
+      media_url: resolvedMediaUrl,
+      media_type: resolvedMediaType,
       location: locationData,
       created_at: timestamp,
     });
@@ -234,11 +255,11 @@ router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedReques
       createdAt: timestamp,
     };
 
-    if (mediaUrl) {
-      message.mediaUrl = mediaUrl;
-      message.mediaType = mediaType || 'image';
-      if (mediaName) message.mediaName = mediaName;
-      if (mediaSize) message.mediaSize = mediaSize;
+    if (resolvedMediaUrl) {
+      message.mediaUrl = resolvedMediaUrl;
+      message.mediaType = resolvedMediaType || 'image';
+      if (resolvedMediaName) message.mediaName = resolvedMediaName;
+      if (resolvedMediaSize) message.mediaSize = resolvedMediaSize;
     }
 
     if (locationData) {
