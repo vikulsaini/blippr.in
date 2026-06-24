@@ -218,6 +218,11 @@ router.patch('/requests/:id', authMiddleware, async (req: AuthenticatedRequest, 
 
     await FriendRequest.findByIdAndUpdate(id, { status });
 
+    // Fetch profiles once and reuse for both chat members and request formatting
+    const profiles = await fetchProfilesMap([request.sender_id, receiverId]);
+
+    let chat: { _id: string; type: string; temporary: boolean; createdAt: string; members: FormattedProfile[] } | null = null;
+
     if (status === 'accepted') {
       // Create a shared room
       const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
@@ -226,10 +231,20 @@ router.patch('/requests/:id', authMiddleware, async (req: AuthenticatedRequest, 
         { room_id: roomId, user_id: request.sender_id },
         { room_id: roomId, user_id: receiverId },
       ]);
+
+      chat = {
+        _id: roomId,
+        type: 'direct',
+        temporary: false,
+        createdAt: new Date().toISOString(),
+        members: [
+          profiles.get(request.sender_id) || { _id: request.sender_id, avatar_url: '' },
+          profiles.get(receiverId) || { _id: receiverId, avatar_url: '' },
+        ],
+      };
     }
 
     // Return formatted response with profile data
-    const profiles = await fetchProfilesMap([request.sender_id, receiverId]);
     const formatted = {
       _id: String(request._id),
       from: profiles.get(request.sender_id) || { _id: request.sender_id, avatar_url: '' },
@@ -238,7 +253,7 @@ router.patch('/requests/:id', authMiddleware, async (req: AuthenticatedRequest, 
       createdAt: formatDate(request.created_at),
     };
 
-    res.status(200).json({ success: true, request: formatted });
+    res.status(200).json({ success: true, request: formatted, chat });
   } catch (err) {
     console.error('[Friends API] Error updating friend request:', err);
     res.status(500).json({ error: 'Failed to update friend request.' });
