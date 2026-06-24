@@ -336,7 +336,7 @@ export default function CallOverlay({
 
                 {/* Interaction Controls (Floating Action Bar) */}
                 <nav className={`absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-full max-w-[400px] px-6 transition-opacity duration-300 ${chromeClass}`}>
-                  <div className="glass-panel p-4 rounded-[32px] flex items-center justify-between shadow-2xl w-full">
+                  <div className={`glass-panel p-4 rounded-[32px] flex items-center shadow-2xl w-full ${call.status === 'connected' || call.status === 'reconnecting' ? 'justify-between' : 'justify-center'}`}>
                     {/* Mute Toggle */}
                     <button 
                       onClick={onToggleMute}

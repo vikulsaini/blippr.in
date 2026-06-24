@@ -1,3 +1,4 @@
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { Suspense, lazy, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { getToken } from './lib/api.js';

@@ -34,7 +34,7 @@ router.get('/app', (req, res) => {
 
 // 2. WebRTC Server Settings / ICE configuration (Authenticated to prevent bandwidth/session abuse)
 router.get('/rtc', authMiddleware, (req, res) => {
-  const turnUrlsStr = process.env.TURN_URLS || '';
+  const turnUrlsStr = env.TURN_URLS;
   const urls = turnUrlsStr
     ? turnUrlsStr.split(',').map((u) => u.trim()).filter(Boolean)
     : [
@@ -48,8 +48,8 @@ router.get('/rtc', authMiddleware, (req, res) => {
   res.status(200).json({
     turn: {
       urls,
-      username: process.env.TURN_USERNAME || undefined,
-      credential: process.env.TURN_PASSWORD || process.env.TURN_CREDENTIAL || undefined,
+      username: env.TURN_USERNAME || undefined,
+      credential: env.TURN_PASSWORD || env.TURN_CREDENTIAL || undefined,
     },
   });
 });

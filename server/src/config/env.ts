@@ -45,4 +45,8 @@ export const env = {
   RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL || '',
   CLIENT_URL: process.env.CLIENT_URL || '',
   CORS_ORIGINS: process.env.CORS_ORIGINS || '', // Comma-separated list of allowed origins
+  TURN_URLS: process.env.TURN_URLS || '', // Comma-separated TURN server URLs
+  TURN_USERNAME: process.env.TURN_USERNAME || '',
+  TURN_PASSWORD: process.env.TURN_PASSWORD || '',
+  TURN_CREDENTIAL: process.env.TURN_CREDENTIAL || '',
 };

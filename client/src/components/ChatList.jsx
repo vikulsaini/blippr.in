@@ -506,7 +506,7 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
       if (drag.lockDirection === 'horizontal') {
         const currentX = x.get();
         const rowWidth = element.offsetWidth || window.innerWidth;
-        const archiveThreshold = -Math.max(100, rowWidth * 0.4);
+        const archiveThreshold = -Math.max(100, rowWidth * 0.3);
         const muteThreshold = 80;
 
         if (currentX <= archiveThreshold) {
@@ -607,7 +607,7 @@ const SwipeChatRow = memo(function SwipeChatRow({ chat, currentUserId, selected,
       if (drag.lockDirection === 'horizontal') {
         const currentX = x.get();
         const rowWidth = element.offsetWidth || window.innerWidth;
-        const archiveThreshold = -Math.max(100, rowWidth * 0.4);
+        const archiveThreshold = -Math.max(100, rowWidth * 0.3);
         const muteThreshold = 80;
 
         if (currentX <= archiveThreshold) {
