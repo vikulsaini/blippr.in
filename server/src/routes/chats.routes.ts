@@ -135,16 +135,34 @@ router.get('/:chatId/messages', authMiddleware, async (req: AuthenticatedRequest
     const senderIds = [...new Set(messages.map((msg) => msg.sender_id))];
     const profileMap = await getMemberProfiles(senderIds);
 
-    const formattedMessages = messages.map((msg) => ({
-      _id: msg._id,
-      chat: msg.room_id,
-      sender: msg.sender_id,
-      senderProfile: profileMap.get(msg.sender_id) || null,
-      text: msg.content,
-      reactions: [] as string[],
-      status: 'seen' as const,
-      createdAt: msg.created_at,
-    }));
+    const formattedMessages = messages.map((msg) => {
+      const formatted: Record<string, unknown> = {
+        _id: msg._id,
+        chat: msg.room_id,
+        sender: msg.sender_id,
+        senderProfile: profileMap.get(msg.sender_id) || null,
+        text: msg.content || null,
+        reactions: [],
+        status: 'seen',
+        createdAt: msg.created_at,
+      };
+
+      // Include media fields if present
+      if (msg.media_url) {
+        formatted.mediaUrl = msg.media_url;
+        formatted.mediaType = msg.media_type || 'image';
+      }
+
+      // Include location if present
+      if (msg.location && typeof msg.location.latitude === 'number' && typeof msg.location.longitude === 'number') {
+        formatted.location = {
+          latitude: msg.location.latitude,
+          longitude: msg.location.longitude,
+        };
+      }
+
+      return formatted;
+    });
 
     res.status(200).json({ messages: formattedMessages });
   } catch (err) {
@@ -153,10 +171,10 @@ router.get('/:chatId/messages', authMiddleware, async (req: AuthenticatedRequest
   }
 });
 
-// 3. Post a new message in a room
+// 3. Post a new message in a room (supports text, media, location)
 router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedRequest, res) => {
   const { chatId } = req.params;
-  const { text } = req.body;
+  const { text, mediaUrl, mediaType, mediaName, mediaSize, location } = req.body;
   const userId = req.user?.id;
 
   if (!userId) {
@@ -165,8 +183,10 @@ router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedReques
   }
 
   const sanitizedText = typeof text === 'string' ? text.trim().substring(0, 10000) : '';
-  if (!sanitizedText) {
-    res.status(400).json({ error: 'Message text is required' });
+  
+  // Must have either text, media, or location
+  if (!sanitizedText && !mediaUrl && !location) {
+    res.status(400).json({ error: 'Message must contain text, media, or location.' });
     return;
   }
 
@@ -180,23 +200,50 @@ router.post('/:chatId/messages', authMiddleware, async (req: AuthenticatedReques
     const timestamp = new Date().toISOString();
     const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
+    // Validate location data if provided
+    let locationData = undefined;
+    if (location) {
+      if (typeof location.latitude !== 'number' || typeof location.longitude !== 'number') {
+        res.status(400).json({ error: 'Location must have valid latitude and longitude.' });
+        return;
+      }
+      locationData = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+      };
+    }
+
     await Message.create({
       _id: msgId,
       room_id: chatId,
       sender_id: userId,
-      content: sanitizedText,
+      content: sanitizedText || undefined,
+      media_url: mediaUrl || undefined,
+      media_type: mediaType || undefined,
+      location: locationData,
       created_at: timestamp,
     });
 
-    const message = {
+    const message: Record<string, unknown> = {
       _id: msgId,
       chat: chatId,
       sender: userId,
-      text: sanitizedText,
-      reactions: [] as string[],
-      status: 'sent' as const,
+      text: sanitizedText || null,
+      reactions: [],
+      status: 'sent',
       createdAt: timestamp,
     };
+
+    if (mediaUrl) {
+      message.mediaUrl = mediaUrl;
+      message.mediaType = mediaType || 'image';
+      if (mediaName) message.mediaName = mediaName;
+      if (mediaSize) message.mediaSize = mediaSize;
+    }
+
+    if (locationData) {
+      message.location = locationData;
+    }
 
     // Relay the message via WebSockets — exclude the sender to avoid duplicates
     const io: Server = req.app.get('io');

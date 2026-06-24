@@ -84,7 +84,11 @@ const MessageSchema = new mongoose.Schema({
   sender_id: { type: String, required: true },
   content: { type: String },
   media_url: { type: String },
-  media_type: { type: String },
+  media_type: { type: String, enum: ['image', 'audio', 'video', 'document', '', null] },
+  location: {
+    latitude: { type: Number },
+    longitude: { type: Number },
+  },
   created_at: { type: Date, default: Date.now },
 }, { _id: false });
 
